@@ -2,7 +2,7 @@ CXX=g++
 
 .PHONY: all clean src
 
-all: build simulator
+all: build src simulator
 
 build:
 	mkdir build
