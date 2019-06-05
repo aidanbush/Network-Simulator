@@ -5,9 +5,13 @@ BUILD_DIR=../build/
 TARGETS=$(addprefix $(BUILD_DIR), simulator.o networkObject.o packetHandler.o\
 	switch.o endpoint.o interface.o flow.o link.o packet.o)
 
-.PHONY: all clean
+.PHONY: all clean test
 
 all: $(BUILD_DIR) $(TARGETS)
+
+test:
+	make -C tests
+	make -C tests clean
 
 $(BUILD_DIR):
 	mkdir $(BUILD_DIR)

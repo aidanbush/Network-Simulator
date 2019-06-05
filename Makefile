@@ -3,9 +3,12 @@ CXXFLAGS=-Wall -Wextra -pedantic -g
 
 BUILD_DIR=build/
 
-.PHONY: all clean src
+.PHONY: all clean src test
 
 all: $(BUILD_DIR) simulator
+
+test:
+	make -C src test
 
 $(BUILD_DIR):
 	mkdir $(BUILD_DIR)

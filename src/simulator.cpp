@@ -8,13 +8,19 @@ using namespace std;
 
 priority_queue<EventI*, vector<EventI*>, comparator> pq;
 
+#ifndef _TEST
+
 int main() {
-    Switch s = Switch(1);
-    s.testOne();
+    // load configuration
+
     while (!pq.empty()) {
         EventI* e = pq.top();
         e->call();
         pq.pop();
+        delete e;
     }
+
     return 0;
 }
+
+#endif // _TEST

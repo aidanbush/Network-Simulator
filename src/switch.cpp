@@ -17,6 +17,8 @@ void Switch::setInternalSpeed(int speed) {
     internalSpeed = speed;
 }
 
+#ifdef _TEST
+
 void Switch::testOne() {
     cout << "Test Zero" << endl;
     EventI* e2 = new Event<Switch>(2,&Switch::testTwo,this);
@@ -39,3 +41,5 @@ void Switch::testThree() {
 void Switch::testFour() {
     cout << "Test Four" << endl;
 }
+
+#endif // _TEST
