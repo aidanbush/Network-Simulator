@@ -1,22 +1,20 @@
 #include <queue>
-#include <iostream>
 
 #include "switch.h"
-#include "simulator.h"
+#include "manager.h"
 
 using namespace std;
 
-priority_queue<EventI*, vector<EventI*>, comparator> pq;
-
 #ifndef _TEST
+Manager man;
 
 int main() {
     // load configuration
 
-    while (!pq.empty()) {
-        EventI* e = pq.top();
+    while (!man.pq.empty()) {
+        EventI* e = man.pq.top();
         e->call();
-        pq.pop();
+        man.pq.pop();
         delete e;
     }
 

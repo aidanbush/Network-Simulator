@@ -1,16 +1,18 @@
 #include <stdio.h>
 
-#include "../simulator.h"
+#include "../manager.h"
 #include "../switch.h"
+
+Manager man;
 
 int main() {
     Switch s = Switch(1);
     s.testOne();
 
-    while (!pq.empty()) {
-        EventI* e = pq.top();
+    while (!man.pq.empty()) {
+        EventI* e = man.pq.top();
         e->call();
-        pq.pop();
+        man.pq.pop();
         delete e;
     }
 
