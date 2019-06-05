@@ -1,4 +1,5 @@
 CXX=g++
+CXXFLAGS=-Wall -Wextra -pedantic -g
 
 BUILD_DIR=../build/
 TARGETS=$(addprefix $(BUILD_DIR), simulator.o networkObject.o packetHandler.o\
@@ -12,7 +13,7 @@ $(BUILD_DIR):
 	mkdir $(BUILD_DIR)
 
 $(BUILD_DIR)%.o: %.cpp
-	$(CXX) -o $@ -c $<
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ -c $<
 
 $(BUILD_DIR)simulator.o: simulator.cpp switch.h
 

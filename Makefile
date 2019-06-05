@@ -1,4 +1,5 @@
 CXX=g++
+CXXFLAGS=-Wall -Wextra -pedantic -g
 
 BUILD_DIR=build/
 
@@ -10,7 +11,7 @@ $(BUILD_DIR):
 	mkdir $(BUILD_DIR)
 
 simulator: src
-	$(CXX) -o $@ $(wildcard $(BUILD_DIR)*.o)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(wildcard $(BUILD_DIR)*.o)
 
 src:
 	make -C src
