@@ -1,7 +1,10 @@
-#ifndef SIMULATOR_H
-#define SIMULATOR_H
+#ifndef MANAGER_H
+#define MANAGER_H
 
 #include <queue>
+#include <cstdint>
+
+#include "simulator.h"
 
 using namespace std;
 
@@ -29,6 +32,20 @@ struct comparator {
     }
 };
 
-extern priority_queue<EventI*, vector<EventI*>, comparator> pq;
+class Manager {
+    public:
+        Manager();
 
-#endif // SIMULATOR_H
+        priority_queue<EventI*, vector<EventI*>, comparator> pq;
+        uint64_t time;
+        // global stats
+        // reference to all
+        // switches
+        // endpoints
+        // links
+        // flow
+};
+
+extern Manager man;
+
+#endif // MANAGER_H

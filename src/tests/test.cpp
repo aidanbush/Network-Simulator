@@ -1,15 +1,13 @@
-#include <queue>
+#include <stdio.h>
 
-#include "switch.h"
-#include "manager.h"
+#include "../manager.h"
+#include "../switch.h"
 
-using namespace std;
-
-#ifndef _TEST
 Manager man;
 
 int main() {
-    // load configuration
+    Switch s = Switch(1);
+    s.testOne();
 
     while (!man.pq.empty()) {
         EventI* e = man.pq.top();
@@ -18,7 +16,6 @@ int main() {
         delete e;
     }
 
+    printf("Tests Passed!\n");
     return 0;
 }
-
-#endif // _TEST

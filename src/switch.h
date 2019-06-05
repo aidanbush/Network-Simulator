@@ -9,16 +9,18 @@ using namespace std;
 class Switch: public PacketHandler {
     public:
         Switch(int id);
-        
+
         int getInternalSpeed();
-        
+
         void setInternalSpeed(int speed);
-        
+
+#ifdef _TEST
         void testOne(); // Temporary, delete
         void testTwo(); // Temporary, delete
         void testThree(); // Temporary, delete
         void testFour(); // Temporary, delete
-        
+#endif // _TEST
+
     private:
         int internalSpeed;
 };
