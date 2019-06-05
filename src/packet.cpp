@@ -7,6 +7,6 @@ Packet::Packet(int id, int sourceID, int destID, int ttl) {
     this->ttl = ttl;
 }
 
-int Packet::size() {
+int Packet::getSize() {
     return headerSize + bodySize;
 }

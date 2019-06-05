@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "interface.h"
+#include "networkObject.h"
 
 using namespace std;
 

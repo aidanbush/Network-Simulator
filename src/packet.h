@@ -1,13 +1,13 @@
 #ifndef PACKET_H
 #define PACKET_H
 
-#include "endpoint.h"
+#include "networkObject.h"
 
 class Packet: public NetworkObject {
     public:
         Packet(int id, int sourceID, int destID, int ttl);
 
-        int size();
+        int getSize();
 
     private:
         int headerSize;
@@ -16,6 +16,6 @@ class Packet: public NetworkObject {
         int sourceID;
         int destID;
         int flowID;
-}
+};
 
 #endif // PACKET_H
