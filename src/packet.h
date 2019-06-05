@@ -2,13 +2,12 @@
 #define PACKET_H
 
 #include "networkObject.h"
-#include "endpoint.h"
 
 class Packet: public NetworkObject {
     public:
         Packet(int id, int sourceID, int destID, int ttl);
 
-        int size();
+        int getSize();
 
     private:
         int headerSize;
