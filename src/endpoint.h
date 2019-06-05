@@ -3,8 +3,9 @@
 
 using namespace std;
 
+#include "packetHandler.h"
+
 class Endpoint: PacketHandler {
-    
 };
 
 #endif // ENDPOINT_H

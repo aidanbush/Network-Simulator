@@ -1,6 +1,7 @@
 #ifndef PACKET_H
 #define PACKET_H
 
+#include "networkObject.h"
 #include "endpoint.h"
 
 class Packet: public NetworkObject {
@@ -16,6 +17,6 @@ class Packet: public NetworkObject {
         int sourceID;
         int destID;
         int flowID;
-}
+};
 
 #endif // PACKET_H
