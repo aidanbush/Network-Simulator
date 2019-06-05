@@ -15,6 +15,7 @@ int main() {
         EventI* e = pq.top();
         e->call();
         pq.pop();
+        delete e;
     }
     return 0;
 }
