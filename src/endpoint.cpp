@@ -1,3 +1,3 @@
-#include endpoint.cpp
+#include "endpoint.h"
 
 using namespace std;

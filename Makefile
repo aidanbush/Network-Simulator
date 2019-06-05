@@ -1,17 +1,20 @@
 CXX=g++
 
-.PHONY: all clean
+BUILD_DIR=build/
 
-all: build simulator
+.PHONY: all clean src
 
-build:
-	mkdir build
+all: $(BUILD_DIR) simulator
 
-simulator: build/simulator.o
-	g++ -o simulator build/simulator.o
+$(BUILD_DIR):
+	mkdir $(BUILD_DIR)
 
-build/simulator.o: src/simulator.cpp
-	g++ src/simulator.cpp -o build/simulator.o -c
+simulator: src
+	$(CXX) -o $@ $(wildcard $(BUILD_DIR)*.o)
+
+src:
+	make -C src
 
 clean:
-	rm -f build/* simulator
+	make -C src clean
+	$(RM) simulator
