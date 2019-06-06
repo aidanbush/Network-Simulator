@@ -4,8 +4,6 @@
 #include <queue>
 #include <cstdint>
 
-#include "simulator.h"
-
 using namespace std;
 
 struct EventI {
