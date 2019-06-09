@@ -5,8 +5,10 @@
 
 class Packet: public NetworkObject {
     public:
-        Packet(int id, int sourceID, int destID, int ttl);
+        Packet(int id, int sourceID, int destID, int ttl, int headerSize,
+                int bodySize);
 
+        Packet *clone();
         int getSize();
 
     private:
