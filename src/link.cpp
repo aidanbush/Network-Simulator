@@ -11,13 +11,13 @@ void LinkQueue::txPacketIfaceEvent() {
 
     // if queue not empty create new event
     if (!pQueue.empty()) {
-        int nextTx = pQueue.top().arriveTime;
+        second_t nextTx = pQueue.top().arriveTime;
         EventI *e = new Event<LinkQueue>(nextTx, &LinkQueue::txPacketIfaceEvent, this);
         man.pq.push(e);
     }
 }
 
-void LinkQueue::txPacket(Packet *p, int txTime) {
+void LinkQueue::txPacket(Packet *p, second_t txTime) {
     LinkPacket lp = {
         .packet = p,
         .arriveTime = man.time + txTime,

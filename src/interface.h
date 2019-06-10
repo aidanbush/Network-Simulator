@@ -7,6 +7,7 @@
 #include "packetHandler.h"
 #include "packet.h"
 #include "link.h"
+#include "manager.h"
 
 class Link;
 class PacketHandler;

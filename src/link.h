@@ -7,6 +7,7 @@
 #include "networkObject.h"
 #include "packet.h"
 #include "interface.h"
+#include "manager.h"
 
 class Interface;
 
@@ -17,12 +18,12 @@ class LinkQueue {
         Interface *dest;
 
         void txPacketIfaceEvent();// event to move packet to dest
-        void txPacket(Packet *p, int txTime);
+        void txPacket(Packet *p, second_t txTime);
 
     private:
         struct LinkPacket {
             Packet *packet;
-            int arriveTime;
+            second_t arriveTime;
         };
 
         struct LinkPacketCmp {
@@ -43,7 +44,7 @@ class Link: public NetworkObject {
     private:
         unordered_map<int, LinkQueue> dests; // map sourceID to LinkQueue
         int speed; // bits/second
-        int txTime; // microseconds
+        second_t txTime;
 };
 
 #endif // LINK_H

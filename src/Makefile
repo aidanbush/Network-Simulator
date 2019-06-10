@@ -29,11 +29,11 @@ $(BUILD_DIR)switch.o: switch.cpp switch.h packetHandler.h networkObject.h manage
 
 $(BUILD_DIR)endpoint.o: endpoint.cpp endpoint.h packetHandler.h networkObject.h
 
-$(BUILD_DIR)interface.o: interface.cpp interface.h networkObject.h packet.h link.h packetHandler.h
+$(BUILD_DIR)interface.o: interface.cpp interface.h networkObject.h packet.h link.h packetHandler.h manager.h
 
 $(BUILD_DIR)flow.o: flow.cpp flow.h networkObject.h
 
-$(BUILD_DIR)link.o: link.cpp link.h networkObject.h packet.h interface.h
+$(BUILD_DIR)link.o: link.cpp link.h networkObject.h packet.h interface.h manager.h
 
 $(BUILD_DIR)packet.o: packet.cpp packet.h endpoint.h networkObject.h
 

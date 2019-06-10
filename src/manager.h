@@ -2,19 +2,20 @@
 #define MANAGER_H
 
 #include <queue>
-#include <cstdint>
 
 using namespace std;
 
+typedef double second_t;
+
 struct EventI {
-    int time;
+    second_t time;
     virtual void call() const {}
 };
 
 template <typename T> struct Event: EventI {
     void (T::*fcnPtr)();
     T* obj;
-    Event(int t, void (T::*fp)(), T* o) {
+    Event(second_t t, void (T::*fp)(), T* o) {
         this->time = t;
         this->obj = o;
         this->fcnPtr = fp;
@@ -35,7 +36,7 @@ class Manager {
         Manager();
 
         priority_queue<EventI*, vector<EventI*>, comparator> pq;
-        uint64_t time;
+        second_t time;
         // global stats
         // reference to all
         // switches

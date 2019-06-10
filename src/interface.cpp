@@ -11,8 +11,9 @@ void Interface::txLinkEvent() {
     link->txPacket(p, id);
 
     if (!linkBuffer.empty()) {
-        int nextTx = man.time + linkBuffer.front()->getSize() / linkSpeed;
+        second_t nextTx = man.time + double(linkBuffer.front()->getSize()) / linkSpeed;
         EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
+        man.pq.push(e);
     }
 }
 
@@ -23,7 +24,7 @@ void Interface::txHandlerEvent() {
     handler->handlePacket(p);
 
     if (!handlerBuffer.empty()) {
-        int nextTx = man.time + p->getSize() / handlerSpeed;
+        second_t nextTx = man.time + double(p->getSize()) / handlerSpeed;
         EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
         man.pq.push(e);
     }
@@ -33,7 +34,7 @@ void Interface::rxLink(Packet *p) {
     handlerBuffer.push(p);
 
     if (handlerBuffer.size() == 1) {
-        int nextTx = man.time + p->getSize() / handlerSpeed;
+        second_t nextTx = man.time + double(p->getSize()) / handlerSpeed;
         EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
         man.pq.push(e);
     }
@@ -45,7 +46,7 @@ void Interface::rxHandler(Packet *p) {
 
     // if only one element add event
     if (linkBuffer.size() == 1) {
-        int nextTx = man.time + p->getSize() / linkSpeed;
+        second_t nextTx = man.time + double(p->getSize()) / linkSpeed;
         EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
         man.pq.push(e);
     }
