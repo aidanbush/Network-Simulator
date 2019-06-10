@@ -2,6 +2,6 @@
 
 using namespace std;
 
-int NetworkObject::getId() {
+int NetworkObject::getID() {
     return id;
 }

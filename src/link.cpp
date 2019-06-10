@@ -11,7 +11,6 @@ void LinkQueue::txPacketIfaceEvent() {
 
     // if queue not empty create new event
     if (!pQueue.empty()) {
-        // add new event
         int nextTx = pQueue.top().arriveTime;
         EventI *e = new Event<LinkQueue>(nextTx, &LinkQueue::txPacketIfaceEvent, this);
         man.pq.push(e);
@@ -19,7 +18,6 @@ void LinkQueue::txPacketIfaceEvent() {
 }
 
 void LinkQueue::txPacket(Packet *p, int txTime) {
-    // add to queue
     LinkPacket lp = {
         .packet = p,
         .arriveTime = man.time + txTime,
@@ -32,6 +30,10 @@ void LinkQueue::txPacket(Packet *p, int txTime) {
         EventI *e = new Event<LinkQueue>(lp.arriveTime, &LinkQueue::txPacketIfaceEvent, this);
         man.pq.push(e);
     }
+}
+
+int Link::getSpeed() {
+    return speed;
 }
 
 void Link::txPacket(Packet *p, int sourceID) {

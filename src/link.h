@@ -31,12 +31,14 @@ class LinkQueue {
             }
         };
 
-        priority_queue<LinkPacket, vector<LinkPacket>, LinkPacketCmp> pQueue; // queue
+        priority_queue<LinkPacket, vector<LinkPacket>, LinkPacketCmp> pQueue;
 };
 
 class Link: public NetworkObject {
     public:
         void txPacket(Packet *p, int sourceID);
+
+        int getSpeed();
 
     private:
         unordered_map<int, LinkQueue> dests; // map sourceID to LinkQueue

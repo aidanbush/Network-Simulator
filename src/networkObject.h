@@ -5,8 +5,8 @@ using namespace std;
 
 class NetworkObject {
     public:
-        int getId();
-    
+        int getID();
+
     protected:
         int id;
 };
