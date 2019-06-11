@@ -4,6 +4,7 @@
 
 #include "../manager.h"
 #include "../packet.h"
+#include "../link.h"
 
 Manager man;
 
@@ -15,6 +16,13 @@ int main() {
         errors++;
     } else {
         printf("Packet tests passed\n");
+    }
+
+    if (!testLink()) {
+        printf("Link tests failed\n");
+        errors++;
+    } else {
+        printf("Link tests passed\n");
     }
 
     if (errors == 0) {

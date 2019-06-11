@@ -2,7 +2,7 @@
 #define LINK_H
 
 #include <queue>
-#include <unordered_map>
+#include <map>
 
 #include "networkObject.h"
 #include "packet.h"
@@ -37,14 +37,22 @@ class LinkQueue {
 
 class Link: public NetworkObject {
     public:
+        Link(int id, int speed, second_t txTime);
+
         void txPacket(Packet *p, int sourceID);
+        int addDest(Interface *iface);
+        int removeDest(int ifaceID);
 
         int getSpeed();
 
     private:
-        unordered_map<int, LinkQueue> dests; // map sourceID to LinkQueue
+        map<int, LinkQueue> dests; // map interfaceID to LinkQueue
         int speed; // bits/second
         second_t txTime;
 };
 
-#endif // LINK_H
+#ifdef _TEST
+int testLink();
+#endif /* _TEST */
+
+#endif /* LINK_H */

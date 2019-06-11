@@ -3,6 +3,12 @@
 
 using namespace std;
 
+Link::Link(int id, int speed, second_t txTime) {
+    this->id = id;
+    this->speed = speed;
+    this->txTime = txTime;
+}
+
 void LinkQueue::txPacketIfaceEvent() {
     // move packet from top of queue onto Iface
     LinkPacket p = pQueue.top();
@@ -51,3 +57,51 @@ void Link::txPacket(Packet *p, int sourceID) {
         }
     }
 }
+
+int Link::addDest(Interface *iface) {
+    if (dests.find(iface->getID()) != dests.end()) {
+        return 0;
+    }
+
+    dests[iface->getID()] = LinkQueue();
+    dests[iface->getID()].dest = iface;
+
+    return 1;
+}
+
+// return 1 if interface was connected to link
+int Link::removeDest(int ifaceID) {
+    return dests.erase(ifaceID);
+}
+
+#ifdef _TEST
+#include <assert.h>
+
+#define L_ID    1
+#define SPEED   8000000
+#define TX_TIME ((second_t)0.0005)
+
+int testLink() {
+    Link *l1 = new Link(L_ID, SPEED, TX_TIME);
+
+    assert(l1->getID() == L_ID);
+    assert(l1->getSpeed() == SPEED);
+
+    // test addDest
+    Interface *I1 = new Interface();
+
+    assert(l1->addDest(I1));
+    assert(!l1->addDest(I1));
+
+    assert(l1->removeDest(I1->getID()));
+    assert(!l1->removeDest(I1->getID()));
+
+    delete I1;
+
+    // test txPacket
+
+    delete l1;
+
+    return 1;
+}
+#endif /* _TEST */
