@@ -9,6 +9,8 @@ using namespace std;
 #include "packetHandler.h"
 
 class Endpoint: PacketHandler {
+    public:
+        void handlePacket(Packet *p);
 };
 
 #endif // ENDPOINT_H

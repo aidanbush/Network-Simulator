@@ -1,21 +1,27 @@
 #include <stdio.h>
 
+#define TEST_PACKET
+
 #include "../manager.h"
-#include "../switch.h"
+#include "../packet.h"
 
 Manager man;
 
 int main() {
-    Switch s = Switch(1);
-    s.testOne();
+    int errors = 0;
 
-    while (!man.pq.empty()) {
-        EventI* e = man.pq.top();
-        e->call();
-        man.pq.pop();
-        delete e;
+    if (!testPacket()) {
+        printf("Packet tests failed\n");
+        errors++;
+    } else {
+        printf("Packet tests passed\n");
     }
 
-    printf("Tests Passed!\n");
-    return 0;
+    if (errors == 0) {
+        printf("All tests Passed!\n");
+        return 0;
+    }
+
+    printf("%d tests failed\n", errors);
+    return 1;
 }

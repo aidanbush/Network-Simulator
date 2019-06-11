@@ -11,11 +11,11 @@ void PacketHandler::addInterface(Interface interface) {
 }
 
 void PacketHandler::removeInterface(int interfaceId) {
-    //TODO
+    // TODO
 }
 
 vector<PacketHandler> PacketHandler::getNeighbours() {
-    //TODO
+    // TODO
     vector<PacketHandler> temp;
     return temp;
 }

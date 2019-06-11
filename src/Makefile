@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-Wall -Wextra -pedantic -g
+CXXFLAGS=-std=c++2a -Wall -Wextra -pedantic -g
 
 BUILD_DIR=../build/
 TARGETS=$(addprefix $(BUILD_DIR), simulator.o networkObject.o packetHandler.o\
@@ -10,7 +10,7 @@ TARGETS=$(addprefix $(BUILD_DIR), simulator.o networkObject.o packetHandler.o\
 all: $(BUILD_DIR) $(TARGETS)
 
 test:
-	make -C tests
+	make -C tests CXXFLAGS="$(CXXFLAGS)"
 	make -C tests clean
 
 $(BUILD_DIR):

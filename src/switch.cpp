@@ -17,6 +17,11 @@ void Switch::setInternalSpeed(int speed) {
     internalSpeed = speed;
 }
 
+void Switch::handlePacket(Packet *p) {
+    // TODO: implement
+    delete p;
+}
+
 #ifdef _TEST
 
 void Switch::testOne() {

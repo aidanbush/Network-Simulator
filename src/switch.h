@@ -11,8 +11,9 @@ class Switch: public PacketHandler {
         Switch(int id);
 
         int getInternalSpeed();
-
         void setInternalSpeed(int speed);
+
+        void handlePacket(Packet *p);
 
 #ifdef _TEST
         void testOne(); // Temporary, delete

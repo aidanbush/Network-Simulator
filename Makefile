@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-Wall -Wextra -pedantic -g
+CXXFLAGS=-std=c++2a -Wall -Wextra -pedantic -g
 
 BUILD_DIR=build/
 
@@ -17,7 +17,7 @@ simulator: src
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(wildcard $(BUILD_DIR)*.o)
 
 src:
-	make -C src
+	make -C src CXXFLAGS="$(CXXFLAGS)"
 
 clean:
 	make -C src clean

@@ -19,7 +19,7 @@ class PacketHandler: public NetworkObject {
 
         vector<PacketHandler> getNeighbours();
 
-        void handlePacket(Packet *p);
+        virtual void handlePacket(Packet *p) = 0;
 
     protected:
         vector<Interface> interfaces;
