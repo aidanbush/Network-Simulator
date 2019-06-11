@@ -81,6 +81,10 @@ int Link::removeDest(int ifaceID) {
 #define SPEED   8000000
 #define TX_TIME ((second_t)0.0005)
 
+#define I_ID        1
+#define I_LB_SIZE   48000
+#define I_HB_SIZE   32000
+
 int testLink() {
     Link *l1 = new Link(L_ID, SPEED, TX_TIME);
 
@@ -88,15 +92,15 @@ int testLink() {
     assert(l1->getSpeed() == SPEED);
 
     // test addDest
-    Interface *I1 = new Interface();
+    Interface *i1 = new Interface(I_ID, l1, I_LB_SIZE, I_HB_SIZE);
 
-    assert(l1->addDest(I1));
-    assert(!l1->addDest(I1));
+    assert(l1->addDest(i1));
+    assert(!l1->addDest(i1));
 
-    assert(l1->removeDest(I1->getID()));
-    assert(!l1->removeDest(I1->getID()));
+    assert(l1->removeDest(i1->getID()));
+    assert(!l1->removeDest(i1->getID()));
 
-    delete I1;
+    delete i1;
 
     // test txPacket
 

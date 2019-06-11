@@ -25,6 +25,13 @@ int main() {
         printf("Link tests passed\n");
     }
 
+    if (!testInterface()) {
+        printf("Interface tests failed\n");
+        errors++;
+    } else {
+        printf("Interface tests passed\n");
+    }
+
     if (errors == 0) {
         printf("All tests Passed!\n");
         return 0;

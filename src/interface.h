@@ -14,6 +14,9 @@ class PacketHandler;
 
 class Interface: public NetworkObject {
     public:
+        Interface(int id, Link *link, int linkBufSize, int handlerBufSize);
+        int addHandler(PacketHandler *handler);
+
         void txLinkEvent();
         void txHandlerEvent();
 
@@ -24,6 +27,9 @@ class Interface: public NetworkObject {
         Link *link;
         PacketHandler *handler;
 
+        int linkBufSize; // bytes
+        int handlerBufSize; // bytes
+
         queue<Packet*> linkBuffer;
         queue<Packet*> handlerBuffer;
 
@@ -31,4 +37,8 @@ class Interface: public NetworkObject {
         int handlerSpeed;
 };
 
-#endif // INTERFACE_H
+#ifdef _TEST
+int testInterface();
+#endif /* _TEST */
+
+#endif /* INTERFACE_H */
