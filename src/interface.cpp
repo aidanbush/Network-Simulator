@@ -30,7 +30,7 @@ void Interface::txLinkEvent() {
     linkBufSize += p->fullSize();
 
     if (!linkBuffer.empty()) {
-        second_t nextTx = man.time + double(linkBuffer.front()->fullSizeBits()) / linkSpeed;
+        second_t nextTx = man.time + double(linkBuffer.front()->fullSizeBits()) / link->getSpeed();
         EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
         man.pushEvent(e);
     }
@@ -44,7 +44,7 @@ void Interface::txHandlerEvent() {
     handlerBufSize += p->fullSize();
 
     if (!handlerBuffer.empty()) {
-        second_t nextTx = man.time + double(p->fullSizeBits()) / handlerSpeed;
+        second_t nextTx = man.time + double(p->fullSizeBits()) / handler->getInternalSpeed();
         EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
         man.pushEvent(e);
     }
@@ -59,7 +59,7 @@ void Interface::rxLink(Packet *p) {
     handlerBufSize -= p->fullSize();
 
     if (handlerBuffer.size() == 1) {
-        second_t nextTx = man.time + double(p->fullSizeBits()) / handlerSpeed;
+        second_t nextTx = man.time + double(p->fullSizeBits()) / handler->getInternalSpeed();
         EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
         man.pushEvent(e);
     }
@@ -75,7 +75,7 @@ void Interface::rxHandler(Packet *p) {
 
     // if only one element add event
     if (linkBuffer.size() == 1) {
-        second_t nextTx = man.time + double(p->fullSizeBits()) / linkSpeed;
+        second_t nextTx = man.time + double(p->fullSizeBits()) / link->getSpeed();
         EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
         man.pushEvent(e);
     }
@@ -88,7 +88,7 @@ void Interface::rxHandler(Packet *p) {
 
 int Interface::ifaceToIface() {
     const int l1ID = 1,
-          l1Speed = 5000;
+          l1Speed = 1600000;
     const second_t l1TxTime = 0.01;
     const int i1ID = 1,
           i1LBuf = 1000,
@@ -103,23 +103,35 @@ int Interface::ifaceToIface() {
           p1TTL = 10,
           p1HSize = 50,
           p1BSize = 100;
+    const int p2ID = 2,
+          p2SID = 1,
+          p2DID = 2,
+          p2FID = 1,
+          p2TTL = 10,
+          p2HSize = 40,
+          p2BSize = 120;
+    const int h1Speed = 1;
     Link *l1;
     Interface *i1, *i2;
-    Packet *p1;
+    Packet *p1, *p2;
     EventI *e;
+    TestHandler *h1;
 
-    // create link
+    // setup network
     l1 = new Link(l1ID, l1Speed, l1TxTime);
 
-    // create interfaces
     i1 = new Interface(i1ID, l1, i1LBuf, i1HBuf);
     i2 = new Interface(i2ID, l1, i2LBuf, i2HBuf);
 
     l1->addDest(i1);
     l1->addDest(i2);
 
-    // send packet
+    h1 = new TestHandler(h1Speed);
+
+    i2->addHandler(h1);
+
     p1 = new Packet(p1ID, p1SID, p1DID, p1FID, p1TTL, p1HSize, p1BSize);
+    p2 = new Packet(p2ID, p2SID, p2DID, p2FID, p2TTL, p2HSize, p2BSize);
 
     // add p1
     i1->rxHandler(p1);
@@ -132,17 +144,38 @@ int Interface::ifaceToIface() {
     // check event exists and is correct
     assert(man.numEvents() == 1);
 
+    // add p2
+    i1->rxHandler(p2);
+
+    // check packet was added into buffer
+    assert(i1->linkBufSize == i1LBuf - (p1->fullSize() + p2->fullSize()));
+    assert(i1->linkBuffer.size() == 2);
+    assert(i1->linkBuffer.back() == p2);
+
+    // no new events
+    assert(man.numEvents() == 1);
+
     // pop and evaluate event
     e = man.popEvent();
     e->call();
     delete e;
 
-    // check that buffer back at max size
-    assert(i1->linkBufSize == i1LBuf);
+    // two events one transit other queued
+    assert(man.numEvents() == 2);
 
-    // move from link to l2
+    // check that buffer only holds p2
+    assert(i1->linkBufSize == i1LBuf - p2->fullSize());
+    assert(i1->linkBuffer.size() == 1);
+    assert(i1->linkBuffer.front() == p2);
+
+    // move p2 onto link
+    e = man.popEvent();
+    e->call();
+    delete e;
+
     assert(man.numEvents() == 1);
 
+    // move p1 from l1 to i2
     e = man.popEvent();
     e->call();
     delete e;
@@ -152,13 +185,27 @@ int Interface::ifaceToIface() {
     assert(i2->handlerBuffer.size() == 1);
     assert(i2->handlerBuffer.front() == p1);
 
-    // clean up last event
+    // move p2 from l1 to i2
+    e = man.popEvent();
+    e->call();
+    delete e;
+
+    // check packet arrived
+    assert(i2->handlerBufSize == i2HBuf - (p1->fullSize() + p2->fullSize()));
+    assert(i2->handlerBuffer.size() == 2);
+    assert(i2->handlerBuffer.back() == p2);
+
+    assert(man.numEvents() == 1);
+
+    // clean up last events
     delete man.popEvent();
 
     delete l1;
     delete i1;
     delete i2;
     delete p1;
+    delete p2;
+    delete h1;
 
     return 1;
 }

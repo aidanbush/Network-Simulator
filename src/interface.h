@@ -35,10 +35,6 @@ class Interface: public NetworkObject {
 
         queue<Packet*> linkBuffer;
         queue<Packet*> handlerBuffer;
-
-        int linkSpeed;
-        int handlerSpeed;
-
 };
 
 #ifdef _TEST
