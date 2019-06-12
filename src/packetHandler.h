@@ -18,6 +18,7 @@ class PacketHandler: public NetworkObject {
         void removeInterface(int interfaceId);
 
         vector<PacketHandler> getNeighbours();
+        int getInternalSpeed() {return internalSpeed; }
 
         virtual void handlePacket(Packet *p) = 0;
 
@@ -25,6 +26,16 @@ class PacketHandler: public NetworkObject {
         vector<Interface> interfaces;
 
         int id;
+        int internalSpeed;
 };
 
-#endif // PACKET_HANDLER_H
+#ifdef _TEST
+class TestHandler: public PacketHandler {
+    public:
+        TestHandler(int internalSpeed) {this->internalSpeed = internalSpeed; }
+
+        void handlePacket(Packet *) {; }
+};
+#endif /* _TEST */
+
+#endif /* PACKET_HANDLER_H */
