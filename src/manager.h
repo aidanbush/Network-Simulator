@@ -37,7 +37,6 @@ class Manager {
     public:
         Manager();
 
-        priority_queue<EventI*, vector<EventI*>, comparator> pq;
         second_t time;
         // global stats
         // reference to all
@@ -45,6 +44,14 @@ class Manager {
         // endpoints
         // links
         // flow
+
+        void pushEvent(EventI *e) {pq.push(e); }
+        EventI *popEvent();
+        priority_queue<EventI*, vector<EventI*>, comparator>::size_type
+            numEvents() {return pq.size(); }
+
+    private:
+        priority_queue<EventI*, vector<EventI*>, comparator> pq;
 };
 
 extern Manager man;

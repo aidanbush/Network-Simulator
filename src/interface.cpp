@@ -32,7 +32,7 @@ void Interface::txLinkEvent() {
     if (!linkBuffer.empty()) {
         second_t nextTx = man.time + double(linkBuffer.front()->fullSizeBits()) / linkSpeed;
         EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
-        man.pq.push(e);
+        man.pushEvent(e);
     }
 }
 
@@ -46,7 +46,7 @@ void Interface::txHandlerEvent() {
     if (!handlerBuffer.empty()) {
         second_t nextTx = man.time + double(p->fullSizeBits()) / handlerSpeed;
         EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
-        man.pq.push(e);
+        man.pushEvent(e);
     }
 }
 
@@ -61,7 +61,7 @@ void Interface::rxLink(Packet *p) {
     if (handlerBuffer.size() == 1) {
         second_t nextTx = man.time + double(p->fullSizeBits()) / handlerSpeed;
         EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
-        man.pq.push(e);
+        man.pushEvent(e);
     }
 }
 
@@ -77,7 +77,7 @@ void Interface::rxHandler(Packet *p) {
     if (linkBuffer.size() == 1) {
         second_t nextTx = man.time + double(p->fullSizeBits()) / linkSpeed;
         EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
-        man.pq.push(e);
+        man.pushEvent(e);
     }
 }
 
@@ -121,6 +121,7 @@ int Interface::ifaceToIface() {
     // send packet
     p1 = new Packet(p1ID, p1SID, p1DID, p1FID, p1TTL, p1HSize, p1BSize);
 
+    // add p1
     i1->rxHandler(p1);
 
     // check packet is in buffer
@@ -129,11 +130,10 @@ int Interface::ifaceToIface() {
     assert(i1->linkBuffer.front() == p1);
 
     // check event exists and is correct
-    assert(man.pq.size() == 1);
+    assert(man.numEvents() == 1);
 
     // pop and evaluate event
-    e = man.pq.top();
-    man.pq.pop();
+    e = man.popEvent();
     e->call();
     delete e;
 
@@ -141,10 +141,9 @@ int Interface::ifaceToIface() {
     assert(i1->linkBufSize == i1LBuf);
 
     // move from link to l2
-    assert(man.pq.size() == 1);
+    assert(man.numEvents() == 1);
 
-    e = man.pq.top();
-    man.pq.pop();
+    e = man.popEvent();
     e->call();
     delete e;
 
@@ -154,7 +153,7 @@ int Interface::ifaceToIface() {
     assert(i2->handlerBuffer.front() == p1);
 
     // clean up last event
-    delete man.pq.top();
+    delete man.popEvent();
 
     delete l1;
     delete i1;

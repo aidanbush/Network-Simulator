@@ -19,7 +19,7 @@ void LinkQueue::txPacketIfaceEvent() {
     if (!pQueue.empty()) {
         second_t nextTx = pQueue.top().arriveTime;
         EventI *e = new Event<LinkQueue>(nextTx, &LinkQueue::txPacketIfaceEvent, this);
-        man.pq.push(e);
+        man.pushEvent(e);
     }
 }
 
@@ -34,7 +34,7 @@ void LinkQueue::txPacket(Packet *p, second_t txTime) {
     // if now one element add tx event
     if (pQueue.size() == 1) {
         EventI *e = new Event<LinkQueue>(lp.arriveTime, &LinkQueue::txPacketIfaceEvent, this);
-        man.pq.push(e);
+        man.pushEvent(e);
     }
 }
 

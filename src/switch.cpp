@@ -29,9 +29,9 @@ void Switch::testOne() {
     EventI* e2 = new Event<Switch>(2, &Switch::testTwo, this);
     EventI* e3 = new Event<Switch>(3, &Switch::testThree, this);
     EventI* e4 = new Event<Switch>(4, &Switch::testFour, this);
-    man.pq.push(e3);
-    man.pq.push(e4);
-    man.pq.push(e2);
+    man.pushEvent(e3);
+    man.pushEvent(e4);
+    man.pushEvent(e2);
     cout << "Test One" << endl;
 }
 
