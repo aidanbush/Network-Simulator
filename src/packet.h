@@ -1,6 +1,8 @@
 #ifndef PACKET_H
 #define PACKET_H
 
+#define BITS_PER_BYTE   8
+
 #include "networkObject.h"
 
 class Packet: public NetworkObject {
@@ -16,6 +18,7 @@ class Packet: public NetworkObject {
         int getDest() {return destID; }
 
         int fullSize() {return headerSize + bodySize; }
+        int fullSizeBits() {return (headerSize + bodySize) * BITS_PER_BYTE; }
         void decTTL() {ttl--; }
 
 #ifdef _TEST
