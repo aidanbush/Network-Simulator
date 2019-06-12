@@ -9,6 +9,8 @@ typedef double second_t;
 
 struct EventI {
     second_t time;
+
+    virtual ~EventI() = default;
     virtual void call() const {}
 };
 
