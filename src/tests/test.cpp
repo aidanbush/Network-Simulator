@@ -1,7 +1,5 @@
 #include <stdio.h>
 
-#define TEST_PACKET
-
 #include "../manager.h"
 #include "../packet.h"
 #include "../link.h"

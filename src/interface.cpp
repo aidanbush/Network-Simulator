@@ -27,6 +27,7 @@ void Interface::txLinkEvent() {
     linkBuffer.pop();
 
     link->txPacket(p, id);
+    linkBufSize += p->fullSize();
 
     if (!linkBuffer.empty()) {
         second_t nextTx = man.time + double(linkBuffer.front()->fullSizeBits()) / linkSpeed;
@@ -40,6 +41,7 @@ void Interface::txHandlerEvent() {
     handlerBuffer.pop();
 
     handler->handlePacket(p);
+    handlerBufSize += p->fullSize();
 
     if (!handlerBuffer.empty()) {
         second_t nextTx = man.time + double(p->fullSizeBits()) / handlerSpeed;
@@ -49,7 +51,12 @@ void Interface::txHandlerEvent() {
 }
 
 void Interface::rxLink(Packet *p) {
+    if (handlerBufSize - p->fullSize() >= 0) {
+        // TODO: drop packet
+    }
+
     handlerBuffer.push(p);
+    handlerBufSize -= p->fullSize();
 
     if (handlerBuffer.size() == 1) {
         second_t nextTx = man.time + double(p->fullSizeBits()) / handlerSpeed;
@@ -59,8 +66,12 @@ void Interface::rxLink(Packet *p) {
 }
 
 void Interface::rxHandler(Packet *p) {
-    // add packet to link buffer
+    if (linkBufSize - p->fullSize() >= 0) {
+        // TODO: drop packet
+    }
+
     linkBuffer.push(p);
+    linkBufSize -= p->fullSize();
 
     // if only one element add event
     if (linkBuffer.size() == 1) {
@@ -74,6 +85,84 @@ void Interface::rxHandler(Packet *p) {
 #include <assert.h>
 
 #include "switch.h"
+
+int Interface::ifaceToIface() {
+    const int l1ID = 1,
+          l1Speed = 5000;
+    const second_t l1TxTime = 0.01;
+    const int i1ID = 1,
+          i1LBuf = 1000,
+          i1HBuf = 1000;
+    const int i2ID = 2,
+          i2LBuf = 1000,
+          i2HBuf = 1000;
+    const int p1ID = 1,
+          p1SID = 1,
+          p1DID = 2,
+          p1FID = 1,
+          p1TTL = 10,
+          p1HSize = 50,
+          p1BSize = 100;
+    Link *l1;
+    Interface *i1, *i2;
+    Packet *p1;
+    EventI *e;
+
+    // create link
+    l1 = new Link(l1ID, l1Speed, l1TxTime);
+
+    // create interfaces
+    i1 = new Interface(i1ID, l1, i1LBuf, i1HBuf);
+    i2 = new Interface(i2ID, l1, i2LBuf, i2HBuf);
+
+    l1->addDest(i1);
+    l1->addDest(i2);
+
+    // send packet
+    p1 = new Packet(p1ID, p1SID, p1DID, p1FID, p1TTL, p1HSize, p1BSize);
+
+    i1->rxHandler(p1);
+
+    // check packet is in buffer
+    assert(i1->linkBufSize == i1LBuf - p1->fullSize());
+    assert(i1->linkBuffer.size() == 1);
+    assert(i1->linkBuffer.front() == p1);
+
+    // check event exists and is correct
+    assert(man.pq.size() == 1);
+
+    // pop and evaluate event
+    e = man.pq.top();
+    man.pq.pop();
+    e->call();
+    delete e;
+
+    // check that buffer back at max size
+    assert(i1->linkBufSize == i1LBuf);
+
+    // move from link to l2
+    assert(man.pq.size() == 1);
+
+    e = man.pq.top();
+    man.pq.pop();
+    e->call();
+    delete e;
+
+    // check packet arrived
+    assert(i2->handlerBufSize == i2HBuf - p1->fullSize());
+    assert(i2->handlerBuffer.size() == 1);
+    assert(i2->handlerBuffer.front() == p1);
+
+    // clean up last event
+    delete man.pq.top();
+
+    delete l1;
+    delete i1;
+    delete i2;
+    delete p1;
+
+    return 1;
+}
 
 #define L_ID        1
 #define L_SPEED     80000
@@ -99,7 +188,7 @@ int testInterface() {
     delete i1;
     delete l1;
 
-    return 1;
+    return Interface::ifaceToIface();
 }
 
 #endif /* _TEST */

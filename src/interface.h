@@ -23,6 +23,9 @@ class Interface: public NetworkObject {
         void rxLink(Packet *p);
         void rxHandler(Packet *p);
 
+#ifdef _TEST
+        static int ifaceToIface();
+#endif /* _TEST */
     private:
         Link *link;
         PacketHandler *handler;
@@ -35,6 +38,7 @@ class Interface: public NetworkObject {
 
         int linkSpeed;
         int handlerSpeed;
+
 };
 
 #ifdef _TEST
