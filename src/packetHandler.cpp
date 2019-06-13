@@ -2,20 +2,20 @@
 
 using namespace std;
 
-vector<Interface> PacketHandler::getInterfaces() {
-    return interfaces;
+vector<Interface *> PacketHandler::getInterfaces() {
+    return ifaces;
 }
 
-void PacketHandler::addInterface(Interface interface) {
-    interfaces.push_back(interface);
+void PacketHandler::addInterface(Interface *iface) {
+    ifaces.push_back(iface);
 }
 
-void PacketHandler::removeInterface(int interfaceId) {
+void PacketHandler::removeInterface(int ifaceID) {
     // TODO
 }
 
-vector<PacketHandler> PacketHandler::getNeighbours() {
+vector<PacketHandler *> PacketHandler::getNeighbours() {
     // TODO
-    vector<PacketHandler> temp;
+    vector<PacketHandler *> temp;
     return temp;
 }

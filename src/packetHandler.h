@@ -13,17 +13,17 @@ class Interface;
 
 class PacketHandler: public NetworkObject {
     public:
-        vector<Interface> getInterfaces();
-        void addInterface(Interface interface);
-        void removeInterface(int interfaceId);
+        vector<Interface *> getInterfaces();
+        void addInterface(Interface *iface);
+        void removeInterface(int ifaceID);
 
-        vector<PacketHandler> getNeighbours();
+        vector<PacketHandler *> getNeighbours();
         int getInternalSpeed() {return internalSpeed; }
 
-        virtual void handlePacket(Packet *p) = 0;
+        virtual void rxPacket(Packet *p) = 0;
 
     protected:
-        vector<Interface> interfaces;
+        vector<Interface *> ifaces;
 
         int id;
         int internalSpeed;
@@ -34,7 +34,7 @@ class TestHandler: public PacketHandler {
     public:
         TestHandler(int internalSpeed) {this->internalSpeed = internalSpeed; }
 
-        void handlePacket(Packet *) {; }
+        void rxPacket(Packet *) {; }
 };
 #endif /* _TEST */
 

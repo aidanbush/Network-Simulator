@@ -40,7 +40,7 @@ void Interface::txHandlerEvent() {
     Packet *p = handlerBuffer.front();
     handlerBuffer.pop();
 
-    handler->handlePacket(p);
+    handler->rxPacket(p);
     handlerBufSize += p->fullSize();
 
     if (!handlerBuffer.empty()) {

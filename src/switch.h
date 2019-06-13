@@ -13,7 +13,7 @@ class Switch: public PacketHandler {
         int getInternalSpeed();
         void setInternalSpeed(int speed);
 
-        void handlePacket(Packet *p);
+        void rxPacket(Packet *p);
 
 #ifdef _TEST
         void testOne(); // Temporary, delete

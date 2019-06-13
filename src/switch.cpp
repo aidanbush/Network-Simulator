@@ -17,9 +17,8 @@ void Switch::setInternalSpeed(int speed) {
     internalSpeed = speed;
 }
 
-void Switch::handlePacket(Packet *p) {
+void Switch::rxPacket(Packet *p) {
     // TODO: implement
-    delete p;
 }
 
 #ifdef _TEST

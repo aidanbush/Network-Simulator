@@ -10,7 +10,7 @@ using namespace std;
 
 class Endpoint: public PacketHandler {
     public:
-        void handlePacket(Packet *p);
+        void rxPacket(Packet *p);
         void txPacket(Packet *p);
 };
 
