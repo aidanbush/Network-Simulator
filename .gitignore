@@ -35,3 +35,6 @@
 .DS_Store
 *.dSYM
 
+# Config
+src/tests/local.json
+
