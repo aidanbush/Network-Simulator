@@ -1,4 +1,6 @@
 #include "packetHandler.h"
+#include "interface.h"
+#include "packet.h"
 
 using namespace std;
 

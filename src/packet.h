@@ -4,6 +4,9 @@
 #define BITS_PER_BYTE   8
 
 #include "networkObject.h"
+#include "flow.h"
+
+class Flow;
 
 class Packet: public NetworkObject {
     public:
@@ -21,6 +24,10 @@ class Packet: public NetworkObject {
         int fullSizeBits() {return (headerSize + bodySize) * BITS_PER_BYTE; }
         void decTTL() {ttl--; }
 
+        void arrive();
+        void drop();
+        void error();
+
 #ifdef _TEST
         bool fullEqual(Packet *p);
 #endif /* _TEST */
@@ -32,6 +39,8 @@ class Packet: public NetworkObject {
         int sourceID;
         int destID;
         int flowID;
+
+        Flow *flow;
 };
 
 #ifdef _TEST

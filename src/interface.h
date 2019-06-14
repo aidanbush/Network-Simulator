@@ -4,13 +4,10 @@
 #include <queue>
 
 #include "networkObject.h"
-#include "packetHandler.h"
-#include "packet.h"
-#include "link.h"
-#include "manager.h"
 
 class Link;
 class PacketHandler;
+class Packet;
 
 class Interface: public NetworkObject {
     public:

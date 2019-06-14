@@ -1,4 +1,5 @@
 #include "packet.h"
+#include "flow.h"
 
 Packet::Packet(int id, int sourceID, int destID, int flowID, int ttl,
         int headerSize, int bodySize) {
@@ -13,6 +14,15 @@ Packet::Packet(int id, int sourceID, int destID, int flowID, int ttl,
 
 Packet *Packet::clone() {
     return new Packet(id, sourceID, destID, flowID, ttl, headerSize, bodySize);
+}
+
+void Packet::arrive() {
+}
+
+void Packet::drop() {
+}
+
+void Packet::error() {
 }
 
 #ifdef _TEST

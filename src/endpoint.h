@@ -1,12 +1,11 @@
 #ifndef ENDPOINT_H
 #define ENDPOINT_H
 
-#include "networkObject.h"
 #include "packetHandler.h"
 
 using namespace std;
 
-#include "packetHandler.h"
+class Packet;
 
 class Endpoint: public PacketHandler {
     public:
@@ -14,4 +13,4 @@ class Endpoint: public PacketHandler {
         void txPacket(Packet *p);
 };
 
-#endif // ENDPOINT_H
+#endif /* ENDPOINT_H */

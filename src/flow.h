@@ -3,10 +3,11 @@
 
 #include "networkObject.h"
 #include "manager.h"
-#include "packet.h"
-#include "endpoint.h"
 
 using namespace std;
+
+class Packet;
+class Endpoint;
 
 class Flow: public NetworkObject {
     public:

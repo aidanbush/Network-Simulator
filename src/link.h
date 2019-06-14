@@ -5,11 +5,10 @@
 #include <map>
 
 #include "networkObject.h"
-#include "packet.h"
-#include "interface.h"
 #include "manager.h"
 
 class Interface;
+class Packet;
 
 using namespace std;
 

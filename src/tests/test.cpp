@@ -3,6 +3,7 @@
 #include "../manager.h"
 #include "../packet.h"
 #include "../link.h"
+#include "../interface.h"
 
 Manager man;
 

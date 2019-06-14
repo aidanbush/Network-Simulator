@@ -1,4 +1,6 @@
 #include "link.h"
+#include "packet.h"
+#include "interface.h"
 #include "manager.h"
 
 using namespace std;

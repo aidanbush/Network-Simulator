@@ -1,4 +1,5 @@
 #include "endpoint.h"
+#include "interface.h"
 
 using namespace std;
 

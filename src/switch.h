@@ -2,7 +2,6 @@
 #define SWITCH_H
 
 #include "packetHandler.h"
-#include "networkObject.h"
 
 using namespace std;
 

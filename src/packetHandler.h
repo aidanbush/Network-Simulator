@@ -3,13 +3,12 @@
 
 #include <vector>
 
-#include "interface.h"
 #include "networkObject.h"
-#include "packet.h"
 
 using namespace std;
 
 class Interface;
+class Packet;
 
 class PacketHandler: public NetworkObject {
     public:
