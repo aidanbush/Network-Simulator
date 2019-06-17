@@ -2,6 +2,7 @@
 #define PACKET_HANDLER_H
 
 #include <vector>
+#include <map>
 
 #include "networkObject.h"
 
@@ -12,8 +13,7 @@ class Packet;
 
 class PacketHandler: public NetworkObject {
     public:
-        vector<Interface *> getInterfaces();
-        void addInterface(Interface *iface);
+        int addInterface(int destID, Interface *iface);
         void removeInterface(int ifaceID);
 
         vector<PacketHandler *> getNeighbours();
@@ -22,7 +22,7 @@ class PacketHandler: public NetworkObject {
         virtual void rxPacket(Packet *p) = 0;
 
     protected:
-        vector<Interface *> ifaces;
+        map<int, Interface *> ifaces; // map neighbour id to iface
 
         int id;
         int internalSpeed;

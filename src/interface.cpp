@@ -101,14 +101,12 @@ int Interface::ifaceToIface() {
     const int p1ID = 1,
           p1SID = 1,
           p1DID = 2,
-          p1FID = 1,
           p1TTL = 10,
           p1HSize = 50,
           p1BSize = 100;
     const int p2ID = 2,
           p2SID = 1,
           p2DID = 2,
-          p2FID = 1,
           p2TTL = 10,
           p2HSize = 40,
           p2BSize = 120;
@@ -118,6 +116,7 @@ int Interface::ifaceToIface() {
     Packet *p1, *p2;
     EventI *e;
     TestHandler *h1;
+    Flow *f1;
 
     // setup network
     l1 = new Link(l1ID, l1Speed, l1TxTime);
@@ -132,8 +131,10 @@ int Interface::ifaceToIface() {
 
     i2->addHandler(h1);
 
-    p1 = new Packet(p1ID, p1SID, p1DID, p1FID, p1TTL, p1HSize, p1BSize);
-    p2 = new Packet(p2ID, p2SID, p2DID, p2FID, p2TTL, p2HSize, p2BSize);
+    f1 = NULL;
+
+    p1 = new Packet(p1ID, p1SID, p1DID, f1, p1TTL, p1HSize, p1BSize);
+    p2 = new Packet(p2ID, p2SID, p2DID, f1, p2TTL, p2HSize, p2BSize);
 
     // add p1
     i1->rxHandler(p1);

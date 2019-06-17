@@ -18,7 +18,8 @@ void Switch::setInternalSpeed(int speed) {
 }
 
 void Switch::rxPacket(Packet *p) {
-    // TODO: implement
+    // select next interface to move the packet to
+    // iface.rxHandler(p);
 }
 
 #ifdef _TEST

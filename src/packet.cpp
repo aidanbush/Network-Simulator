@@ -1,32 +1,37 @@
 #include "packet.h"
 #include "flow.h"
 
-Packet::Packet(int id, int sourceID, int destID, int flowID, int ttl,
+Packet::Packet(int id, int sourceID, int destID, Flow *flow, int ttl,
         int headerSize, int bodySize) {
     this->id = id;
     this->sourceID = sourceID;
     this->destID = destID;
-    this->flowID = flowID;
+    this->flow = flow;
     this->ttl = ttl;
     this->headerSize = headerSize;
     this->bodySize = bodySize;
 }
 
 Packet *Packet::clone() {
-    return new Packet(id, sourceID, destID, flowID, ttl, headerSize, bodySize);
+    return new Packet(id, sourceID, destID, flow, ttl, headerSize, bodySize);
 }
 
 void Packet::arrive() {
+    flow->packetArrived(this);
 }
 
 void Packet::drop() {
+    flow->packetDropped(this);
 }
 
 void Packet::error() {
+    flow->packetError(this);
 }
 
 #ifdef _TEST
 #include <assert.h>
+
+#include "endpoint.h"
 
 #define P_ID    1
 #define S_ID    1
@@ -44,12 +49,14 @@ bool Packet::fullEqual(Packet *p) {
         ttl == p->ttl &&
         sourceID == p->sourceID &&
         destID == p->destID &&
-        flowID == p->flowID;
+        flow == p->flow;
 }
 
 int testPacket() {
+    Endpoint *e1 = new Endpoint(S_ID);
+    Flow *f1 = new TestFlow(F_ID, e1, D_ID);
     // test creation packet
-    Packet *p1 = new Packet(P_ID, S_ID, D_ID, F_ID, TTL, H_SIZE, B_SIZE);
+    Packet *p1 = new Packet(P_ID, S_ID, D_ID, f1, TTL, H_SIZE, B_SIZE);
 
     // test values
     assert(p1->fullSize() == SIZE);
@@ -71,6 +78,9 @@ int testPacket() {
 
     delete p1;
     delete p2;
+
+    delete e1;
+    delete f1;
 
     return 1;
 }

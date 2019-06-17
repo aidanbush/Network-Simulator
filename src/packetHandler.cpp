@@ -4,12 +4,13 @@
 
 using namespace std;
 
-vector<Interface *> PacketHandler::getInterfaces() {
-    return ifaces;
-}
+int PacketHandler::addInterface(int destID, Interface *iface) {
+    if (ifaces.find(destID) != ifaces.end()) {
+        return 0;
+    }
 
-void PacketHandler::addInterface(Interface *iface) {
-    ifaces.push_back(iface);
+    ifaces[destID] = iface;
+    return 1;
 }
 
 void PacketHandler::removeInterface(int ifaceID) {

@@ -1,10 +1,15 @@
 #include "endpoint.h"
 #include "interface.h"
+#include "packet.h"
 
 using namespace std;
 
+Endpoint::Endpoint(int id) {
+    this->id = id;
+}
+
 void Endpoint::rxPacket(Packet *p) {
-    // TODO: implement
+    p->arrive();
 }
 
 void Endpoint::txPacket(Packet *p) {

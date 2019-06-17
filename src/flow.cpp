@@ -22,6 +22,10 @@ void Flow::packetDropped(Packet *p) {
     delete p;
 }
 
+void Flow::packetError(Packet *p) {
+    delete p;
+}
+
 int Flow::newPacketID() {
     static int pID = 0;
     return pID++;
@@ -49,7 +53,7 @@ void TestFlow::txPacketEvent() {
     int bSize = bMin + rand() % (bMax - bMin);
     int pID = newPacketID();
 
-    Packet *p = new Packet(pID, sourceID, destID, id, ttl, hSize, bSize);
+    Packet *p = new Packet(pID, sourceID, destID, this, ttl, hSize, bSize);
     // send p
 
     // set up next

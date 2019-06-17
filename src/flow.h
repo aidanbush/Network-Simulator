@@ -15,8 +15,10 @@ class Flow: public NetworkObject {
 
         virtual void StartFlow() = 0;
         virtual void txPacketEvent() = 0;
+
         void packetArrived(Packet *p);
         void packetDropped(Packet *p);
+        void packetError(Packet *p);
 
     protected:
         vector<Packet *> packets;
@@ -32,6 +34,8 @@ class Flow: public NetworkObject {
 #ifdef _TEST
 class TestFlow: public Flow {
     public:
+        using Flow::Flow;
+
         void StartFlow();
         void txPacketEvent();
         second_t nextTxTime();

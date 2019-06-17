@@ -9,6 +9,8 @@ class Packet;
 
 class Endpoint: public PacketHandler {
     public:
+        Endpoint(int id);
+
         void rxPacket(Packet *p);
         void txPacket(Packet *p);
 };
