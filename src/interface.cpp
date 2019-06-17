@@ -28,8 +28,8 @@ void Interface::txLinkEvent() {
     Packet *p = linkBuffer.front();
     linkBuffer.pop();
 
-    link->txPacket(p, id);
     linkBufSize += p->fullSize();
+    link->txPacket(p, id);
 
     if (!linkBuffer.empty()) {
         second_t nextTx = man.time + double(linkBuffer.front()->fullSizeBits()) / link->getSpeed();
@@ -42,8 +42,8 @@ void Interface::txHandlerEvent() {
     Packet *p = handlerBuffer.front();
     handlerBuffer.pop();
 
-    handler->rxPacket(p);
     handlerBufSize += p->fullSize();
+    handler->rxPacket(p);
 
     if (!handlerBuffer.empty()) {
         second_t nextTx = man.time + double(p->fullSizeBits()) / handler->getInternalSpeed();
@@ -57,8 +57,8 @@ void Interface::rxLink(Packet *p) {
         // TODO: drop packet
     }
 
-    handlerBuffer.push(p);
     handlerBufSize -= p->fullSize();
+    handlerBuffer.push(p);
 
     if (handlerBuffer.size() == 1) {
         second_t nextTx = man.time + double(p->fullSizeBits()) / handler->getInternalSpeed();
@@ -72,8 +72,8 @@ void Interface::rxHandler(Packet *p) {
         // TODO: drop packet
     }
 
-    linkBuffer.push(p);
     linkBufSize -= p->fullSize();
+    linkBuffer.push(p);
 
     // if only one element add event
     if (linkBuffer.size() == 1) {
@@ -111,6 +111,7 @@ int Interface::ifaceToIface() {
           p2HSize = 40,
           p2BSize = 120;
     const int h1Speed = 1;
+
     Link *l1;
     Interface *i1, *i2;
     Packet *p1, *p2;

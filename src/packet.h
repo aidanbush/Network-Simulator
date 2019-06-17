@@ -12,6 +12,7 @@ class Packet: public NetworkObject {
     public:
         Packet(int id, int sourceID, int destID, Flow *flow, int ttl,
                 int headerSize, int bodySize);
+        ~Packet() = default;
 
         Packet *clone();
 

@@ -24,7 +24,6 @@ class PacketHandler: public NetworkObject {
     protected:
         map<int, Interface *> ifaces; // map neighbour id to iface
 
-        int id;
         int internalSpeed;
 };
 

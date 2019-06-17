@@ -35,6 +35,7 @@ void Packet::error() {
 
 #define P_ID    1
 #define S_ID    1
+#define S_SPEED 1
 #define D_ID    1
 #define F_ID    1
 #define TTL     10
@@ -53,7 +54,7 @@ bool Packet::fullEqual(Packet *p) {
 }
 
 int testPacket() {
-    Endpoint *e1 = new Endpoint(S_ID);
+    Endpoint *e1 = new Endpoint(S_ID, S_SPEED);
     Flow *f1 = new TestFlow(F_ID, e1, D_ID);
     // test creation packet
     Packet *p1 = new Packet(P_ID, S_ID, D_ID, f1, TTL, H_SIZE, B_SIZE);

@@ -4,6 +4,7 @@
 #include "../packet.h"
 #include "../link.h"
 #include "../interface.h"
+#include "../endpoint.h"
 
 Manager man;
 
@@ -29,6 +30,13 @@ int main() {
         errors++;
     } else {
         printf("Interface tests passed\n");
+    }
+
+    if (!testEndpoint()) {
+        printf("Endpoint tests failed\n");
+        errors++;
+    } else {
+        printf("Endpoint tests passed\n");
     }
 
     if (errors == 0) {
