@@ -55,6 +55,7 @@ void TestFlow::txPacketEvent() {
 
     Packet *p = new Packet(pID, sourceID, destID, this, ttl, hSize, bSize);
     // send p
+    endpoint->txPacket(p);
 
     // set up next
     int nextTx = nextTxTime();
