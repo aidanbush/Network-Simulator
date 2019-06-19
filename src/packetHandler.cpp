@@ -1,6 +1,10 @@
+#include <map>
+#include <vector>
+
 #include "packetHandler.h"
 #include "interface.h"
 #include "packet.h"
+#include "manager.h"
 
 using namespace std;
 
@@ -18,7 +22,24 @@ void PacketHandler::removeInterface(int ifaceID) {
 }
 
 vector<PacketHandler *> PacketHandler::getNeighbours() {
-    // TODO
-    vector<PacketHandler *> temp;
-    return temp;
+    vector<PacketHandler *> neighbours;
+    PacketHandler *handler;
+
+    for (auto const& [id, iface] : ifaces) {
+        handler = man.getHandler(id);
+        neighbours.pushback(handler);
+    }
+
+    return neighbours;
+}
+
+map<Interface *, PacketHandler *> PacketHandler::getIfaceNeighbours() {
+    map<Interface *, PacketHandler *> neighbours;
+
+    // for each interface
+    for (auto const& [id, iface] : ifaces) {
+        neighbours.insert({iface, man.getHandler(id)});
+    }
+
+    return neighbours;
 }

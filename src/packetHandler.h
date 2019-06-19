@@ -17,6 +17,7 @@ class PacketHandler: public NetworkObject {
         void removeInterface(int ifaceID);
 
         vector<PacketHandler *> getNeighbours();
+        map<Interface *, PacketHandler *> getIfaceNeighbours();
         int getInternalSpeed() {return internalSpeed; }
 
         virtual void rxPacket(Packet *p) = 0;
