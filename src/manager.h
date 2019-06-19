@@ -2,6 +2,9 @@
 #define MANAGER_H
 
 #include <queue>
+#include <map>
+
+class PacketHandler;
 
 using namespace std;
 
@@ -45,6 +48,8 @@ class Manager {
         // links
         // flow
 
+        PacketHandler *getHandler(int id);
+
         void pushEvent(EventI *e) {pq.push(e); }
         EventI *popEvent();
         priority_queue<EventI*, vector<EventI*>, comparator>::size_type
@@ -52,6 +57,7 @@ class Manager {
 
     private:
         priority_queue<EventI*, vector<EventI*>, comparator> pq;
+        map<int, PacketHandler*> packetHandlers;
 };
 
 extern Manager man;

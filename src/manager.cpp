@@ -1,7 +1,28 @@
 #include "manager.h"
+#include "packetHandler.h"
+
+#include <map>
 
 Manager::Manager() {
     time = 0;
+}
+
+int Manager::addHandler(int id, PacketHandler *handler) {
+    if (handler == NULL || packetHandlers.find(id) != packetHandlers.end()) {
+        return 0;
+    }
+
+    packetHandlers.instert({id, handler});
+    return 1;
+}
+
+PacketHandler *Manager::getHandler(int id) {
+    auto handler = packetHandlers.find(id);
+    if (handler == packetHandlers.end()) {
+        return NULL;
+    }
+
+    return handler->second;
 }
 
 EventI *Manager::popEvent() {
