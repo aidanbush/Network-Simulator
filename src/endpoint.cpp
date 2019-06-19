@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "endpoint.h"
 #include "interface.h"
 #include "packet.h"
@@ -13,9 +15,16 @@ void Endpoint::rxPacket(Packet *p) {
     p->arrive();
 }
 
-void Endpoint::txPacket(Packet *p) {
+int Endpoint::txPacket(Packet *p) {
     // TODO: implement select interface and send on it
-    ifaces.begin()->second->rxHandler(p);
+    auto iface = ifaces.begin();
+    if (iface == ifaces.end()) {
+        fprintf(stderr, "interface not found to transmit packet on\n");
+        return 0;
+    }
+
+    iface->second->rxHandler(p);
+    return 1;
 }
 
 #ifdef _TEST

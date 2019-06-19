@@ -12,7 +12,7 @@ class Endpoint: public PacketHandler {
         Endpoint(int id, int internalSpeed);
 
         void rxPacket(Packet *p);
-        void txPacket(Packet *p);
+        int txPacket(Packet *p);
 
 #ifdef _TEST
         static int endpointToEndpoint();
