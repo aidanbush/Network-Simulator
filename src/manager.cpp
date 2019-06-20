@@ -7,12 +7,14 @@ Manager::Manager() {
     time = 0;
 }
 
-int Manager::addHandler(int id, PacketHandler *handler) {
+int Manager::addHandler(PacketHandler *handler) {
+    int id = handler->getID();
+
     if (handler == NULL || packetHandlers.find(id) != packetHandlers.end()) {
         return 0;
     }
 
-    packetHandlers.instert({id, handler});
+    packetHandlers.insert({id, handler});
     return 1;
 }
 

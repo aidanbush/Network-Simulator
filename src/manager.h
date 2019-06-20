@@ -49,6 +49,7 @@ class Manager {
         // flow
 
         PacketHandler *getHandler(int id);
+        int addHandler(PacketHandler *handler);
 
         void pushEvent(EventI *e) {pq.push(e); }
         EventI *popEvent();
