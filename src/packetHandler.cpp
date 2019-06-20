@@ -27,7 +27,7 @@ vector<PacketHandler *> PacketHandler::getNeighbours() {
 
     for (auto const& [id, iface] : ifaces) {
         handler = man.getHandler(id);
-        neighbours.pushback(handler);
+        neighbours.push_back(handler);
     }
 
     return neighbours;

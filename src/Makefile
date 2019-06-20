@@ -26,7 +26,7 @@ $(BUILD_DIR)simulator.o: simulator.cpp switch.h manager.h
 
 $(BUILD_DIR)networkObject.o: networkObject.cpp networkObject.h
 
-$(BUILD_DIR)packetHandler.o: packetHandler.cpp packetHandler.h networkObject.h interface.h
+$(BUILD_DIR)packetHandler.o: packetHandler.cpp packetHandler.h networkObject.h interface.h manager.h
 
 $(BUILD_DIR)switch.o: switch.cpp switch.h packetHandler.h networkObject.h manager.h
 
