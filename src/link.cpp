@@ -40,10 +40,6 @@ void LinkQueue::txPacket(Packet *p, second_t txTime) {
     }
 }
 
-int Link::getSpeed() {
-    return speed;
-}
-
 void Link::txPacket(Packet *p, int sourceID) {
     bool first = true;
 

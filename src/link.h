@@ -42,7 +42,8 @@ class Link: public NetworkObject {
         int addDest(Interface *iface);
         int removeDest(int ifaceID);
 
-        int getSpeed();
+        int getSpeed() {return speed; }
+        second_t getTxTime() {return txTime; }
 
     private:
         map<int, LinkQueue> dests; // map interfaceID to LinkQueue
