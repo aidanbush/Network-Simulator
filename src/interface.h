@@ -4,6 +4,7 @@
 #include <queue>
 
 #include "networkObject.h"
+#include "link.h"
 
 class Link;
 class PacketHandler;
@@ -19,6 +20,9 @@ class Interface: public NetworkObject {
 
         void rxLink(Packet *p);
         void rxHandler(Packet *p);
+
+        int getLinkSpeed() {return link->getSpeed(); }
+        second_t getLinkTxTime() {return link->getTxTime(); }
 
 #ifdef _TEST
         static int ifaceToIface();

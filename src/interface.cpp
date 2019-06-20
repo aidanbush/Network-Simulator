@@ -223,13 +223,14 @@ int Interface::ifaceToIface() {
 #define I_HB_SIZE   32000
 
 #define S_ID        1
+#define S_SPEED     1
 
 int testInterface() {
     Link *l1 = new Link(L_ID, L_SPEED, L_TX_TIME);
 
     Interface *i1 = new Interface(I_ID, l1, I_LB_SIZE, I_HB_SIZE);
 
-    Switch *s1 = new Switch(S_ID);
+    Switch *s1 = new Switch(S_ID, S_SPEED);
 
     assert(i1->addHandler(s1));
     assert(!i1->addHandler(s1));
