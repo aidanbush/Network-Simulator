@@ -17,6 +17,9 @@ struct EventI {
 
     virtual ~EventI() = default;
     virtual void call() const {}
+    friend bool operator<(const EventI lhs, const EventI rhs) {
+        return lhs.time > rhs.time;
+    }
 };
 
 template <typename T> struct Event: EventI {
@@ -29,12 +32,6 @@ template <typename T> struct Event: EventI {
     }
     void call() const {
         (obj->*fcnPtr)();
-    }
-};
-
-struct comparator {
-    bool operator()(const EventI* lhs, const EventI* rhs) const {
-        return lhs->time > rhs->time; // Lower time is higher priority
     }
 };
 
@@ -61,11 +58,11 @@ class Manager {
 
         void pushEvent(EventI *e) {pq.push(e); }
         EventI *popEvent();
-        priority_queue<EventI*, vector<EventI*>, comparator>::size_type
+        priority_queue<EventI*>::size_type
             numEvents() {return pq.size(); }
 
     private:
-        priority_queue<EventI*, vector<EventI*>, comparator> pq;
+        priority_queue<EventI*> pq;
 
         map<int, PacketHandler*> packetHandlers;
         map<int, Switch*> switches;
