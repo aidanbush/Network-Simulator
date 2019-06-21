@@ -2,27 +2,41 @@
 #define SWITCH_H
 
 #include "packetHandler.h"
-#include "networkObject.h"
 
 using namespace std;
 
 class Switch: public PacketHandler {
     public:
-        Switch(int id);
+        Switch(int id, int internalSpeed);
 
-        int getInternalSpeed();
+        void rxPacket(Packet *p);
 
-        void setInternalSpeed(int speed);
+        void initSwitch();
 
-#ifdef _TEST
-        void testOne(); // Temporary, delete
-        void testTwo(); // Temporary, delete
-        void testThree(); // Temporary, delete
-        void testFour(); // Temporary, delete
-#endif // _TEST
+        int getInterfaceId(int destID);
 
-    private:
-        int internalSpeed;
+    protected:
+        struct routingSearchElem {
+            double cost;
+            PacketHandler *handler;
+            int firstID;
+            bool operator()(const routingSearchElem lhs, const routingSearchElem rhs) {
+                return lhs.cost > rhs.cost;
+            }
+        };
+
+        map<int, int> routingTable; // dest ID to interface ID
+
+        int routePacket(Packet *p);
+
+        static double txCost(Switch *source, int destID);
+        static double txCost(Interface *iface);
+        static void initializeNeighbours(map<int, routingSearchElem> &fringe,
+                Switch *netSwitch);
+        static void addNeighbours(map<int, routingSearchElem> &fringe,
+                routingSearchElem curElem);
+
+        void setupRoutingTable();
 };
 
 #endif // SWITCH_H

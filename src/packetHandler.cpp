@@ -1,26 +1,41 @@
+#include <map>
+#include <vector>
+
 #include "packetHandler.h"
+#include "interface.h"
+#include "packet.h"
+#include "manager.h"
 
 using namespace std;
 
-vector<Interface*> PacketHandler::getInterfaces() {
-    return interfaces;
-}
-
-void PacketHandler::addInterface(Interface* interface) {
-    interfaces.push_back(interface);
+int PacketHandler::getInternalSpeed() {
+    return internalSpeed;
 }
 
 void PacketHandler::removeInterface(int interfaceId) {
-    for (auto it = interfaces.begin(); it != interfaces.end(); ++it) {
-        if ((**it).getId() == interfaceId) {
+    for (auto it = interfaces.rbegin(); it != interfaces.rend(); ++it) {
+        if (it->second == interfaceId) {
             interfaces.erase(it);
-            break;
         }
     }
 }
 
-vector<PacketHandler> PacketHandler::getNeighbours() {
-    //TODO
-    vector<PacketHandler> temp;
-    return temp;
+bool PacketHandler::addInterface(int destID, int interfaceId) {
+    return interfaces.emplace(destId, interfaceId)
+}
+
+vector<int> PacketHandler::getInterfaces() {
+    vector<int> interfaces;
+    for (auto const& it : interfaces) {
+        interfaces.push_back(it.second);
+    }
+    return interfaces;
+}
+
+vector<int> PacketHandler::getNeighbours() {
+    vector<int> neighbours;
+    for (auto const& it : interfaces) {
+        neighbours.push_back(it.first);
+    }
+    return neighbours;
 }

@@ -2,26 +2,40 @@
 #define PACKET_HANDLER_H
 
 #include <vector>
+#include <map>
 
-#include "interface.h"
 #include "networkObject.h"
 
 using namespace std;
 
+class Interface;
+class Packet;
+
 class PacketHandler: public NetworkObject {
     public:
-        vector<Interface*> getInterfaces();
+        vector<int> getInterfaces();
         
-        void addInterface(Interface* interface);
-        
+        int addInterface(int destId, int interfaceId);
         void removeInterface(int interfaceId);
         
-        vector<PacketHandler> getNeighbours();
-    
-    protected:
-        vector<Interface*> interfaces;
+        vector<int> getNeighbours();
+        int getInternalSpeed();
         
-        int id;
+        virtual void rxPacket(Packet *p) = 0;
+        
+    protected:
+        map<int, int> interfaces; // map neighbour id to interface id
+        
+        int internalSpeed;
 };
 
-#endif // PACKET_HANDLER_H
+#ifdef _TEST
+class TestHandler: public PacketHandler {
+    public:
+        TestHandler(int internalSpeed) {this->internalSpeed = internalSpeed; }
+
+        void rxPacket(Packet *) {; }
+};
+#endif /* _TEST */
+
+#endif /* PACKET_HANDLER_H */

@@ -37,47 +37,48 @@ json readConfig() {
     return config;
 }
 
-void parseConfig(json& config, map<int, PacketHandler>& packetHandlers,
-                map<int, Interface>& interfaces, map<int, Link>& links) {
+void parseConfig(json& config, map<int, PacketHandler*>& packetHandlers,
+                map<int, Interface*>& interfaces, map<int, Link*>& links) {
     for (json::iterator it = config["endpoints"].begin(); it != config["endpoints"].end(); ++it) {
         //it.value() gives json object of endpoint
-        packetHandlers.emplace(it.value()["id"], Endpoint(it.value()["id"]));
+        packetHandlers.emplace(it.value()["id"], new Endpoint(it.value()));
     }
     
     for (json::iterator it = config["switches"].begin(); it != config["switches"].end(); ++it) {
         //it.value() gives json object of switch
-        packetHandlers.emplace(it.value()["id"], Switch(it.value()["id"]));
+        packetHandlers.emplace(it.value()["id"], new Switch(it.value()));
     }
     
     for (json::iterator it = config["interfaces"].begin(); it != config["interfaces"].end(); ++it) {
         //it.value() gives json object of interface
-        Interface interface = Interface(it.value());
+        Interface* interface = new Interface(it.value());
         interfaces.emplace(it.value()["id"], interface);
-        packetHandlers.find(it.value()["phId"])->second.addInterface(&interface);
+        //TODO:Figure out how to add interface to packet handler without destination
+        //packetHandlers.find(it.value()["phId"])->second->addInterface(&interface);
     }
     
     for (json::iterator it = config["links"].begin(); it != config["links"].end(); ++it) {
         //it.value() gives json object of link
-        Link linck = Link(it.value());
+        Link* linck = new Link(it.value());
         links.emplace(it.value()["id"], linck);
-        interfaces.find(it.value()["src"])->second.setOutgoingLink(it.value()["id"]);
-        interfaces.find(it.value()["dest"])->second.setIncomingLink(it.value()["id"]);
+        //TODO:Figure out how to attach links
+        //interfaces.find(it.value()["src"])->second->setOutgoingLink(it.value()["id"]);
+        //interfaces.find(it.value()["dest"])->second->setIncomingLink(it.value()["id"]);
     }
 }
 
 int main() {
     // load configuration
     json config = readConfig();
-    map<int, PacketHandler> packetHandlers;
-    map<int, Interface> interfaces;
-    map<int, Link> links;
+    map<int, PacketHandler*> packetHandlers;
+    map<int, Interface*> interfaces;
+    map<int, Link*> links;
     parseConfig(config, packetHandlers, interfaces, links);
-    // while (!man.pq.empty()) {
-//         EventI* e = man.pq.top();
-//         e->call();
-//         man.pq.pop();
-//         delete e;
-//     }
+    while (man.numEvents() > 0) {
+        EventI* e = man.popEvent();
+        e->call();
+        delete e;
+    }
 
     return 0;
 }

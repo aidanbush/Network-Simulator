@@ -2,6 +2,10 @@
 
 using namespace std;
 
-int NetworkObject::getId() {
+NetworkObject::NetworkObject(int id) {
+    this->id = id;
+}
+
+int NetworkObject::getID() {
     return id;
 }
