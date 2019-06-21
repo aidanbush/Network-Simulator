@@ -10,16 +10,16 @@ using namespace std;
 
 class PacketHandler: public NetworkObject {
     public:
-        vector<Interface> getInterfaces();
+        vector<Interface*> getInterfaces();
         
-        void addInterface(Interface interface);
+        void addInterface(Interface* interface);
         
         void removeInterface(int interfaceId);
         
         vector<PacketHandler> getNeighbours();
     
     protected:
-        vector<Interface> interfaces;
+        vector<Interface*> interfaces;
         
         int id;
 };

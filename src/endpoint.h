@@ -8,7 +8,9 @@ using namespace std;
 
 #include "packetHandler.h"
 
-class Endpoint: PacketHandler {
+class Endpoint: public PacketHandler {
+    public:
+        Endpoint(int id);
 };
 
 #endif // ENDPOINT_H

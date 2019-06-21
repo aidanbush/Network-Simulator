@@ -1,0 +1,122 @@
+{
+    "endpoints": [
+        {
+            "id": 0
+        }, {
+            "id": 1
+        }, {
+            "id": 2
+        }
+    ],
+    "switches": [
+        {
+            "id": 3
+        }, {
+            "id": 4
+        }, {
+            "id": 5
+        }
+    ],
+    "interfaces": [
+        {
+            "id": 0,
+            "phId": 0,
+            "neighbourId": 3
+        }, {
+            "id": 1,
+            "phId": 1,
+            "neighbourId": 4
+        }, {
+            "id": 2,
+            "phId": 2,
+            "neighbourId": 5
+        }, {
+            "id": 3,
+            "phId": 3,
+            "neighbourId": 0
+        }, {
+            "id": 4,
+            "phId": 3,
+            "neighbourId": 4
+        }, {
+            "id": 5,
+            "phId": 3,
+            "neighbourId": 5
+        }, {
+            "id": 6,
+            "phId": 4,
+            "neighbourId": 1
+        }, {
+            "id": 7,
+            "phId": 4,
+            "neighbourId": 3
+        }, {
+            "id": 8,
+            "phId": 4,
+            "neighbourId": 5
+        }, {
+            "id": 9,
+            "phId": 5,
+            "neighbourId": 2
+        }, {
+            "id": 10,
+            "phId": 5,
+            "neighbourId": 3
+        }, {
+            "id": 11,
+            "phId": 5,
+            "neighbourId": 4
+        }
+    ],
+    "links": [
+        {
+            "id": 0,
+            "src": 0,
+            "dest": 3
+        }, {
+            "id": 1,
+            "src": 3,
+            "dest": 0
+        }, {
+            "id": 2,
+            "src": 1,
+            "dest": 6
+        }, {
+            "id": 3,
+            "src": 6,
+            "dest": 1
+        }, {
+            "id": 4,
+            "src": 3,
+            "dest": 9
+        }, {
+            "id": 5,
+            "src": 9,
+            "dest": 3
+        }, {
+            "id": 6,
+            "src": 4,
+            "dest": 7
+        }, {
+            "id": 7,
+            "src": 7,
+            "dest": 4
+        }, {
+            "id": 8,
+            "src": 8,
+            "dest": 11
+        }, {
+            "id": 9,
+            "src": 11,
+            "dest": 8
+        }, {
+            "id": 10,
+            "src": 10,
+            "dest": 4
+        }, {
+            "id": 11,
+            "src": 4,
+            "dest": 10
+        }
+    ]
+}

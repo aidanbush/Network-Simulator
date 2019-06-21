@@ -2,16 +2,21 @@
 
 using namespace std;
 
-vector<Interface> PacketHandler::getInterfaces() {
+vector<Interface*> PacketHandler::getInterfaces() {
     return interfaces;
 }
 
-void PacketHandler::addInterface(Interface interface) {
+void PacketHandler::addInterface(Interface* interface) {
     interfaces.push_back(interface);
 }
 
 void PacketHandler::removeInterface(int interfaceId) {
-    //TODO
+    for (auto it = interfaces.begin(); it != interfaces.end(); ++it) {
+        if ((**it).getId() == interfaceId) {
+            interfaces.erase(it);
+            break;
+        }
+    }
 }
 
 vector<PacketHandler> PacketHandler::getNeighbours() {
