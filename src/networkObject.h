@@ -5,8 +5,10 @@ using namespace std;
 
 class NetworkObject {
     public:
-        int getId();
-    
+        virtual ~NetworkObject() = default;
+
+        int getID();
+
     protected:
         int id;
 };

@@ -1,13 +1,37 @@
 #ifndef PACKET_H
 #define PACKET_H
 
+#define BITS_PER_BYTE   8
+
 #include "networkObject.h"
+#include "flow.h"
+
+class Flow;
 
 class Packet: public NetworkObject {
     public:
-        Packet(int id, int sourceID, int destID, int ttl);
+        Packet(int id, int sourceID, int destID, Flow *flow, int ttl,
+                int headerSize, int bodySize);
+        ~Packet() = default;
 
-        int getSize();
+        Packet *clone();
+
+        int getTTL() {return ttl; }
+        int getFlow() {return flow->getID(); }
+        int getSource() {return sourceID; }
+        int getDest() {return destID; }
+
+        int fullSize() {return headerSize + bodySize; }
+        int fullSizeBits() {return (headerSize + bodySize) * BITS_PER_BYTE; }
+        void decTTL() {ttl--; }
+
+        void arrive();
+        void drop();
+        void error();
+
+#ifdef _TEST
+        bool fullEqual(Packet *p);
+#endif /* _TEST */
 
     private:
         int headerSize;
@@ -15,7 +39,12 @@ class Packet: public NetworkObject {
         int ttl;
         int sourceID;
         int destID;
-        int flowID;
+
+        Flow *flow;
 };
+
+#ifdef _TEST
+int testPacket();
+#endif /* _TEST */
 
 #endif // PACKET_H

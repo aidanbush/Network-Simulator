@@ -2,19 +2,30 @@
 #define MANAGER_H
 
 #include <queue>
-#include <cstdint>
+#include <map>
+
+class PacketHandler;
+class Endpoint;
+class Switch;
 
 using namespace std;
 
+typedef double second_t;
+
 struct EventI {
-    int time;
+    second_t time;
+
+    virtual ~EventI() = default;
     virtual void call() const {}
+    friend bool operator<(const EventI lhs, const EventI rhs) {
+        return lhs.time > rhs.time;
+    }
 };
 
 template <typename T> struct Event: EventI {
     void (T::*fcnPtr)();
     T* obj;
-    Event(int t, void (T::*fp)(), T* o) {
+    Event(second_t t, void (T::*fp)(), T* o) {
         this->time = t;
         this->obj = o;
         this->fcnPtr = fp;
@@ -24,24 +35,38 @@ template <typename T> struct Event: EventI {
     }
 };
 
-struct comparator {
-    bool operator()(const EventI* lhs, const EventI* rhs) const {
-        return lhs->time > rhs->time; // Lower time is higher priority
-    }
-};
-
 class Manager {
     public:
         Manager();
 
-        priority_queue<EventI*, vector<EventI*>, comparator> pq;
-        uint64_t time;
+        second_t time;
         // global stats
         // reference to all
         // switches
         // endpoints
         // links
         // flow
+
+        PacketHandler *getHandler(int id);
+        int addHandler(PacketHandler *handler);
+
+        Switch *getSwitch(int id);
+        int addSwitch(Switch *netSwitch);
+
+        Endpoint *getEndpoint(int id);
+        int addEndpoint(Endpoint *endpoint);
+
+        void pushEvent(EventI *e) {pq.push(e); }
+        EventI *popEvent();
+        priority_queue<EventI*>::size_type
+            numEvents() {return pq.size(); }
+
+    private:
+        priority_queue<EventI*> pq;
+
+        map<int, PacketHandler*> packetHandlers;
+        map<int, Switch*> switches;
+        map<int, Endpoint*> endpoints;
 };
 
 extern Manager man;

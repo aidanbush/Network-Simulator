@@ -1,3 +1,123 @@
+#include <stdio.h>
+
 #include "endpoint.h"
+#include "interface.h"
+#include "packet.h"
 
 using namespace std;
+
+Endpoint::Endpoint(int id, int speed) {
+    this->id = id;
+    this->internalSpeed = speed;
+}
+
+void Endpoint::rxPacket(Packet *p) {
+    p->arrive();
+}
+
+int Endpoint::txPacket(Packet *p) {
+    // TODO: implement select interface and send on it
+    auto iface = ifaces.begin();
+    if (iface == ifaces.end()) {
+        fprintf(stderr, "interface not found to transmit packet on\n");
+        return 0;
+    }
+
+    iface->second->rxHandler(p);
+    return 1;
+}
+
+#ifdef _TEST
+#include <assert.h>
+#include <stdio.h>
+
+#include "link.h"
+
+int Endpoint::endpointToEndpoint() {
+    const int e1ID = 1,
+          e1Speed = 1000,
+          e2ID = 2,
+          e2Speed = 1000;
+    const int i1ID = 1,
+          i1LBuf = 1000,
+          i1HBuf = 1000;
+    const int i2ID = 2,
+          i2LBuf = 1000,
+          i2HBuf = 1000;
+    const int l1ID = 1,
+          l1Speed = 1600000;
+    const second_t l1TxTime = 0.01;
+    const int p1ID = 1,
+          p1SID = 1,
+          p1DID = 2,
+          p1TTL = 10,
+          p1HSize = 50,
+          p1BSize = 100;
+    const int f1ID = 1;
+
+    Endpoint *e1, *e2;
+    Interface *i1, *i2;
+    Link *l1;
+    Flow *f1;
+    Packet *p1;
+    EventI *e;
+
+    // setup network
+    e1 = new Endpoint(e1ID, e1Speed);
+    e2 = new Endpoint(e2ID, e2Speed);
+
+    l1 = new Link(l1ID, l1Speed, l1TxTime);
+
+    i1 = new Interface(i1ID, l1, i1LBuf, i1HBuf);
+    i2 = new Interface(i2ID, l1, i2LBuf, i2HBuf);
+
+    i1->addHandler(e1);
+    i2->addHandler(e2);
+
+    l1->addDest(i1);
+    l1->addDest(i2);
+
+    e1->addInterface(e2ID, i1);
+    e2->addInterface(e1ID, i2);
+
+    f1 = new TestFlow(f1ID, e1, e2ID);
+
+    p1 = new Packet(p1ID, p1SID, p1DID, f1, p1TTL, p1HSize, p1BSize);
+
+    // add to endpoint 1
+    e1->txPacket(p1);
+
+    // move packet through network
+    // i1 to l1, l1 to i2, i2 to e2
+    for (int i = 0; i < 3; i++) {
+        e = man.popEvent();
+        e->call();
+        delete e;
+    }
+
+    // no more events
+
+    delete e1;
+    delete e2;
+    delete i1;
+    delete i2;
+    delete l1;
+    delete f1;
+
+    return 1;
+}
+
+int testEndpoint() {
+    const int e1ID = 1,
+          e1Speed = 120;
+    Endpoint *e1 = new Endpoint(e1ID, e1Speed);
+
+    assert(e1->getID() == e1ID);
+    assert(e1->getInternalSpeed() == e1Speed);
+
+    delete e1;
+
+    return Endpoint::endpointToEndpoint();
+}
+
+#endif /* _TEST */

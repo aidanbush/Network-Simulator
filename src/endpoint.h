@@ -1,14 +1,26 @@
 #ifndef ENDPOINT_H
 #define ENDPOINT_H
 
-#include "networkObject.h"
 #include "packetHandler.h"
 
 using namespace std;
 
-#include "packetHandler.h"
+class Packet;
 
-class Endpoint: PacketHandler {
+class Endpoint: public PacketHandler {
+    public:
+        Endpoint(int id, int internalSpeed);
+
+        void rxPacket(Packet *p);
+        int txPacket(Packet *p);
+
+#ifdef _TEST
+        static int endpointToEndpoint();
+#endif /* _TEST */
 };
 
-#endif // ENDPOINT_H
+#ifdef _TEST
+int testEndpoint();
+#endif /* _TEST */
+
+#endif /* ENDPOINT_H */

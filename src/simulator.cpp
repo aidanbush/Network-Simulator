@@ -11,10 +11,9 @@ Manager man;
 int main() {
     // load configuration
 
-    while (!man.pq.empty()) {
-        EventI* e = man.pq.top();
+    while (man.numEvents() > 0) {
+        EventI* e = man.popEvent();
         e->call();
-        man.pq.pop();
         delete e;
     }
 
