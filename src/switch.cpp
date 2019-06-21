@@ -49,64 +49,60 @@ double Switch::txCost(Interface *iface) {
     return iface->getLinkTxTime() / iface->getLinkSpeed();
 }
 
-void Switch::initializeNeighbours(map<int, routingSearchElem> &fringe,
+void Switch::initializeNeighbours(priority_queue<routingSearchElem> &fringe,
         Switch *netSwitch) {
     map<Interface *, PacketHandler *> neighbours = netSwitch->getIfaceNeighbours();
-    map<Interface *, PacketHandler *>::iterator it;
     double cost;
     routingSearchElem newElem;
 
     for (auto const& [iface, handler] : neighbours) {
         cost = Switch::txCost(iface);
 
-        auto dupElem = fringe.find(handler->getID());
-        // if cost > current cost continue
-        if (dupElem != fringe.end() && cost > dupElem->second.cost) {
-            continue;
-        }
-
         newElem = {
             .cost = cost,
-            .handler = handler,
+            .curID = handler->getID(),
             .firstID = iface->getID(),
         };
-        // add to
-        fringe.insert({handler->getID(), newElem});
+
+        fringe.push(newElem);
     }
 }
 
 // only add neighbours ir switch
-void Switch::addNeighbours(map<int, routingSearchElem> &fringe,
-        routingSearchElem curElem) {
-    Switch *netSwitch = dynamic_cast<Switch *>(curElem.handler);
+void Switch::addNeighbours(priority_queue<routingSearchElem> &fringe,
+        set<int> &explored, routingSearchElem curElem) {
+    Switch *netSwitch = man.getSwitch(curElem.curID);// = dynamic_cast<Switch *>(curElem.handler);
     if (netSwitch == NULL) {
         return;
     }
 
-    vector<PacketHandler *> neighbours = netSwitch->getNeighbours();
     double cost;
+    int id;
     routingSearchElem newElem;
 
-    for (PacketHandler *n : neighbours) {
-        cost = Switch::txCost(netSwitch, n->getID()) + curElem.cost;
+    vector<PacketHandler *> neighbours = netSwitch->getNeighbours();
 
-        auto dupElem = fringe.find(n->getID());
-        // if cost > current cost continue
-        if (dupElem != fringe.end() && cost > dupElem->second.cost) {
+    for (PacketHandler *n : neighbours) {
+        id = n->getID();
+        if (explored.find(id) != explored.end()) {
             continue;
         }
+
+        cost = Switch::txCost(netSwitch, n->getID()) + curElem.cost;
+
         // add to
         newElem = {
             .cost = cost,
-            .handler = n,
+            .curID = n->getID(),
             .firstID = curElem.firstID,
         };
+
+        fringe.push(newElem);
     }
 }
 
 void Switch::setupRoutingTable() {
-    // TODO currently does not behave properly
-    map<int, routingSearchElem> fringe; // cost sorted priority queue mapping destID to (cost, obj, ifaceID)
+    priority_queue<routingSearchElem> fringe;
     set<int> explored; // explored packetHandlers
     routingSearchElem curElem;
 
@@ -116,15 +112,22 @@ void Switch::setupRoutingTable() {
     Switch::initializeNeighbours(fringe, this);
 
     // while fringe not empty
-    while (fringe.begin() != fringe.end()) {
-        auto elem = fringe.begin();
-        explored.insert(elem->first);
-        fringe.erase(elem->first);
+    while (!fringe.empty()) {
+        routingSearchElem elem = fringe.top();
+        fringe.pop();
 
-        if (dynamic_cast<Endpoint *>(elem->second.handler) != NULL) {
-            routingTable.insert(pair<int, int>(elem->first, elem->second.firstID));
+        // continue if not new element
+        if (!explored.insert(elem.curID).second) {
+            continue;
+        }
+
+        //if (dynamic_cast<Endpoint *>(elem.second.handler) != NULL) {
+        if (man.getEndpoint(elem.curID) != NULL) {
+            routingTable.insert(pair<int, int>(elem.curID, elem.firstID));
+        } else if (man.getEndpoint(elem.curID) != NULL) {
+            Switch::addNeighbours(fringe, explored, elem);
         } else {
-            Switch::addNeighbours(fringe, elem->second);
+            // TODO: handle error
         }
     }
 }
@@ -133,3 +136,22 @@ void Switch::initSwitch() {
     // set up routing table
     setupRoutingTable();
 }
+
+#ifdef _TEST
+
+#include <assert.h>
+
+int testSwitch() {
+    static const int s1ID = 1,
+                 s1InternalSpeed = 100;
+    Switch *s1 = new Switch(s1ID, s1InternalSpeed);
+
+    assert(s1->getID() == s1ID);
+    assert(s1->getInternalSpeed() == s1InternalSpeed);
+
+    delete s1;
+
+    return 1;
+}
+
+#endif /* _TEST */

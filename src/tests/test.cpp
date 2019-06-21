@@ -5,6 +5,7 @@
 #include "../link.h"
 #include "../interface.h"
 #include "../endpoint.h"
+#include "../switch.h"
 
 Manager man;
 
@@ -37,6 +38,13 @@ int main() {
         errors++;
     } else {
         printf("Endpoint tests passed\n");
+    }
+
+    if (!testSwitch()) {
+        printf("Switch tests failed\n");
+        errors++;
+    } else {
+        printf("Switch tests passed\n");
     }
 
     if (errors == 0) {
