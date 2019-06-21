@@ -41,7 +41,7 @@ class Link: public NetworkObject {
         Link(json linkConfig);
         
         void txPacket(Packet *p, int sourceId);
-        int addDest(int interfaceId);
+        bool addDest(int interfaceId);
         int removeDest(int interfaceId);
         
         int getSpeed();

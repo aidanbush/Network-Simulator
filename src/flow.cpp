@@ -7,7 +7,7 @@
 
 using namespace std;
 
-Flow::Flow(int id, Endpoint *endpoint, int destID) : NetworkObject(id) {
+Flow::Flow(int id, Endpoint *endpoint, int destID): NetworkObject(id) {
     this->endpoint = endpoint;
     this->sourceID = endpoint->getID();
     this->destID = destID;

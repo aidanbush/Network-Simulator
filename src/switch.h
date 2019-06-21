@@ -1,13 +1,16 @@
 #ifndef SWITCH_H
 #define SWITCH_H
+#include <nlohmann/json.hpp>
 
 #include "packetHandler.h"
 
 using namespace std;
 
+using json = nlohmann::json;
+
 class Switch: public PacketHandler {
     public:
-        Switch(int id, int internalSpeed);
+        Switch(json switchConfig);
 
         void rxPacket(Packet *p);
 

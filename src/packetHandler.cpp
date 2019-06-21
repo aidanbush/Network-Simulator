@@ -1,5 +1,6 @@
 #include <map>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 #include "packetHandler.h"
 #include "interface.h"
@@ -8,6 +9,12 @@
 
 using namespace std;
 
+using json = nlohmann::json;
+
+PacketHandler::PacketHandler(json phConfig): NetworkObject(phConfig["id"]) {
+    this->internalSpeed = phConfig["speed"];
+}
+
 int PacketHandler::getInternalSpeed() {
     return internalSpeed;
 }
@@ -15,21 +22,21 @@ int PacketHandler::getInternalSpeed() {
 void PacketHandler::removeInterface(int interfaceId) {
     for (auto it = interfaces.rbegin(); it != interfaces.rend(); ++it) {
         if (it->second == interfaceId) {
-            interfaces.erase(it);
+            interfaces.erase(it.base());
         }
     }
 }
 
-bool PacketHandler::addInterface(int destID, int interfaceId) {
-    return interfaces.emplace(destId, interfaceId)
+bool PacketHandler::addInterface(int destId, int interfaceId) {
+    return interfaces.emplace(destId, interfaceId).second;
 }
 
 vector<int> PacketHandler::getInterfaces() {
-    vector<int> interfaces;
+    vector<int> interfaceVec;
     for (auto const& it : interfaces) {
-        interfaces.push_back(it.second);
+        interfaceVec.push_back(it.second);
     }
-    return interfaces;
+    return interfaceVec;
 }
 
 vector<int> PacketHandler::getNeighbours() {

@@ -33,12 +33,12 @@ void LinkQueue::txPacket(Packet *p, second_t txTime) {
     
     // if now one element add tx event
     if (pQueue.size() == 1) {
-        EventI *e = new Event<LinkQueue>(lp.arriveTime, &LinkQueue::txPacketIfaceEvent, this);
+        EventI *e = new Event<LinkQueue>(lp.arriveTime, &LinkQueue::txPacketInterfaceEvent, this);
         man.pushEvent(e);
     }
 }
 
-Link::Link(json linkConfig) : NetworkObject(linkConfig["id"]) {
+Link::Link(json linkConfig): NetworkObject(linkConfig["id"]) {
     this->speed = linkConfig["speed"];
     this->txTime = linkConfig["txTime"];
 }
@@ -70,7 +70,7 @@ void Link::txPacket(Packet *p, int sourceID) {
 bool Link::addDest(int interfaceId) {
     LinkQueue lq = LinkQueue();
     lq.destId = interfaceId;
-    return dests.emplace(interfaceId, lq);
+    return dests.emplace(interfaceId, lq).second;
 }
 
 // return 1 if interface was connected to link

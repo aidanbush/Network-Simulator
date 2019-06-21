@@ -3,19 +3,24 @@
 
 #include <vector>
 #include <map>
+#include <nlohmann/json.hpp>
 
 #include "networkObject.h"
 
 using namespace std;
+
+using json = nlohmann::json;
 
 class Interface;
 class Packet;
 
 class PacketHandler: public NetworkObject {
     public:
+        PacketHandler(json phConfig);
+        
         vector<int> getInterfaces();
         
-        int addInterface(int destId, int interfaceId);
+        bool addInterface(int destId, int interfaceId);
         void removeInterface(int interfaceId);
         
         vector<int> getNeighbours();

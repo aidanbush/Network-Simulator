@@ -2,7 +2,7 @@
 #include "flow.h"
 
 Packet::Packet(int id, int sourceID, int destID, Flow *flow, int ttl,
-        int headerSize, int bodySize) : NetworkObject(id) {
+        int headerSize, int bodySize): NetworkObject(id) {
     this->sourceID = sourceID;
     this->destID = destID;
     this->flow = flow;
