@@ -1,5 +1,6 @@
 #include <map>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 #include "packetHandler.h"
 #include "interface.h"
@@ -8,38 +9,40 @@
 
 using namespace std;
 
-int PacketHandler::addInterface(int destID, Interface *iface) {
-    if (ifaces.find(destID) != ifaces.end()) {
-        return 0;
-    }
+using json = nlohmann::json;
 
-    ifaces[destID] = iface;
-    return 1;
+PacketHandler::PacketHandler(json phConfig): NetworkObject(phConfig["id"]) {
+    this->internalSpeed = phConfig["speed"];
 }
 
-void PacketHandler::removeInterface(int ifaceID) {
-    // TODO
+int PacketHandler::getInternalSpeed() {
+    return internalSpeed;
 }
 
-vector<PacketHandler *> PacketHandler::getNeighbours() {
-    vector<PacketHandler *> neighbours;
-    PacketHandler *handler;
-
-    for (auto const& [id, iface] : ifaces) {
-        handler = man.getHandler(id);
-        neighbours.push_back(handler);
+void PacketHandler::removeInterface(int interfaceId) {
+    for (auto it = interfaces.rbegin(); it != interfaces.rend(); ++it) {
+        if (it->second == interfaceId) {
+            interfaces.erase(it.base());
+        }
     }
-
-    return neighbours;
 }
 
-map<Interface *, PacketHandler *> PacketHandler::getIfaceNeighbours() {
-    map<Interface *, PacketHandler *> neighbours;
+bool PacketHandler::addInterface(int destId, int interfaceId) {
+    return interfaces.emplace(destId, interfaceId).second;
+}
 
-    // for each interface
-    for (auto const& [id, iface] : ifaces) {
-        neighbours.insert({iface, man.getHandler(id)});
+vector<int> PacketHandler::getInterfaces() {
+    vector<int> interfaceVec;
+    for (auto const& it : interfaces) {
+        interfaceVec.push_back(it.second);
     }
+    return interfaceVec;
+}
 
+vector<int> PacketHandler::getNeighbours() {
+    vector<int> neighbours;
+    for (auto const& it : interfaces) {
+        neighbours.push_back(it.first);
+    }
     return neighbours;
 }

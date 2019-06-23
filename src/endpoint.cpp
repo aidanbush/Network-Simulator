@@ -1,3 +1,4 @@
+#include <nlohmann/json.hpp>
 #include <stdio.h>
 
 #include "endpoint.h"
@@ -5,11 +6,9 @@
 #include "packet.h"
 
 using namespace std;
+using json = nlohmann::json;
 
-Endpoint::Endpoint(int id, int speed) {
-    this->id = id;
-    this->internalSpeed = speed;
-}
+Endpoint::Endpoint(json endpointConfig): PacketHandler(endpointConfig) {}
 
 void Endpoint::rxPacket(Packet *p) {
     p->arrive();
@@ -17,13 +16,13 @@ void Endpoint::rxPacket(Packet *p) {
 
 int Endpoint::txPacket(Packet *p) {
     // TODO: implement select interface and send on it
-    auto iface = ifaces.begin();
-    if (iface == ifaces.end()) {
+    auto iface = interfaces.begin();
+    if (iface == interfaces.end()) {
         fprintf(stderr, "interface not found to transmit packet on\n");
         return 0;
     }
-
-    iface->second->rxHandler(p);
+    //TODO: need to get interface from global map
+    //iface->second->rxHandler(p);
     return 1;
 }
 

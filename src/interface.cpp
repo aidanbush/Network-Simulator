@@ -1,3 +1,5 @@
+#include <nlohmann/json.hpp>
+
 #include "interface.h"
 #include "packetHandler.h"
 #include "manager.h"
@@ -6,22 +8,26 @@
 
 using namespace std;
 
-Interface::Interface(int id, Link *link, int linkBufSize, int handlerBufSize) {
-    this->id = id;
-    this->link = link;
-    this->linkBufSize = linkBufSize;
-    this->handlerBufSize = handlerBufSize;
-    this->handler = NULL;
+using json = nlohmann::json;
+
+Interface::Interface(json interfaceConfig): NetworkObject(interfaceConfig["id"]) {
+    this->linkBufSize = interfaceConfig["linkBufSize"];
+    this->handlerBufSize = interfaceConfig["handlerBufSize"];
+    this->packetHandlerId = interfaceConfig["phId"];
 }
 
-int Interface::addHandler(PacketHandler *handler) {
-    if (this->handler != NULL) {
-        return 0;
-    }
+void Interface::setLink(int linkId) {
+    this->linkId = linkId;
+}
 
-    this->handler = handler;
+int Interface::getLinkSpeed() {
+    //TODO: get link from global map
+    return 0;//link->getSpeed();
+}
 
-    return 1;
+second_t Interface::getLinkTxTime() {
+    //TODO: get link from global map
+    return 0;//link->getTxTime();
 }
 
 void Interface::txLinkEvent() {
@@ -29,26 +35,30 @@ void Interface::txLinkEvent() {
     linkBuffer.pop();
 
     linkBufSize += p->fullSize();
-    link->txPacket(p, id);
+    //TODO: get link from global map
+    //link->txPacket(p, id);
 
     if (!linkBuffer.empty()) {
-        second_t nextTx = man.time + double(linkBuffer.front()->fullSizeBits()) / link->getSpeed();
-        EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
-        man.pushEvent(e);
+        //TODO: get link from global map
+        //second_t nextTx = man.time + double(linkBuffer.front()->fullSizeBits()) / link->getSpeed();
+        //EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
+        //man.pushEvent(e);
     }
 }
 
 void Interface::txHandlerEvent() {
     Packet *p = handlerBuffer.front();
     handlerBuffer.pop();
-
+    
     handlerBufSize += p->fullSize();
-    handler->rxPacket(p);
-
+    //TODO: get packet handler from global map
+    //handler->rxPacket(p);
+    
     if (!handlerBuffer.empty()) {
-        second_t nextTx = man.time + double(p->fullSizeBits()) / handler->getInternalSpeed();
-        EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
-        man.pushEvent(e);
+        //TODO: get packet handler from global map
+        //second_t nextTx = man.time + double(p->fullSizeBits()) / handler->getInternalSpeed();
+        //EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
+        //man.pushEvent(e);
     }
 }
 
@@ -61,9 +71,10 @@ void Interface::rxLink(Packet *p) {
     handlerBuffer.push(p);
 
     if (handlerBuffer.size() == 1) {
-        second_t nextTx = man.time + double(p->fullSizeBits()) / handler->getInternalSpeed();
-        EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
-        man.pushEvent(e);
+        //TODO: get packet handler from global map
+        //second_t nextTx = man.time + double(p->fullSizeBits()) / handler->getInternalSpeed();
+        //EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
+        //man.pushEvent(e);
     }
 }
 
@@ -77,9 +88,10 @@ void Interface::rxHandler(Packet *p) {
 
     // if only one element add event
     if (linkBuffer.size() == 1) {
-        second_t nextTx = man.time + double(p->fullSizeBits()) / link->getSpeed();
-        EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
-        man.pushEvent(e);
+        //TODO: get link from global map
+        //second_t nextTx = man.time + double(p->fullSizeBits()) / link->getSpeed();
+        //EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
+        //man.pushEvent(e);
     }
 }
 

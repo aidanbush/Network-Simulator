@@ -1,5 +1,6 @@
 #ifndef LINK_H
 #define LINK_H
+#include <nlohmann/json.hpp>
 
 #include <queue>
 #include <map>
@@ -11,12 +12,13 @@ class Interface;
 class Packet;
 
 using namespace std;
+using json = nlohmann::json;
 
 class LinkQueue {
     public:
-        Interface *dest;
+        int destId;
 
-        void txPacketIfaceEvent();// event to move packet to dest
+        void txPacketInterfaceEvent();// event to move packet to dest
         void txPacket(Packet *p, second_t txTime);
 
     private:
@@ -36,15 +38,15 @@ class LinkQueue {
 
 class Link: public NetworkObject {
     public:
-        Link(int id, int speed, second_t txTime);
-
-        void txPacket(Packet *p, int sourceID);
-        int addDest(Interface *iface);
-        int removeDest(int ifaceID);
-
-        int getSpeed() {return speed; }
-        second_t getTxTime() {return txTime; }
-
+        Link(json linkConfig);
+        
+        void txPacket(Packet *p, int sourceId);
+        bool addDest(int interfaceId);
+        int removeDest(int interfaceId);
+        
+        int getSpeed();
+        second_t getTxTime();
+        
     private:
         map<int, LinkQueue> dests; // map interfaceID to LinkQueue
         int speed; // bits/second

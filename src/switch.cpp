@@ -1,5 +1,6 @@
 #include <map>
 #include <set>
+#include <nlohmann/json.hpp>
 
 #include "switch.h"
 #include "manager.h"
@@ -10,15 +11,14 @@
 
 using namespace std;
 
-Switch::Switch(int id, int speed) {
-    this->id = id;
-    this->internalSpeed = speed;
-}
+using json = nlohmann::json;
+
+Switch::Switch(json switchConfig): PacketHandler(switchConfig) {}
 
 void Switch::rxPacket(Packet *p) {
-    int ifaceID = routePacket(p);
-
-    ifaces[ifaceID]->rxHandler(p);
+    int interfaceId = routePacket(p);
+    //TODO: get interface from global map
+    //interfaces[interfaceId]->rxHandler(p);
 }
 
 int Switch::routePacket(Packet *p) {
@@ -30,19 +30,20 @@ int Switch::routePacket(Packet *p) {
     return destID->second;
 }
 
-Interface *Switch::getIface(int destID) {
-    auto elem = ifaces.find(destID);
-    if (elem == ifaces.end()) {
-        return NULL;
+int Switch::getInterfaceId(int destID) {
+    auto elem = interfaces.find(destID);
+    if (elem == interfaces.end()) {
+        return -1;
     }
     return elem->second;
 }
 
 // time / speed
 double Switch::txCost(Switch *source, int destID) {
-    Interface *iface = source->getIface(destID);
+    //TODO: get interface from global map
+    //Interface *interface = source->getInterfaceId(destID);
 
-    return Switch::txCost(iface);
+    return 0.0;//Switch::txCost(interface);
 }
 
 double Switch::txCost(Interface *iface) {
@@ -51,21 +52,23 @@ double Switch::txCost(Interface *iface) {
 
 void Switch::initializeNeighbours(priority_queue<routingSearchElem> &fringe,
         Switch *netSwitch) {
-    map<Interface *, PacketHandler *> neighbours = netSwitch->getIfaceNeighbours();
-    double cost;
-    routingSearchElem newElem;
-
-    for (auto const& [iface, handler] : neighbours) {
-        cost = Switch::txCost(iface);
-
-        newElem = {
-            .cost = cost,
-            .curID = handler->getID(),
-            .firstID = iface->getID(),
-        };
-
-        fringe.push(newElem);
-    }
+    //TODO: need replacement for getIfaceNeighbours, which is incompatible with multiple destination links
+            //as it returned a map of interfaces to destination packet handlers
+    // map<Interface *, PacketHandler *> neighbours = netSwitch->getIfaceNeighbours();
+    // double cost;
+    // routingSearchElem newElem;
+    // 
+    // for (auto const& [iface, handler] : neighbours) {
+    //     cost = Switch::txCost(iface);
+    // 
+    //     newElem = {
+    //         .cost = cost,
+    //         .curID = handler->getID(),
+    //         .firstID = iface->getID(),
+    //     };
+    // 
+    //     fringe.push(newElem);
+    // }
 }
 
 // only add neighbours ir switch
@@ -76,28 +79,28 @@ void Switch::addNeighbours(priority_queue<routingSearchElem> &fringe,
         return;
     }
 
+    vector<int> neighbours = netSwitch->getNeighbours();
     double cost;
     int id;
     routingSearchElem newElem;
 
-    vector<PacketHandler *> neighbours = netSwitch->getNeighbours();
-
-    for (PacketHandler *n : neighbours) {
-        id = n->getID();
-        if (explored.find(id) != explored.end()) {
-            continue;
-        }
-
-        cost = Switch::txCost(netSwitch, n->getID()) + curElem.cost;
-
-        // add to
-        newElem = {
-            .cost = cost,
-            .curID = n->getID(),
-            .firstID = curElem.firstID,
-        };
-
-        fringe.push(newElem);
+    for (int n : neighbours) {
+        //TODO: get interface from global map
+        // id = n->getID();
+        // if (explored.find(id) != explored.end()) {
+        //     continue;
+        // }
+        // 
+        // cost = Switch::txCost(netSwitch, n->getID()) + curElem.cost;
+        // 
+        // // add to
+        // newElem = {
+        //     .cost = cost,
+        //     .curID = n->getID(),
+        //     .firstID = curElem.firstID,
+        // };
+        // 
+        // fringe.push(newElem);
     }
 }
 

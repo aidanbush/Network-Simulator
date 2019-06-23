@@ -1,16 +1,18 @@
 #ifndef ENDPOINT_H
 #define ENDPOINT_H
+#include <nlohmann/json.hpp>
 
 #include "packetHandler.h"
 
 using namespace std;
 
+using json = nlohmann::json;
+
 class Packet;
 
 class Endpoint: public PacketHandler {
     public:
-        Endpoint(int id, int internalSpeed);
-
+        Endpoint(json endpointConfig);
         void rxPacket(Packet *p);
         int txPacket(Packet *p);
 

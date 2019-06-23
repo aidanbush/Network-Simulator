@@ -1,26 +1,24 @@
+#include <nlohmann/json.hpp>
+
 #include "link.h"
 #include "packet.h"
 #include "interface.h"
 #include "manager.h"
 
 using namespace std;
+using json = nlohmann::json;
 
-Link::Link(int id, int speed, second_t txTime) {
-    this->id = id;
-    this->speed = speed;
-    this->txTime = txTime;
-}
-
-void LinkQueue::txPacketIfaceEvent() {
+void LinkQueue::txPacketInterfaceEvent() {
     // move packet from top of queue onto Iface
     LinkPacket p = pQueue.top();
     pQueue.pop();
-    dest->rxLink(p.packet);
-
+    //TODO: this line doesn't work anymore, need to get the interface from the global map which isn't implemented yet
+    //dest->rxLink(p.packet);
+    
     // if queue not empty create new event
     if (!pQueue.empty()) {
         second_t nextTx = pQueue.top().arriveTime;
-        EventI *e = new Event<LinkQueue>(nextTx, &LinkQueue::txPacketIfaceEvent, this);
+        EventI *e = new Event<LinkQueue>(nextTx, &LinkQueue::txPacketInterfaceEvent, this);
         man.pushEvent(e);
     }
 }
@@ -30,14 +28,27 @@ void LinkQueue::txPacket(Packet *p, second_t txTime) {
         .packet = p,
         .arriveTime = man.time + txTime,
     };
-
+    
     pQueue.push(lp);
-
+    
     // if now one element add tx event
     if (pQueue.size() == 1) {
-        EventI *e = new Event<LinkQueue>(lp.arriveTime, &LinkQueue::txPacketIfaceEvent, this);
+        EventI *e = new Event<LinkQueue>(lp.arriveTime, &LinkQueue::txPacketInterfaceEvent, this);
         man.pushEvent(e);
     }
+}
+
+Link::Link(json linkConfig): NetworkObject(linkConfig["id"]) {
+    this->speed = linkConfig["speed"];
+    this->txTime = linkConfig["txTime"];
+}
+
+int Link::getSpeed() {
+    return speed;
+}
+
+second_t Link::getTxTime() {
+    return txTime;
 }
 
 void Link::txPacket(Packet *p, int sourceID) {
@@ -56,20 +67,15 @@ void Link::txPacket(Packet *p, int sourceID) {
     }
 }
 
-int Link::addDest(Interface *iface) {
-    if (dests.find(iface->getID()) != dests.end()) {
-        return 0;
-    }
-
-    dests[iface->getID()] = LinkQueue();
-    dests[iface->getID()].dest = iface;
-
-    return 1;
+bool Link::addDest(int interfaceId) {
+    LinkQueue lq = LinkQueue();
+    lq.destId = interfaceId;
+    return dests.emplace(interfaceId, lq).second;
 }
 
 // return 1 if interface was connected to link
-int Link::removeDest(int ifaceID) {
-    return dests.erase(ifaceID);
+int Link::removeDest(int interfaceId) {
+    return dests.erase(interfaceId);
 }
 
 #ifdef _TEST

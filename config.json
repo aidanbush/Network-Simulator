@@ -1,0 +1,140 @@
+{
+    "endpoints": [
+        {
+            "id": 0,
+            "speed": 1
+        }, {
+            "id": 1,
+            "speed": 1
+        }, {
+            "id": 2,
+            "speed": 1
+        }
+    ],
+    "switches": [
+        {
+            "id": 3,
+            "speed": 1
+        }, {
+            "id": 4,
+            "speed": 1
+        }, {
+            "id": 5,
+            "speed": 1
+        }
+    ],
+    "interfaces": [
+        {
+            "id": 0,
+            "phId": 0,
+            "linkBufSize": 1,
+            "handlerBufSize": 1
+        }, {
+            "id": 1,
+            "phId": 1,
+            "linkBufSize": 1,
+            "handlerBufSize": 1
+        }, {
+            "id": 2,
+            "phId": 2,
+            "linkBufSize": 1,
+            "handlerBufSize": 1
+        }, {
+            "id": 3,
+            "phId": 3,
+            "linkBufSize": 1,
+            "handlerBufSize": 1
+        }, {
+            "id": 4,
+            "phId": 3,
+            "linkBufSize": 1,
+            "handlerBufSize": 1
+        }, {
+            "id": 5,
+            "phId": 3,
+            "linkBufSize": 1,
+            "handlerBufSize": 1
+        }, {
+            "id": 6,
+            "phId": 4,
+            "linkBufSize": 1,
+            "handlerBufSize": 1
+        }, {
+            "id": 7,
+            "phId": 4,
+            "linkBufSize": 1,
+            "handlerBufSize": 1
+        }, {
+            "id": 8,
+            "phId": 4,
+            "linkBufSize": 1,
+            "handlerBufSize": 1
+        }, {
+            "id": 9,
+            "phId": 5,
+            "linkBufSize": 1,
+            "handlerBufSize": 1
+        }, {
+            "id": 10,
+            "phId": 5,
+            "linkBufSize": 1,
+            "handlerBufSize": 1
+        }, {
+            "id": 11,
+            "phId": 5,
+            "linkBufSize": 1,
+            "handlerBufSize": 1
+        }
+    ],
+    "links": [
+        {
+            "id": 0,
+            "speed": 1,
+            "txTime": 1
+        }, {
+            "id": 1,
+            "speed": 1,
+            "txTime": 1
+        }, {
+            "id": 2,
+            "speed": 1,
+            "txTime": 1
+        }, {
+            "id": 3,
+            "speed": 1,
+            "txTime": 1
+        }, {
+            "id": 4,
+            "speed": 1,
+            "txTime": 1
+        }, {
+            "id": 5,
+            "speed": 1,
+            "txTime": 1
+        }, {
+            "id": 6,
+            "speed": 1,
+            "txTime": 1
+        }, {
+            "id": 7,
+            "speed": 1,
+            "txTime": 1
+        }, {
+            "id": 8,
+            "speed": 1,
+            "txTime": 1
+        }, {
+            "id": 9,
+            "speed": 1,
+            "txTime": 1
+        }, {
+            "id": 10,
+            "speed": 1,
+            "txTime": 1
+        }, {
+            "id": 11,
+            "speed": 1,
+            "txTime": 1
+        }
+    ]
+}
