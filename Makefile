@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-std=c++2a -Wall -Wextra -pedantic -g
+CXXFLAGS=-std=c++2a -Wall -Wextra -Wconversion -pedantic -g
 
 BUILD_DIR=build/
 

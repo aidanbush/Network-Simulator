@@ -2,6 +2,10 @@
 #define SWITCH_H
 #include <nlohmann/json.hpp>
 
+#include <map>
+#include <queue>
+#include <set>
+
 #include "packetHandler.h"
 
 using namespace std;
@@ -21,9 +25,9 @@ class Switch: public PacketHandler {
     protected:
         struct routingSearchElem {
             double cost;
-            PacketHandler *handler;
+            int curID;
             int firstID;
-            bool operator()(const routingSearchElem lhs, const routingSearchElem rhs) {
+            friend bool operator<(const routingSearchElem lhs, const routingSearchElem rhs) {
                 return lhs.cost > rhs.cost;
             }
         };
@@ -34,12 +38,19 @@ class Switch: public PacketHandler {
 
         static double txCost(Switch *source, int destID);
         static double txCost(Interface *iface);
-        static void initializeNeighbours(map<int, routingSearchElem> &fringe,
+
+        static void initializeNeighbours(priority_queue<routingSearchElem> &fringe,
                 Switch *netSwitch);
-        static void addNeighbours(map<int, routingSearchElem> &fringe,
-                routingSearchElem curElem);
+        static void addNeighbours(priority_queue<routingSearchElem> &fringe,
+                set<int> &explored, routingSearchElem curElem);
 
         void setupRoutingTable();
 };
 
-#endif // SWITCH_H
+#ifdef _TEST
+
+int testSwitch();
+
+#endif /* _TEST */
+
+#endif /* SWITCH_H */

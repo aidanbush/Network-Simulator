@@ -9,6 +9,7 @@
 #include "../link.h"
 #include "../interface.h"
 #include "../endpoint.h"
+#include "../switch.h"
 
 using json = nlohmann::json;
 
@@ -77,22 +78,29 @@ int main() {
     // for (json::iterator it = j.begin(); it != j.end(); ++it) {
     //     std::cout << it.key() << " : " << it.value() << "\n";
     // }
+    // float pi = j["pi"];
+    // vector<int> list = j["list"];
+    // cout << pi << endl;
+    // for (auto it : list) {
+    //     cout << it << " ";
+    // }
+    // cout << endl;
+    // //money m = j["object"];
+    // json o = j["object"];
+    // auto m = o.get<money>();
+    // cout << m.currency << endl << m.value << endl;
+
+    if (!testSwitch()) {
+        printf("Switch tests failed\n");
+        errors++;
+    } else {
+        printf("Switch tests passed\n");
+    }
 
     if (errors == 0) {
         printf("All tests Passed!\n");
         return 0;
     }
-    // float pi = j["pi"];
-//     vector<int> list = j["list"];
-//     cout << pi << endl;
-//     for (auto it : list) {
-//         cout << it << " ";
-//     }
-//     cout << endl;
-//     //money m = j["object"];
-//     json o = j["object"];
-//     auto m = o.get<money>();
-//     cout << m.currency << endl << m.value << endl;
 
     printf("%d tests failed\n", errors);
     return 1;

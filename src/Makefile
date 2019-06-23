@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-std=c++2a -Wall -Wextra -pedantic -g
+CXXFLAGS=-std=c++2a -Wall -Wextra -Wconversion -pedantic -g
 
 BUILD_DIR=../build/
 TARGETS=$(addprefix $(BUILD_DIR), simulator.o networkObject.o packetHandler.o\
@@ -26,21 +26,21 @@ $(BUILD_DIR)simulator.o: simulator.cpp switch.h manager.h
 
 $(BUILD_DIR)networkObject.o: networkObject.cpp networkObject.h
 
-$(BUILD_DIR)packetHandler.o: packetHandler.cpp packetHandler.h networkObject.h interface.h manager.h
+$(BUILD_DIR)packetHandler.o: packetHandler.cpp packetHandler.h networkObject.h interface.h packet.h manager.h
 
-$(BUILD_DIR)switch.o: switch.cpp switch.h packetHandler.h networkObject.h manager.h
+$(BUILD_DIR)switch.o: switch.cpp switch.h packetHandler.h manager.h interface.h packet.h endpoint.h
 
 $(BUILD_DIR)endpoint.o: endpoint.cpp endpoint.h packetHandler.h packet.h interface.h
 
-$(BUILD_DIR)interface.o: interface.cpp interface.h networkObject.h packet.h link.h packetHandler.h manager.h
+$(BUILD_DIR)interface.o: interface.cpp interface.h networkObject.h packetHandler.h manager.h packet.h link.h
 
 $(BUILD_DIR)flow.o: flow.cpp flow.h networkObject.h manager.h packet.h endpoint.h
 
-$(BUILD_DIR)link.o: link.cpp link.h networkObject.h packet.h interface.h manager.h
+$(BUILD_DIR)link.o: link.cpp link.h networkObject.h manager.h packet.h interface.h
 
 $(BUILD_DIR)packet.o: packet.cpp packet.h networkObject.h flow.h
 
-$(BUILD_DIR)manager.o: manager.cpp manager.h
+$(BUILD_DIR)manager.o: manager.cpp manager.h packetHandler.h switch.h endpoint.h
 
 clean:
 	$(RM) $(TARGETS)

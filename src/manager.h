@@ -5,6 +5,8 @@
 #include <map>
 
 class PacketHandler;
+class Endpoint;
+class Switch;
 
 using namespace std;
 
@@ -51,6 +53,12 @@ class Manager {
         PacketHandler *getHandler(int id);
         int addHandler(PacketHandler *handler);
 
+        Switch *getSwitch(int id);
+        int addSwitch(Switch *netSwitch);
+
+        Endpoint *getEndpoint(int id);
+        int addEndpoint(Endpoint *endpoint);
+
         void pushEvent(EventI *e) {pq.push(e); }
         EventI *popEvent();
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator>::size_type
@@ -59,6 +67,8 @@ class Manager {
     private:
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator> pq;
         map<int, PacketHandler*> packetHandlers;
+        map<int, Switch*> switches;
+        map<int, Endpoint*> endpoints;
 };
 
 extern Manager man;
