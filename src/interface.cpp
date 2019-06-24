@@ -10,14 +10,15 @@ using namespace std;
 
 using json = nlohmann::json;
 
-Interface::Interface(json interfaceConfig): NetworkObject(interfaceConfig["id"]) {
-    this->linkBufSize = interfaceConfig["linkBufSize"];
-    this->handlerBufSize = interfaceConfig["handlerBufSize"];
-    this->packetHandlerId = interfaceConfig["phId"];
+Interface::Interface(int id, int handlerID, int linkBufSize, int handlerBufSize):
+        NetworkObject(id) {
+    this->linkBufSize = linkBufSize;
+    this->handlerBufSize = handlerBufSize;
+    this->packetHandlerID = handlerID;
 }
 
-void Interface::setLink(int linkId) {
-    this->linkId = linkId;
+void Interface::setLink(int linkID) {
+    this->linkID = linkID;
 }
 
 int Interface::getLinkSpeed() {

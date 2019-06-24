@@ -12,7 +12,7 @@ class Packet;
 
 class Endpoint: public PacketHandler {
     public:
-        Endpoint(json endpointConfig);
+        Endpoint(int id, int speed);
         void rxPacket(Packet *p);
         int txPacket(Packet *p);
 

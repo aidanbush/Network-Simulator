@@ -16,7 +16,7 @@ class Packet;
 
 class PacketHandler: public NetworkObject {
     public:
-        PacketHandler(json phConfig);
+        PacketHandler(int id, int speed);
         
         vector<int> getInterfaces();
         

@@ -38,9 +38,9 @@ void LinkQueue::txPacket(Packet *p, second_t txTime) {
     }
 }
 
-Link::Link(json linkConfig): NetworkObject(linkConfig["id"]) {
-    this->speed = linkConfig["speed"];
-    this->txTime = linkConfig["txTime"];
+Link::Link(int id, int speed, second_t txTime): NetworkObject(id) {
+    this->speed = speed;
+    this->txTime = txTime;
 }
 
 int Link::getSpeed() {

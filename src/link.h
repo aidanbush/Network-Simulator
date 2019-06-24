@@ -38,7 +38,7 @@ class LinkQueue {
 
 class Link: public NetworkObject {
     public:
-        Link(json linkConfig);
+        Link(int id, int speed, second_t txTime);
         
         void txPacket(Packet *p, int sourceId);
         bool addDest(int interfaceId);

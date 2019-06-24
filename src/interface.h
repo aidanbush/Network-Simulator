@@ -15,8 +15,8 @@ using json = nlohmann::json;
 
 class Interface: public NetworkObject {
     public:
-        Interface(json interfaceConfig);
-        void setLink(int linkId);
+        Interface(int id, int handlerID, int linkBufSize, int handlerBufSize);
+        void setLink(int linkID);
         
         void txLinkEvent();
         void txHandlerEvent();
@@ -31,8 +31,8 @@ class Interface: public NetworkObject {
         static int ifaceToIface();
 #endif /* _TEST */
     private:
-        int linkId;
-        int packetHandlerId;
+        int linkID;
+        int packetHandlerID;
         
         int linkBufSize; // bytes
         int handlerBufSize; // bytes

@@ -11,8 +11,8 @@ using namespace std;
 
 using json = nlohmann::json;
 
-PacketHandler::PacketHandler(json phConfig): NetworkObject(phConfig["id"]) {
-    this->internalSpeed = phConfig["speed"];
+PacketHandler::PacketHandler(int id, int speed): NetworkObject(id) {
+    this->internalSpeed = speed;
 }
 
 int PacketHandler::getInternalSpeed() {

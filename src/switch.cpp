@@ -13,7 +13,8 @@ using namespace std;
 
 using json = nlohmann::json;
 
-Switch::Switch(json switchConfig): PacketHandler(switchConfig) {}
+Switch::Switch(int id, int speed): PacketHandler(id, speed) {
+}
 
 void Switch::rxPacket(Packet *p) {
     int interfaceId = routePacket(p);
