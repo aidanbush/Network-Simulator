@@ -67,23 +67,28 @@ int Endpoint::endpointToEndpoint() {
     e1 = new Endpoint(e1ID, e1Speed);
     e2 = new Endpoint(e2ID, e2Speed);
 
+    man.addEndpoint(e1);
+    man.addEndpoint(e2);
+
+    i1 = new Interface(i1ID, e1->getID(), i1LBuf, i1HBuf);
+    i2 = new Interface(i2ID, e2->getID(), i2LBuf, i2HBuf);
+
+    man.addInterface(i1);
+    man.addInterface(i2);
+
     l1 = new Link(l1ID, l1Speed, l1TxTime);
 
-    i1 = new Interface(i1ID, l1, i1LBuf, i1HBuf);
-    i2 = new Interface(i2ID, l1, i2LBuf, i2HBuf);
+    i1->setLink(l1->getID());
+    i2->setLink(l1->getID());
 
-    i1->addHandler(e1);
-    i2->addHandler(e2);
-
-    l1->addDest(i1);
-    l1->addDest(i2);
-
-    e1->addInterface(e2ID, i1);
-    e2->addInterface(e1ID, i2);
+    man.addLink(l1);
 
     f1 = new TestFlow(f1ID, e1, e2ID);
 
     p1 = new Packet(p1ID, p1SID, p1DID, f1, p1TTL, p1HSize, p1BSize);
+
+    e1->addInterface(e2ID, i1->getID());
+    e2->addInterface(e1ID, i2->getID());
 
     // add to endpoint 1
     e1->txPacket(p1);
