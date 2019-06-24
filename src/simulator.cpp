@@ -37,43 +37,233 @@ json readConfig() {
     return config;
 }
 
-void parseConfig(json& config, map<int, PacketHandler*>& packetHandlers,
-                map<int, Interface*>& interfaces, map<int, Link*>& links) {
+enum jsonType {
+    jsonInt,
+    jsonDouble,
+    jsonArray,
+};
+
+static bool checkConfigObjType(json &obj, jsonType type) {
+    switch (type) {
+        case jsonInt:
+            return obj.is_number_integer();
+        case jsonDouble:
+            return obj.is_number_float();
+        case jsonArray:
+            return obj.is_array();
+    }
+}
+
+static bool checkConfigType(json &parent, string key, jsonType type) {
+    if (parent.find(key) == parent.end()) {
+        return false;
+    }
+
+    return checkConfigObjType(parent[key], type);
+}
+
+static bool checkConfig(json &config, vector<pair<string, jsonType>> &elems,
+        string parent) {
+    bool valid = true;
+
+    for (pair<string, jsonType> e : elems) {
+        if (!checkConfigType(config, e.first, e.second)) {
+            fprintf(stderr, "Error in %s with %s\n", parent.c_str(), e.first.c_str());
+            valid = false;
+        }
+    }
+
+    return valid;
+}
+
+static bool checkConfigArray(json &config, string key, jsonType type,
+        string parent) {
+    if (!checkConfigType(config, key, jsonArray)) {
+        fprintf(stderr, "Error in %s with %s\n", parent.c_str(), key.c_str());
+        return false;
+    }
+
+    bool valid = true;
+
+    for (auto it : config[key].items()) {
+        if (!checkConfigObjType(it.value(), type)) {
+            fprintf(stderr, "Error in %s array %s\n", parent.c_str(), key.c_str());
+            valid = false;
+        }
+    }
+
+    return valid;
+}
+
+static bool checkEndpointConfig(json &config) {
+    vector<pair<string, jsonType>> elems = {
+        {"id", jsonInt},
+        {"internal_speed", jsonInt},
+    };
+
+    return checkConfig(config, elems, "endpoint");
+}
+
+static bool checkSwitchConfig(json &config) {
+    vector<pair<string, jsonType>> elems = {
+        {"id", jsonInt},
+        {"internal_speed", jsonInt},
+    };
+
+    return checkConfig(config, elems, "switch");
+}
+
+static bool checkInterfaceConfig(json &config) {
+    vector<pair<string, jsonType>> elems = {
+        {"id", jsonInt},
+        {"handler_id", jsonInt},
+        {"link_buf_size", jsonInt},
+        {"handler_buf_size", jsonInt},
+    };
+
+    return checkConfig(config, elems, "interface");
+}
+
+static bool checkLinkConfig(json &config) {
+    vector<pair<string, jsonType>> elems = {
+        {"id", jsonInt},
+        {"speed", jsonInt},
+        {"time", jsonDouble},
+    };
+    bool valid = true;
+
+    if (!checkConfig(config, elems, "link")) {
+        valid = false;
+    }
+
+    if (!checkConfigArray(config, "ifaces", jsonInt, "link")) {
+        valid = false;
+    }
+
+    return valid;
+}
+
+static bool addEndpoint(json &config) {
+    if (!checkEndpointConfig(config)) {
+        return false;
+    }
+
+    int id = config["id"];
+    int speed = config["speed"];
+
+    Endpoint *e = new Endpoint(id, speed);
+
+    if (!man.addEndpoint(e)) {
+        delete e;
+        return false;
+    }
+
+    return true;
+}
+
+static bool addSwitch(json &config) {
+    if (!checkSwitchConfig(config)) {
+        return false;
+    }
+
+    int id = config["id"];
+    int speed = config["speed"];
+
+    Switch *s = new Switch(id, speed);
+
+    if (!man.addSwitch(s)) {
+        delete s;
+        return false;
+    }
+
+    return true;
+}
+
+static bool addInterface(json &config) {
+    if (!checkInterfaceConfig(config)) {
+        return false;
+    }
+
+    int id = config["id"];
+    int handlerID = config["handler_id"];
+    int linkBufSize = config["link_buf_size"];
+    int handlerBufSize = config["handler_buf_size"];
+
+    Interface *i = new Interface(id, handlerID, linkBufSize, handlerBufSize);
+
+    if (!man.addInterface(i)) {
+        delete i;
+        return false;
+    }
+
+    return true;
+}
+
+static bool addLink(json &config) {
+    if (!checkLinkConfig(config)) {
+        return false;
+    }
+
+    int id = config["id"];
+    int speed = config["speed"];
+    second_t txTime = config["time"];
+
+    Link *l = new Link(id, speed, txTime);
+
+    if (!man.addLink(l)) {
+        delete l;
+        return false;
+    }
+
+    for (auto it : config["ifaces"].items()) {
+        if (!l->addDest(it.value())) {
+            // delete and undo all adds?
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool parseConfig(json& config) {
+    bool success = true;
+
     for (json::iterator it = config["endpoints"].begin(); it != config["endpoints"].end(); ++it) {
-        //it.value() gives json object of endpoint
-        packetHandlers.emplace(it.value()["id"], new Endpoint(it.value()));
+        if (!addEndpoint(it.value())) {
+            success = false;
+        }
     }
-    
+
     for (json::iterator it = config["switches"].begin(); it != config["switches"].end(); ++it) {
-        //it.value() gives json object of switch
-        packetHandlers.emplace(it.value()["id"], new Switch(it.value()));
+        if (!addSwitch(it.value())) {
+            success = false;
+        }
     }
-    
+
     for (json::iterator it = config["interfaces"].begin(); it != config["interfaces"].end(); ++it) {
-        //it.value() gives json object of interface
-        Interface* interface = new Interface(it.value());
-        interfaces.emplace(it.value()["id"], interface);
-        //TODO:Figure out how to add interface to packet handler without destination
-        //packetHandlers.find(it.value()["phId"])->second->addInterface(&interface);
+        if (!addInterface(it.value())) {
+            success = false;
+        }
     }
-    
+
     for (json::iterator it = config["links"].begin(); it != config["links"].end(); ++it) {
-        //it.value() gives json object of link
-        Link* linck = new Link(it.value());
-        links.emplace(it.value()["id"], linck);
-        //TODO:Figure out how to attach links
-        //interfaces.find(it.value()["src"])->second->setOutgoingLink(it.value()["id"]);
-        //interfaces.find(it.value()["dest"])->second->setIncomingLink(it.value()["id"]);
+        if (!addLink(it.value())) {
+            success = false;
+        }
     }
+
+    return success;
 }
 
 int main() {
     // load configuration
     json config = readConfig();
-    map<int, PacketHandler*> packetHandlers;
-    map<int, Interface*> interfaces;
-    map<int, Link*> links;
-    parseConfig(config, packetHandlers, interfaces, links);
+
+    if (!parseConfig(config)) {
+        // TODO cleanup and exit
+        return 1;
+    }
+
     while (man.numEvents() > 0) {
         EventI* e = man.popEvent();
         e->call();
