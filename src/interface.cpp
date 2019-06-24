@@ -14,7 +14,7 @@ Interface::Interface(int id, int handlerID, int linkBufSize, int handlerBufSize)
         NetworkObject(id) {
     this->linkBufSize = linkBufSize;
     this->handlerBufSize = handlerBufSize;
-    this->packetHandlerID = handlerID;
+    this->handlerID = handlerID;
 }
 
 void Interface::setLink(int linkID) {
@@ -123,27 +123,28 @@ int Interface::ifaceToIface() {
           p2TTL = 10,
           p2HSize = 40,
           p2BSize = 120;
-    const int h1Speed = 1;
+    const int h1ID = 1;
+    const int h2ID = 2;
 
     Link *l1;
     Interface *i1, *i2;
     Packet *p1, *p2;
     EventI *e;
-    TestHandler *h1;
     Flow *f1;
 
     // setup network
+    i1 = new Interface(i1ID, h1ID, i1LBuf, i1HBuf);
+    i2 = new Interface(i2ID, h2ID, i2LBuf, i2HBuf);
+
+    man.addInterface(i1);
+    man.addInterface(i2);
+
     l1 = new Link(l1ID, l1Speed, l1TxTime);
 
-    i1 = new Interface(i1ID, l1, i1LBuf, i1HBuf);
-    i2 = new Interface(i2ID, l1, i2LBuf, i2HBuf);
+    l1->addDest(i1ID);
+    l1->addDest(i2ID);
 
-    l1->addDest(i1);
-    l1->addDest(i2);
-
-    h1 = new TestHandler(h1Speed);
-
-    i2->addHandler(h1);
+    man.addLink(l1);
 
     f1 = NULL;
 
@@ -222,35 +223,21 @@ int Interface::ifaceToIface() {
     delete i2;
     delete p1;
     delete p2;
-    delete h1;
 
     return 1;
 }
 
-#define L_ID        1
-#define L_SPEED     80000
-#define L_TX_TIME   ((second_t)0.001)
-
-#define I_ID        1
-#define I_LB_SIZE   48000
-#define I_HB_SIZE   32000
-
-#define S_ID        1
-#define S_SPEED     1
-
 int testInterface() {
-    Link *l1 = new Link(L_ID, L_SPEED, L_TX_TIME);
+    const int l1ID = 1;
+    const int s1ID = 1;
+    const int i1ID = 1,
+          i1LBuf = 48000,
+          i1HBuf = 32000;
 
-    Interface *i1 = new Interface(I_ID, l1, I_LB_SIZE, I_HB_SIZE);
+    Interface *i1 = new Interface(i1ID, s1ID, i1LBuf, i1HBuf);
+    i1->setLink(l1ID);
 
-    Switch *s1 = new Switch(S_ID, S_SPEED);
-
-    assert(i1->addHandler(s1));
-    assert(!i1->addHandler(s1));
-
-    delete s1;
     delete i1;
-    delete l1;
 
     return Interface::ifaceToIface();
 }

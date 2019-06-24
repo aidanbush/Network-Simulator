@@ -32,7 +32,7 @@ class Interface: public NetworkObject {
 #endif /* _TEST */
     private:
         int linkID;
-        int packetHandlerID;
+        int handlerID;
         
         int linkBufSize; // bytes
         int handlerBufSize; // bytes
