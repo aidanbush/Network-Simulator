@@ -13,7 +13,7 @@ void LinkQueue::txPacketInterfaceEvent() {
     LinkPacket p = pQueue.top();
     pQueue.pop();
 
-    PacketHandler *dest = man.getHandler();
+    Interface *dest = man.getInterface(destID);
     // TODO error check
     dest->rxLink(p.packet);
 
@@ -71,7 +71,7 @@ void Link::txPacket(Packet *p, int sourceID) {
 
 bool Link::addDest(int interfaceId) {
     LinkQueue lq = LinkQueue();
-    lq.destId = interfaceId;
+    lq.destID = interfaceId;
     return dests.emplace(interfaceId, lq).second;
 }
 
@@ -97,8 +97,8 @@ int testLink() {
     assert(l1->addDest(i1ID));
     assert(!l1->addDest(i1ID));
 
-    assert(l1->removeDest(i1->getID()));
-    assert(!l1->removeDest(i1->getID()));
+    assert(l1->removeDest(i1ID));
+    assert(!l1->removeDest(i1ID));
 
     // test txPacket
 
