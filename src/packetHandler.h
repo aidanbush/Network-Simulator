@@ -37,7 +37,7 @@ class PacketHandler: public NetworkObject {
 #ifdef _TEST
 class TestHandler: public PacketHandler {
     public:
-        TestHandler(int internalSpeed) {this->internalSpeed = internalSpeed; }
+        TestHandler(int id, int internalSpeed): PacketHandler(id, internalSpeed) {; }
 
         void rxPacket(Packet *) {; }
 };
