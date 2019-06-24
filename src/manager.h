@@ -72,6 +72,8 @@ class Manager {
             numEvents() {return pq.size(); }
 
     private:
+        int addHandler(PacketHandler *handler);
+
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator> pq;
         map<int, PacketHandler*> packetHandlers;
         map<int, Switch*> switches;

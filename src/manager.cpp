@@ -11,6 +11,17 @@ Manager::Manager() {
     time = 0;
 }
 
+int Manager::addHandler(PacketHandler *handler) {
+    int id = handler->getID();
+
+    if (handler == NULL || switches.find(id) != switches.end()) {
+        return 0;
+    }
+
+    packetHandlers.insert({id, handler});
+    return 1;
+}
+
 PacketHandler *Manager::getHandler(int id) {
     auto handler = packetHandlers.find(id);
     if (handler == packetHandlers.end()) {
@@ -25,6 +36,10 @@ int Manager::addSwitch(Switch *netSwitch) {
     int id = netSwitch->getID();
 
     if (netSwitch == NULL || switches.find(id) != switches.end()) {
+        return 0;
+    }
+
+    if (!addHandler(netSwitch)) {
         return 0;
     }
 
@@ -46,6 +61,10 @@ int Manager::addEndpoint(Endpoint *endpoint) {
     int id = endpoint->getID();
 
     if (endpoint == NULL || endpoints.find(id) != endpoints.end()) {
+        return 0;
+    }
+
+    if (!addHandler(endpoint)) {
         return 0;
     }
 
