@@ -7,6 +7,8 @@
 class PacketHandler;
 class Endpoint;
 class Switch;
+class Interface;
+class Link;
 
 using namespace std;
 
@@ -51,13 +53,18 @@ class Manager {
         // flow
 
         PacketHandler *getHandler(int id);
-        int addHandler(PacketHandler *handler);
 
         Switch *getSwitch(int id);
         int addSwitch(Switch *netSwitch);
 
         Endpoint *getEndpoint(int id);
         int addEndpoint(Endpoint *endpoint);
+
+        Interface *getInterface(int id);
+        int addInterface(Interface *interface);
+
+        Link *getLink(int id);
+        int addLink(Link *link);
 
         void pushEvent(EventI *e) {pq.push(e); }
         EventI *popEvent();
@@ -69,6 +76,8 @@ class Manager {
         map<int, PacketHandler*> packetHandlers;
         map<int, Switch*> switches;
         map<int, Endpoint*> endpoints;
+        map<int, Interface*> interfaces;
+        map<int, Link*> links;
 };
 
 extern Manager man;
