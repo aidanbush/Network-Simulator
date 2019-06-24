@@ -12,9 +12,11 @@ void LinkQueue::txPacketInterfaceEvent() {
     // move packet from top of queue onto Iface
     LinkPacket p = pQueue.top();
     pQueue.pop();
-    //TODO: this line doesn't work anymore, need to get the interface from the global map which isn't implemented yet
-    //dest->rxLink(p.packet);
-    
+
+    PacketHandler *dest = man.getHandler();
+    // TODO error check
+    dest->rxLink(p.packet);
+
     // if queue not empty create new event
     if (!pQueue.empty()) {
         second_t nextTx = pQueue.top().arriveTime;
@@ -28,9 +30,9 @@ void LinkQueue::txPacket(Packet *p, second_t txTime) {
         .packet = p,
         .arriveTime = man.time + txTime,
     };
-    
+
     pQueue.push(lp);
-    
+
     // if now one element add tx event
     if (pQueue.size() == 1) {
         EventI *e = new Event<LinkQueue>(lp.arriveTime, &LinkQueue::txPacketInterfaceEvent, this);
@@ -81,30 +83,22 @@ int Link::removeDest(int interfaceId) {
 #ifdef _TEST
 #include <assert.h>
 
-#define L_ID    1
-#define SPEED   8000000
-#define TX_TIME ((second_t)0.0005)
-
-#define I_ID        1
-#define I_LB_SIZE   48000
-#define I_HB_SIZE   32000
-
 int testLink() {
-    Link *l1 = new Link(L_ID, SPEED, TX_TIME);
+    const int i1ID = 1;
+    const int l1ID = 1,
+          l1Speed = 80000;
+    const second_t l1TxTime = 0.0005;
 
-    assert(l1->getID() == L_ID);
-    assert(l1->getSpeed() == SPEED);
+    Link *l1 = new Link(l1ID, l1Speed, l1TxTime);
 
-    // test addDest
-    Interface *i1 = new Interface(I_ID, l1, I_LB_SIZE, I_HB_SIZE);
+    assert(l1->getID() == l1ID);
+    assert(l1->getSpeed() == l1Speed);
 
-    assert(l1->addDest(i1));
-    assert(!l1->addDest(i1));
+    assert(l1->addDest(i1ID));
+    assert(!l1->addDest(i1ID));
 
     assert(l1->removeDest(i1->getID()));
     assert(!l1->removeDest(i1->getID()));
-
-    delete i1;
 
     // test txPacket
 
