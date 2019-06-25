@@ -66,6 +66,7 @@ class Manager {
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator>::size_type
             numEvents() {return pq.size(); }
 
+        bool linkHandlers();
         void deleteNetwork();
 
     private:

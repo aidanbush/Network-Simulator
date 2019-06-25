@@ -100,6 +100,20 @@ void Interface::rxHandler(Packet *p) {
     }
 }
 
+int Interface::getHandlerID() {
+    return handlerID;
+}
+
+set<int> Interface::getNeighbours() {
+    set<int> neighbours;
+    Link *link = man.getLink(linkID);
+
+    neighbours = link->getNeighbours();
+    neighbours.erase(handlerID);
+
+    return neighbours;
+}
+
 #ifdef _TEST
 #include <assert.h>
 

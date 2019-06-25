@@ -253,9 +253,6 @@ static bool addLink(json &config) {
     return true;
 }
 
-static bool linkObjects() {
-}
-
 static bool parseConfig(json& config) {
     bool success = true;
 
@@ -283,7 +280,7 @@ static bool parseConfig(json& config) {
         }
     }
 
-    if (!linkObjects()) {
+    if (!man.linkHandlers()) {
         success = false;
     }
 

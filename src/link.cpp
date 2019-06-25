@@ -1,4 +1,7 @@
 #include <nlohmann/json.hpp>
+#include <set>
+#include <map>
+#include <queue>
 
 #include "link.h"
 #include "packet.h"
@@ -86,6 +89,18 @@ bool Link::addDest(int ifaceID) {
 // return 1 if interface was connected to link
 int Link::removeDest(int interfaceId) {
     return dests.erase(interfaceId);
+}
+
+set<int> Link::getNeighbours() {
+    set<int> neighbours;
+    Interface *iface;
+
+    for (auto& [id, lQueue] : dests) {
+        iface = man.getInterface(id);
+        neighbours.insert(iface->getHandlerID());
+    }
+
+    return neighbours;
 }
 
 #ifdef _TEST

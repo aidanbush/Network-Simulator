@@ -4,6 +4,7 @@
 
 #include <queue>
 #include <map>
+#include <set>
 
 #include "networkObject.h"
 #include "manager.h"
@@ -39,14 +40,16 @@ class LinkQueue {
 class Link: public NetworkObject {
     public:
         Link(int id, int speed, second_t txTime);
-        
+
         void txPacket(Packet *p, int sourceId);
         bool addDest(int interfaceId);
         int removeDest(int interfaceId);
-        
+
         int getSpeed();
         second_t getTxTime();
-        
+
+        set<int> getNeighbours();
+
     private:
         map<int, LinkQueue> dests; // map interfaceID to LinkQueue
         int speed; // bits/second

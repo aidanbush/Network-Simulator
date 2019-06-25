@@ -178,3 +178,13 @@ void Manager::deleteNetwork() {
 
     deleteEvents();
 }
+
+bool Manager::linkHandlers() {
+    for (auto const& it : packetHandlers) {
+        if (!it.second->connectNeighbours()) {
+        return false;
+        }
+    }
+
+    return true;
+}

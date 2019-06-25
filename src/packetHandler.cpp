@@ -1,4 +1,5 @@
 #include <map>
+#include <set>
 #include <vector>
 #include <nlohmann/json.hpp>
 
@@ -61,6 +62,7 @@ vector<int> PacketHandler::getInterfaces() {
 }
 
 vector<int> PacketHandler::getNeighbours() {
+    // TODO handle duplicates
     vector<int> neighbours;
 
     for (auto const& it : interfaces) {
@@ -68,4 +70,31 @@ vector<int> PacketHandler::getNeighbours() {
     }
 
     return neighbours;
+}
+
+bool PacketHandler::connectNeighbours() {
+    // for each interface until past negative neighbour ids
+    set<int> ifaceIDs;
+
+    auto it = interfaces.begin();
+    while (it != interfaces.end()) {
+        if (it->first < 0) {
+            ifaceIDs.insert(it->second);
+            it = interfaces.erase(it);
+        } else {
+            it++;
+        }
+    }
+
+    for (int ifaceID : ifaceIDs) {
+        // add neighbours
+        Interface *iface = man.getInterface(ifaceID);
+        set<int> neighbours = iface->getNeighbours();
+
+        for (int destID : neighbours) {
+            interfaces.emplace(destID, ifaceID);
+        }
+    }
+
+    return true;
 }

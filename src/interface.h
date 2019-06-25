@@ -3,6 +3,7 @@
 
 #include <nlohmann/json.hpp>
 #include <queue>
+#include <set>
 
 #include "networkObject.h"
 #include "link.h"
@@ -26,6 +27,9 @@ class Interface: public NetworkObject {
 
         int getLinkSpeed();
         second_t getLinkTxTime();
+
+        int getHandlerID();
+        set<int> getNeighbours();
 
 #ifdef _TEST
         static int ifaceToIface();
