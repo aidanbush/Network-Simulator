@@ -17,14 +17,15 @@ void Endpoint::rxPacket(Packet *p) {
 }
 
 int Endpoint::txPacket(Packet *p) {
-    // TODO: implement select interface and send on it
-    auto iface = interfaces.begin();
-    if (iface == interfaces.end()) {
+    auto ifaceIt = interfaces.begin();
+    if (ifaceIt == interfaces.end()) {
         fprintf(stderr, "interface not found to transmit packet on\n");
         return 0;
     }
-    //TODO: need to get interface from global map
-    //iface->second->rxHandler(p);
+
+    Interface *iface = man.getInterface(ifaceIt->second);
+
+    iface->rxHandler(p);
     return 1;
 }
 
@@ -67,28 +68,31 @@ int Endpoint::endpointToEndpoint() {
     e1 = new Endpoint(e1ID, e1Speed);
     e2 = new Endpoint(e2ID, e2Speed);
 
-    man.addEndpoint(e1);
-    man.addEndpoint(e2);
+    assert(man.addEndpoint(e1));
+    assert(man.addEndpoint(e2));
 
-    i1 = new Interface(i1ID, e1->getID(), i1LBuf, i1HBuf);
-    i2 = new Interface(i2ID, e2->getID(), i2LBuf, i2HBuf);
+    i1 = new Interface(i1ID, e1ID, i1LBuf, i1HBuf);
+    i2 = new Interface(i2ID, e2ID, i2LBuf, i2HBuf);
 
-    man.addInterface(i1);
-    man.addInterface(i2);
+    assert(man.addInterface(i1));
+    assert(man.addInterface(i2));
 
     l1 = new Link(l1ID, l1Speed, l1TxTime);
 
-    i1->setLink(l1->getID());
-    i2->setLink(l1->getID());
+    l1->addDest(i1ID);
+    l1->addDest(i2ID);
 
-    man.addLink(l1);
+    i1->setLink(l1ID);
+    i2->setLink(l1ID);
+
+    assert(man.addLink(l1));
 
     f1 = new TestFlow(f1ID, e1, e2ID);
 
     p1 = new Packet(p1ID, p1SID, p1DID, f1, p1TTL, p1HSize, p1BSize);
 
-    e1->addInterface(e2ID, i1->getID());
-    e2->addInterface(e1ID, i2->getID());
+    e1->addInterface(e2ID, i1ID);
+    e2->addInterface(e1ID, i2ID);
 
     // add to endpoint 1
     e1->txPacket(p1);
@@ -103,12 +107,9 @@ int Endpoint::endpointToEndpoint() {
 
     // no more events
 
-    delete e1;
-    delete e2;
-    delete i1;
-    delete i2;
-    delete l1;
     delete f1;
+
+    man.deleteNetwork();
 
     return 1;
 }

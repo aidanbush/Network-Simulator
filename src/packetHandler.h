@@ -17,20 +17,20 @@ class Packet;
 class PacketHandler: public NetworkObject {
     public:
         PacketHandler(int id, int speed);
-        
+
         vector<int> getInterfaces();
-        
+
         bool addInterface(int destId, int interfaceId);
         void removeInterface(int interfaceId);
-        
+
         vector<int> getNeighbours();
         int getInternalSpeed();
-        
+
         virtual void rxPacket(Packet *p) = 0;
-        
+
     protected:
         map<int, int> interfaces; // map neighbour id to interface id
-        
+
         int internalSpeed;
 };
 

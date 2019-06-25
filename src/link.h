@@ -18,7 +18,7 @@ class LinkQueue {
     public:
         int destID;
 
-        void txPacketInterfaceEvent();// event to move packet to dest
+        void txPacketIfaceEvent(); // event to move packet to dest
         void txPacket(Packet *p, second_t txTime);
 
     private:

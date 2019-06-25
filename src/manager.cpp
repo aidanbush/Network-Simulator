@@ -141,6 +141,8 @@ void Manager::deleteHandlers() {
     }
 
     packetHandlers.clear();
+    endpoints.clear();
+    switches.clear();
 }
 
 void Manager::deleteInterfaces() {
