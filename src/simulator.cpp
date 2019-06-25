@@ -17,6 +17,7 @@ using json = nlohmann::json;
 
 #ifndef _TEST
 Manager man;
+#endif /* _TEST */
 
 void combineJson(json& first, json& second) {
     for (json::iterator it = second.begin(); it != second.end(); ++it) {
@@ -24,16 +25,21 @@ void combineJson(json& first, json& second) {
     }
 }
 
-json readConfig() {
-    ifstream configStream("../config.json");
+json readConfig(string filename) {
+    ifstream configStream(filename);
     json config;
+
     configStream >> config;
+
+    /*
     ifstream localConfigStream("local.json");
     if (localConfigStream.good()) {
         json localConfig;
         localConfigStream >> localConfig;
         combineJson(config, localConfig);
     }
+    */
+
     return config;
 }
 
@@ -52,6 +58,9 @@ static bool checkConfigObjType(json &obj, jsonType type) {
         case jsonArray:
             return obj.is_array();
     }
+
+    // error
+    return false;
 }
 
 static bool checkConfigType(json &parent, string key, jsonType type) {
@@ -149,7 +158,7 @@ static bool addEndpoint(json &config) {
     }
 
     int id = config["id"];
-    int speed = config["speed"];
+    int speed = config["internal_speed"];
 
     Endpoint *e = new Endpoint(id, speed);
 
@@ -167,7 +176,7 @@ static bool addSwitch(json &config) {
     }
 
     int id = config["id"];
-    int speed = config["speed"];
+    int speed = config["internal_speed"];
 
     Switch *s = new Switch(id, speed);
 
@@ -255,12 +264,14 @@ static bool parseConfig(json& config) {
     return success;
 }
 
+#ifndef _TEST
+
 int main() {
     // load configuration
-    json config = readConfig();
+    json config = readConfig("local.json");
 
     if (!parseConfig(config)) {
-        // TODO cleanup and exit
+        man.deleteNetwork();
         return 1;
     }
 
@@ -273,4 +284,16 @@ int main() {
     return 0;
 }
 
-#endif // _TEST
+#else /* _TEST */
+
+int testConfig() {
+    json config = readConfig("test.json");
+
+    assert(parseConfig(config));
+
+    man.deleteNetwork();
+
+    return 1;
+}
+
+#endif /* _TEST */

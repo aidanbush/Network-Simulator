@@ -10,6 +10,7 @@
 #include "../interface.h"
 #include "../endpoint.h"
 #include "../switch.h"
+#include "../simulator.h"
 
 using json = nlohmann::json;
 
@@ -53,7 +54,12 @@ int main() {
         printf("Switch tests passed\n");
     }
 
-    // TODO: Add config tests
+    if (!testConfig()) {
+        printf("Switch tests failed\n");
+        errors++;
+    } else {
+        printf("Switch tests passed\n");
+    }
 
     if (errors == 0) {
         printf("All tests Passed!\n");
