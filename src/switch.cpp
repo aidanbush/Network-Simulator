@@ -118,21 +118,22 @@ void Switch::setupRoutingTable() {
 
     // while fringe not empty
     while (!fringe.empty()) {
-        routingSearchElem elem = fringe.top();
+        curElem = fringe.top();
         fringe.pop();
 
         // continue if not new element
-        if (!explored.insert(elem.curID).second) {
+        if (!explored.insert(curElem.curID).second) {
             continue;
         }
 
         //if (dynamic_cast<Endpoint *>(elem.second.handler) != NULL) {
-        if (man.getEndpoint(elem.curID) != NULL) {
-            routingTable.insert(pair<int, int>(elem.curID, elem.firstID));
-        } else if (man.getSwitch(elem.curID) != NULL) {
-            Switch::addNeighbours(fringe, explored, elem);
+        if (man.getEndpoint(curElem.curID) != NULL) {
+            routingTable.insert(pair<int, int>(curElem.curID, curElem.firstID));
+        } else if (man.getSwitch(curElem.curID) != NULL) {
+            Switch::addNeighbours(fringe, explored, curElem);
         } else {
             // TODO: handle error
+            fprintf(stderr, "Error in routing UCS unkown packetHandler type\n");
         }
     }
 }
