@@ -1,7 +1,7 @@
 #ifndef SWITCH_H
 #define SWITCH_H
-#include <nlohmann/json.hpp>
 
+#include <nlohmann/json.hpp>
 #include <map>
 #include <queue>
 #include <set>
@@ -20,7 +20,7 @@ class Switch: public PacketHandler {
 
         void initSwitch();
 
-        int getInterfaceId(int destID);
+        int getInterfaceID(int destID);
 
     protected:
         struct routingSearchElem {
