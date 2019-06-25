@@ -134,3 +134,45 @@ EventI *Manager::popEvent() {
     time = e->time;
     return e;
 }
+
+void Manager::deleteHandlers() {
+    for (auto [id, handler] : packetHandlers) {
+        delete handler;
+    }
+
+    packetHandlers.clear();
+}
+
+void Manager::deleteInterfaces() {
+    for (auto [id, iface] : interfaces) {
+        delete iface;
+    }
+
+    interfaces.clear();
+}
+
+void Manager::deleteLinks() {
+    for (auto [id, link] : links) {
+        delete link;
+    }
+
+    links.clear();
+}
+
+void Manager::deleteEvents() {
+    EventI *e;
+
+    while (!pq.empty()) {
+        e = pq.top();
+        pq.pop();
+        delete e;
+    }
+}
+
+void Manager::deleteNetwork() {
+    deleteHandlers();
+    deleteInterfaces();
+    deleteLinks();
+
+    deleteEvents();
+}

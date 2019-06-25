@@ -46,11 +46,6 @@ class Manager {
 
         second_t time;
         // global stats
-        // reference to all
-        // switches
-        // endpoints
-        // links
-        // flow
 
         PacketHandler *getHandler(int id);
 
@@ -71,8 +66,16 @@ class Manager {
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator>::size_type
             numEvents() {return pq.size(); }
 
+        void deleteNetwork();
+
     private:
         int addHandler(PacketHandler *handler);
+
+        void deleteHandlers();
+        void deleteInterfaces();
+        void deleteLinks();
+
+        void deleteEvents();
 
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator> pq;
         map<int, PacketHandler*> packetHandlers;
