@@ -17,26 +17,26 @@ class Interface: public NetworkObject {
     public:
         Interface(int id, int handlerID, int linkBufSize, int handlerBufSize);
         void setLink(int linkID);
-        
+
         void txLinkEvent();
         void txHandlerEvent();
-        
+
         void rxLink(Packet *p);
         void rxHandler(Packet *p);
-        
+
         int getLinkSpeed();
         second_t getLinkTxTime();
-        
+
 #ifdef _TEST
         static int ifaceToIface();
 #endif /* _TEST */
     private:
         int linkID;
         int handlerID;
-        
+
         int linkBufSize; // bytes
         int handlerBufSize; // bytes
-        
+
         queue<Packet*> linkBuffer;
         queue<Packet*> handlerBuffer;
 };

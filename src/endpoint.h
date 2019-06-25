@@ -1,5 +1,6 @@
 #ifndef ENDPOINT_H
 #define ENDPOINT_H
+
 #include <nlohmann/json.hpp>
 
 #include "packetHandler.h"
