@@ -107,12 +107,19 @@ set<int> Link::getNeighbours() {
 #include <assert.h>
 
 int testLink() {
-    const int i1ID = 1;
+    const int i1ID = 1,
+          i1HID = 1,
+          i1LBSize = 1,
+          i1HBsize = 1;
     const int l1ID = 1,
           l1Speed = 80000;
     const second_t l1TxTime = 0.0005;
 
+    Interface *i1 = new Interface(i1ID, i1HID, i1LBSize, i1HBsize);
+    assert(man.addInterface(i1));
+
     Link *l1 = new Link(l1ID, l1Speed, l1TxTime);
+    assert(man.addLink(l1));
 
     assert(l1->getID() == l1ID);
     assert(l1->getSpeed() == l1Speed);
@@ -123,9 +130,7 @@ int testLink() {
     assert(l1->removeDest(i1ID));
     assert(!l1->removeDest(i1ID));
 
-    // test txPacket
-
-    delete l1;
+    man.deleteNetwork();
 
     return 1;
 }
