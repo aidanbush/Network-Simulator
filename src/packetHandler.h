@@ -21,10 +21,13 @@ class PacketHandler: public NetworkObject {
         vector<int> getInterfaces();
 
         bool addInterface(int destId, int interfaceId);
+        bool addInterfaceConfig(int ifaceID);
         void removeInterface(int interfaceId);
 
         vector<int> getNeighbours();
         int getInternalSpeed();
+
+        bool connectNeighbours();
 
         virtual void rxPacket(Packet *p) = 0;
 

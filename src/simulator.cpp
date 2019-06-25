@@ -163,6 +163,7 @@ static bool addEndpoint(json &config) {
     Endpoint *e = new Endpoint(id, speed);
 
     if (!man.addEndpoint(e)) {
+        fprintf(stderr, "Endpoint: error in adding id %d already exists\n", id);
         delete e;
         return false;
     }
@@ -181,6 +182,7 @@ static bool addSwitch(json &config) {
     Switch *s = new Switch(id, speed);
 
     if (!man.addSwitch(s)) {
+        fprintf(stderr, "Switch: error in adding id %d already exists\n", id);
         delete s;
         return false;
     }
@@ -192,15 +194,30 @@ static bool addInterface(json &config) {
     if (!checkInterfaceConfig(config)) {
         return false;
     }
+    PacketHandler *handler;
 
     int id = config["id"];
     int handlerID = config["handler_id"];
     int linkBufSize = config["link_buf_size"];
     int handlerBufSize = config["handler_buf_size"];
 
+    handler = man.getHandler(handlerID);
+    if (handler == NULL) {
+        fprintf(stderr, "Interface: handler with id %d does not exists\n", handlerID);
+        return false;
+    }
+
     Interface *i = new Interface(id, handlerID, linkBufSize, handlerBufSize);
 
     if (!man.addInterface(i)) {
+        delete i;
+        return false;
+    }
+
+    // inform handler
+    if (!handler->addInterfaceConfig(id)) {
+        fprintf(stderr, "Interface: error in linking handler %d with interface %d\n",
+                handlerID, id);
         delete i;
         return false;
     }
@@ -225,13 +242,18 @@ static bool addLink(json &config) {
     }
 
     for (auto it : config["ifaces"].items()) {
-        if (!l->addDest(it.value())) {
+        int ifaceID = it.value();
+        if (!l->addDest(ifaceID)) {
+            fprintf(stderr, "Link: interface with id %d unable to add\n", ifaceID);
             // delete and undo all adds?
             return false;
         }
     }
 
     return true;
+}
+
+static bool linkObjects() {
 }
 
 static bool parseConfig(json& config) {
@@ -259,6 +281,10 @@ static bool parseConfig(json& config) {
         if (!addLink(it.value())) {
             success = false;
         }
+    }
+
+    if (!linkObjects()) {
+        success = false;
     }
 
     return success;

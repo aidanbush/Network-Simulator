@@ -28,8 +28,26 @@ void PacketHandler::removeInterface(int interfaceId) {
     }
 }
 
-bool PacketHandler::addInterface(int destId, int interfaceId) {
-    return interfaces.emplace(destId, interfaceId).second;
+bool PacketHandler::addInterface(int destID, int interfaceID) {
+    return interfaces.emplace(destID, interfaceID).second;
+}
+
+bool PacketHandler::addInterfaceConfig(int ifaceID) {
+    int destID, lowest;
+
+    if (interfaces.empty()) {
+        destID = -1;
+    } else {
+        lowest = interfaces.begin()->first;
+
+        if (lowest >= 0) {
+            destID = -1;
+        } else {
+            destID = lowest - 1;
+        }
+    }
+
+    return interfaces.emplace(destID, ifaceID).second;
 }
 
 vector<int> PacketHandler::getInterfaces() {

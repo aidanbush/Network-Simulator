@@ -69,10 +69,18 @@ void Link::txPacket(Packet *p, int sourceID) {
     }
 }
 
-bool Link::addDest(int interfaceId) {
+bool Link::addDest(int ifaceID) {
     LinkQueue lq = LinkQueue();
-    lq.destID = interfaceId;
-    return dests.emplace(interfaceId, lq).second;
+    lq.destID = ifaceID;
+
+    Interface *iface = man.getInterface(ifaceID);
+    if (iface == NULL ||
+            !dests.emplace(ifaceID, lq).second) {
+        return false;
+    }
+
+    iface->setLink(id);
+    return true;
 }
 
 // return 1 if interface was connected to link
