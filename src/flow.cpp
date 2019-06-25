@@ -57,7 +57,7 @@ void TestFlow::txPacketEvent() {
     endpoint->txPacket(p);
 
     // set up next
-    int nextTx = nextTxTime();
+    second_t nextTx = nextTxTime();
     EventI *e = new Event<TestFlow>(nextTx, &TestFlow::txPacketEvent, this);
     man.pushEvent(e);
 }
