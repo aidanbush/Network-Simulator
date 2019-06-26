@@ -67,6 +67,7 @@ class Manager {
             numEvents() {return pq.size(); }
 
         bool linkHandlers();
+        bool validateNetwork();
         void deleteNetwork();
 
     private:
@@ -80,8 +81,6 @@ class Manager {
 
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator> pq;
         map<int, PacketHandler*> packetHandlers;
-        map<int, Switch*> switches;
-        map<int, Endpoint*> endpoints;
         map<int, Interface*> interfaces;
         map<int, Link*> links;
 };
