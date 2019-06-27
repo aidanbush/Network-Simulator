@@ -21,6 +21,10 @@ void Interface::setLink(int linkID) {
     this->linkID = linkID;
 }
 
+int Interface::getLinkID() {
+    return linkID;
+}
+
 int Interface::getLinkSpeed() {
     Link *link = man.getLink(linkID);
     return link->getSpeed();
@@ -122,15 +126,13 @@ bool Interface::validateHandler() {
         return false;
     }
 
-    bool valid = true;
-
     if (!handler->hasInterface(id)) {
         fprintf(stderr, "Interface: handler %d does not know of interface %d\n",
                 linkID, id);
-        valid = false;
+        return false;
     }
 
-    return valid;
+    return true;
 }
 
 bool Interface::validateLink() {

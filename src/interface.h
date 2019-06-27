@@ -18,6 +18,7 @@ class Interface: public NetworkObject {
     public:
         Interface(int id, int handlerID, int linkBufSize, int handlerBufSize);
         void setLink(int linkID);
+        int getLinkID();
 
         void txLinkEvent();
         void txHandlerEvent();

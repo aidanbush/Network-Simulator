@@ -107,7 +107,61 @@ set<int> Link::getNeighbours() {
     return neighbours;
 }
 
+bool Link::validateLinkQueues() {
+    bool valid = true;
+
+    for (auto& [ifaceID, linkQueue] : dests) {
+        if (ifaceID != linkQueue.destID) {
+            fprintf(stderr, "Link: link dest id %d and linkQueue dest id %d differ\n",
+                    ifaceID, linkQueue.destID);
+            valid = false;
+        }
+
+        Interface *iface = man.getInterface(ifaceID);
+        if (iface == NULL) {
+            fprintf(stderr, "Link: interface %d of link %d is missing\n",
+                    ifaceID, id);
+            valid = false;
+        } else {
+            if (!(iface->getLinkID() == id)) {
+                fprintf(stderr, "Link: interface %d does not know of link %d",
+                    ifaceID, id);
+                valid = false;
+            }
+        }
+    }
+
+    return valid;
+}
+
+bool Link::validateVariables() {
+    bool valid = true;
+
+    if (speed < 1) {
+        fprintf(stderr, "Link: %d has invalid speed %d\n", id, speed);
+        valid = false;
+    }
+
+    if (txTime < 0) {
+        fprintf(stderr, "Link: %d has invalid tx time %f\n", id, txTime);
+        valid = false;
+    }
+
+    return valid;
+}
+
 bool Link::validate() {
+    bool valid = true;
+
+    if (!validateLinkQueues()) {
+        valid = false;
+    }
+
+    if (!validateVariables()) {
+        valid = false;
+    }
+
+    return valid;
 }
 
 #ifdef _TEST

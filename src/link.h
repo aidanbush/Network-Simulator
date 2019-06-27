@@ -55,6 +55,9 @@ class Link: public NetworkObject {
         bool validate();
 
     private:
+        bool validateLinkQueues();
+        bool validateVariables();
+
         map<int, LinkQueue> dests; // map interfaceID to LinkQueue
         int speed; // bits/second
         second_t txTime;
