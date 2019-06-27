@@ -29,6 +29,16 @@ int Endpoint::txPacket(Packet *p) {
     return 1;
 }
 
+bool Endpoint::validate() {
+    bool valid = true;
+
+    if (!validateHandler()) {
+        valid = false;
+    }
+
+    return valid;
+}
+
 #ifdef _TEST
 #include <assert.h>
 #include <stdio.h>

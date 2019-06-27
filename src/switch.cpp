@@ -143,6 +143,16 @@ void Switch::initSwitch() {
     setupRoutingTable();
 }
 
+bool Switch::validate() {
+    bool valid = true;
+
+    if (!validateHandler()) {
+        valid = false;
+    }
+
+    return valid;
+}
+
 #ifdef _TEST
 
 #include <assert.h>

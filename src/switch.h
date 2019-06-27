@@ -22,6 +22,8 @@ class Switch: public PacketHandler {
 
         int getInterfaceID(int destID);
 
+        bool validate();
+
     protected:
         struct routingSearchElem {
             double cost;

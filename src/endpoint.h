@@ -16,6 +16,7 @@ class Endpoint: public PacketHandler {
         Endpoint(int id, int speed);
         void rxPacket(Packet *p);
         int txPacket(Packet *p);
+        bool validate();
 
 #ifdef _TEST
         static int endpointToEndpoint();
