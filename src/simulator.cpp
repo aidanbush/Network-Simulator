@@ -28,7 +28,7 @@ json readConfig() {
     ifstream configStream("../config.json");
     json config;
     configStream >> config;
-    ifstream localConfigStream("local.json");
+    ifstream localConfigStream("../local.json");
     if (localConfigStream.good()) {
         json localConfig;
         localConfigStream >> localConfig;
