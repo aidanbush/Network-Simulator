@@ -9,6 +9,7 @@ class NetworkObject {
         virtual ~NetworkObject() = default;
 
         int getID();
+        int getId();
 
     protected:
         int id;

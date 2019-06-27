@@ -28,7 +28,7 @@ json readConfig() {
     ifstream configStream("../config.json");
     json config;
     configStream >> config;
-    ifstream localConfigStream("local.json");
+    ifstream localConfigStream("../local.json");
     if (localConfigStream.good()) {
         json localConfig;
         localConfigStream >> localConfig;
@@ -52,18 +52,14 @@ void parseConfig(json& config, map<int, PacketHandler*>& packetHandlers,
     for (json::iterator it = config["interfaces"].begin(); it != config["interfaces"].end(); ++it) {
         //it.value() gives json object of interface
         Interface* interface = new Interface(it.value());
-        interfaces.emplace(it.value()["id"], interface);
-        //TODO:Figure out how to add interface to packet handler without destination
-        //packetHandlers.find(it.value()["phId"])->second->addInterface(&interface);
+        interfaces.emplace(interface->getId(), interface);
     }
     
     for (json::iterator it = config["links"].begin(); it != config["links"].end(); ++it) {
         //it.value() gives json object of link
         Link* linck = new Link(it.value());
-        links.emplace(it.value()["id"], linck);
-        //TODO:Figure out how to attach links
-        //interfaces.find(it.value()["src"])->second->setOutgoingLink(it.value()["id"]);
-        //interfaces.find(it.value()["dest"])->second->setIncomingLink(it.value()["id"]);
+        links.emplace(linck->getId(), linck);
+        linck->addToInterfaces();
     }
 }
 

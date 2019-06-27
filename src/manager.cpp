@@ -4,6 +4,8 @@
 #include "packetHandler.h"
 #include "switch.h"
 #include "endpoint.h"
+#include "interface.h"
+#include "link.h"
 
 Manager::Manager() {
     time = 0;
@@ -70,6 +72,38 @@ Endpoint *Manager::getEndpoint(int id) {
     }
 
     return endpoint->second;
+}
+
+// interface
+int Manager::addInterface(Interface* interface) {
+    return interfaces.emplace(interface->getId(), interface).second;
+}
+
+Interface* Manager::getInterface(int id) {
+    auto interface = interfaces.find(id);
+    if (interface == interfaces.end()) {
+        //TODO: perhaps this should be an error instead of returning null
+        //We can use map.at() instead of map.find() to do this automatically
+        return NULL;
+    }
+    
+    return interface->second;
+}
+
+// link
+int Manager::addLink(Link* linck) {
+    return links.emplace(linck->getId(), linck).second;
+}
+
+Link* Manager::getLink(int id) {
+    auto linck = links.find(id); //TODO: what should switches and links be called for variable names
+    if (linck == links.end()) {
+        //TODO: perhaps this should be an error instead of returning null
+        //We can use map.at() instead of map.find() to do this automatically
+        return NULL;
+    }
+    
+    return linck->second;
 }
 
 EventI *Manager::popEvent() {

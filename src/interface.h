@@ -3,6 +3,7 @@
 
 #include <nlohmann/json.hpp>
 #include <queue>
+#include <vector>
 
 #include "networkObject.h"
 #include "link.h"
@@ -16,7 +17,7 @@ using json = nlohmann::json;
 class Interface: public NetworkObject {
     public:
         Interface(json interfaceConfig);
-        void setLink(int linkId);
+        void setLink(int linkId, vector<int> neighbours);
         
         void txLinkEvent();
         void txHandlerEvent();

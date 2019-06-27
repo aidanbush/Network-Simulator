@@ -4,9 +4,12 @@
 #include <queue>
 #include <map>
 
+//TODO: why not include the headers?
 class PacketHandler;
 class Endpoint;
 class Switch;
+class Interface;
+class Link;
 
 using namespace std;
 
@@ -59,6 +62,12 @@ class Manager {
         Endpoint *getEndpoint(int id);
         int addEndpoint(Endpoint *endpoint);
 
+        Interface *getInterface(int id);
+        int addInterface(Interface *interface);
+
+        Link *getLink(int id);
+        int addLink(Link *linck);
+
         void pushEvent(EventI *e) {pq.push(e); }
         EventI *popEvent();
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator>::size_type
@@ -67,8 +76,12 @@ class Manager {
     private:
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator> pq;
         map<int, PacketHandler*> packetHandlers;
+        //TODO: why do we have switches and endpoint separate (I can see having the functions separate and
+        // aliasing them to the handler functions, but we shouldn't need separate maps)
         map<int, Switch*> switches;
         map<int, Endpoint*> endpoints;
+        map<int, Interface*> interfaces;
+        map<int, Link*> links;
 };
 
 extern Manager man;

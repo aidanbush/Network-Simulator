@@ -40,6 +40,8 @@ class Link: public NetworkObject {
     public:
         Link(json linkConfig);
         
+        void addToInterfaces();
+        
         void txPacket(Packet *p, int sourceId);
         bool addDest(int interfaceId);
         int removeDest(int interfaceId);
