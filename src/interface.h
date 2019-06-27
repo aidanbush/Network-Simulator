@@ -4,6 +4,7 @@
 #include <nlohmann/json.hpp>
 #include <queue>
 #include <set>
+#include <vector>
 
 #include "networkObject.h"
 #include "link.h"
@@ -18,7 +19,9 @@ class Interface: public NetworkObject {
     public:
         Interface(int id, int handlerID, int linkBufSize, int handlerBufSize);
         void setLink(int linkID);
+        void setLink(int linkId, vector<int> neighbours);
         int getLinkID();
+
 
         void txLinkEvent();
         void txHandlerEvent();

@@ -32,7 +32,7 @@ json readConfig(string filename) {
     configStream >> config;
 
     /*
-    ifstream localConfigStream("local.json");
+    ifstream localConfigStream("../local.json");
     if (localConfigStream.good()) {
         json localConfig;
         localConfigStream >> localConfig;
@@ -280,6 +280,7 @@ static bool parseConfig(json& config) {
         }
     }
 
+    // TODO remove
     if (!man.linkHandlers()) {
         success = false;
     }

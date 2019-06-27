@@ -9,6 +9,7 @@ class NetworkObject {
         virtual ~NetworkObject() = default;
 
         int getID();
+        int getId();
 
         virtual bool validate() = 0;
 

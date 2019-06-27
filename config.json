@@ -90,51 +90,33 @@
         {
             "id": 0,
             "speed": 1,
-            "txTime": 1
+            "txTime": 1,
+            "dests": [0, 3]
         }, {
             "id": 1,
             "speed": 1,
-            "txTime": 1
+            "txTime": 1,
+            "dests": [1, 6]
         }, {
             "id": 2,
             "speed": 1,
-            "txTime": 1
+            "txTime": 1,
+            "dests": [2, 9]
         }, {
             "id": 3,
             "speed": 1,
-            "txTime": 1
+            "txTime": 1,
+            "dests": [4, 7]
         }, {
             "id": 4,
             "speed": 1,
-            "txTime": 1
+            "txTime": 1,
+            "dests": [8, 11]
         }, {
             "id": 5,
             "speed": 1,
-            "txTime": 1
-        }, {
-            "id": 6,
-            "speed": 1,
-            "txTime": 1
-        }, {
-            "id": 7,
-            "speed": 1,
-            "txTime": 1
-        }, {
-            "id": 8,
-            "speed": 1,
-            "txTime": 1
-        }, {
-            "id": 9,
-            "speed": 1,
-            "txTime": 1
-        }, {
-            "id": 10,
-            "speed": 1,
-            "txTime": 1
-        }, {
-            "id": 11,
-            "speed": 1,
-            "txTime": 1
+            "txTime": 1,
+            "dests": [10, 5]
         }
     ]
 }

@@ -1,3 +1,4 @@
+#include <vector>
 #include <nlohmann/json.hpp>
 
 #include "interface.h"
@@ -23,6 +24,19 @@ void Interface::setLink(int linkID) {
 
 int Interface::getLinkID() {
     return linkID;
+}
+
+void Interface::setLink(int linkId, vector<int> neighbours) {
+    this->linkID = linkId;
+
+    // For every neighbouring interface add the neighbour's handler as a neighbour to this interface's handler
+    PacketHandler* packetHandler = man.getHandler(handlerID);
+    for (int i: neighbours) {
+        if (i != id) {
+            Interface* neighbour = man.getInterface(i);
+            packetHandler->addInterface(neighbour->getHandlerID(), id);
+        }
+    }
 }
 
 int Interface::getLinkSpeed() {

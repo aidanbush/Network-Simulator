@@ -48,6 +48,20 @@ Link::Link(int id, int speed, second_t txTime): NetworkObject(id) {
     this->txTime = txTime;
 }
 
+void Link::addToInterfaces() {
+    //TODO: maybe this vector should be stored in the object, it seems weird to create the map from a vector
+    // and then throw it away, only to recreate it again here, however this is the only place it is needed
+    // so it may be unecessary to store it in memory
+    vector<int> neighbours;
+    for (auto it: dests) {
+        neighbours.push_back(it.first);
+    }
+    for (int i: neighbours) {
+        Interface* interface = man.getInterface(i);
+        interface->setLink(id, neighbours);
+    }
+}
+
 int Link::getSpeed() {
     return speed;
 }

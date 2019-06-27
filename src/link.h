@@ -41,6 +41,8 @@ class Link: public NetworkObject {
     public:
         Link(int id, int speed, second_t txTime);
 
+        void addToInterfaces();
+
         void txPacket(Packet *p, int sourceId);
 
         bool addDest(int interfaceId);

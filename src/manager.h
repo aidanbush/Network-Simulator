@@ -4,6 +4,7 @@
 #include <queue>
 #include <map>
 
+//TODO: why not include the headers?
 class PacketHandler;
 class Endpoint;
 class Switch;
