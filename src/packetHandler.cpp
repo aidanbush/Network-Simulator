@@ -51,6 +51,16 @@ bool PacketHandler::addInterfaceConfig(int ifaceID) {
     return interfaces.emplace(destID, ifaceID).second;
 }
 
+bool PacketHandler::hasInterface(int ifaceID) {
+    for (auto& it : interfaces) {
+        if (it.second == ifaceID) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 vector<int> PacketHandler::getInterfaces() {
     vector<int> interfaceVec;
 
@@ -97,4 +107,65 @@ bool PacketHandler::connectNeighbours() {
     }
 
     return true;
+}
+
+bool PacketHandler::validateInterfaces() {
+    bool valid = true;
+
+    set<int> checkedIfaces;
+
+    for (auto& it : interfaces) {
+        PacketHandler *neighbour = man.getHandler(it.first);
+        Interface *iface = man.getInterface(it.second);
+
+        // check neighbour
+        if (neighbour == NULL) {
+            fprintf(stderr, "Handler: neighbour %d of handler %d is missing\n",
+                    it.first, id);
+            valid = false;
+        } else {
+            // other checks for neighbour?
+        }
+
+        // check interface
+        if (checkedIfaces.insert(it.second).second == false) {
+            continue;
+        }
+
+        if (iface == NULL) {
+            fprintf(stderr, "Handler: interface %d of handler %d is missing\n",
+                    it.second, id);
+            valid = false;
+        } else {
+            if (!(iface->getHandlerID() == id)) {
+                fprintf(stderr, "Handler: interface %d, does not know of handler %d\n",
+                        it.second, id);
+                valid = false;
+            }
+        }
+    }
+
+    return valid;
+}
+
+bool PacketHandler::validateVariables() {
+    bool valid = true;
+
+    if (internalSpeed <= 0) {
+        fprintf(stderr, "Handler: %d has invalid internal speed %d\n", id,
+                internalSpeed);
+        valid = false;
+    }
+
+    return valid;
+}
+
+bool PacketHandler::validateHandler() {
+    bool valid = validateInterfaces();
+
+    if (!validateVariables()) {
+        valid = false;
+    }
+
+    return valid;
 }
