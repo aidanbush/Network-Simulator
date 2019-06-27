@@ -29,6 +29,8 @@ class Packet: public NetworkObject {
         void drop();
         void error();
 
+        bool validate();
+
 #ifdef _TEST
         bool fullEqual(Packet *p);
 #endif /* _TEST */

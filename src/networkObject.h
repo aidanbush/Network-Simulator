@@ -10,6 +10,8 @@ class NetworkObject {
 
         int getID();
 
+        virtual bool validate() = 0;
+
     protected:
         int id;
 };

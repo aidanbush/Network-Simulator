@@ -20,6 +20,8 @@ class Flow: public NetworkObject {
         void packetDropped(Packet *p);
         void packetError(Packet *p);
 
+        bool validate();
+
     protected:
         vector<Packet *> packets;
         Endpoint *endpoint;

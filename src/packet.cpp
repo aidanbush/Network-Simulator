@@ -27,6 +27,11 @@ void Packet::error() {
     flow->packetError(this);
 }
 
+bool Packet::validate() {
+    // TODO implement
+    return true;
+}
+
 #ifdef _TEST
 #include <assert.h>
 

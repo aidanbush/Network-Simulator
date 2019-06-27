@@ -164,3 +164,30 @@ bool Manager::linkHandlers() {
 
     return true;
 }
+
+bool Manager::validateNetwork() {
+    bool valid = true;
+
+    // validate each handler
+    for (auto& it : packetHandlers) {
+        if (!it.second->validate()) {
+            valid = false;
+        }
+    }
+
+    // validate each interface
+    for (auto& it : packetHandlers) {
+        if (!it.second->validate()) {
+            valid = false;
+        }
+    }
+
+    // validate each link
+    for (auto& it : packetHandlers) {
+        if (!it.second->validate()) {
+            valid = false;
+        }
+    }
+
+    return valid;
+}

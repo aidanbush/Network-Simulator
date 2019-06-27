@@ -4,6 +4,7 @@
 #include "manager.h"
 #include "packet.h"
 #include "endpoint.h"
+#include "networkObject.h"
 
 using namespace std;
 
@@ -28,6 +29,11 @@ void Flow::packetError(Packet *p) {
 int Flow::newPacketID() {
     static int pID = 0;
     return pID++;
+}
+
+bool Flow::validate() {
+    // TODO implement
+    return true;
 }
 
 #ifdef _TEST
