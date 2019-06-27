@@ -114,6 +114,82 @@ set<int> Interface::getNeighbours() {
     return neighbours;
 }
 
+bool Interface::validateHandler() {
+    PacketHandler *handler = man.getHandler(handlerID);
+    if (handler == NULL) {
+        fprintf(stderr, "Interface: handler %d of interface %d is missing\n",
+                handlerID, id);
+        return false;
+    }
+
+    bool valid = true;
+
+    if (!handler->hasInterface(id)) {
+        fprintf(stderr, "Interface: handler %d does not know of interface %d\n",
+                linkID, id);
+        valid = false;
+    }
+
+    return valid;
+}
+
+bool Interface::validateLink() {
+    Link *link = man.getLink(linkID);
+    if (link == NULL) {
+        fprintf(stderr, "Interface: link %d of interface %d is missing\n",
+                linkID, id);
+        return false;
+    }
+
+    bool valid = true;
+
+    if (!link->hasInterface(id)) {
+        fprintf(stderr, "Interface: link %d does not know of interface %d\n",
+                linkID, id);
+        valid = false;
+    }
+
+    return valid;
+}
+
+bool Interface::validateVariables() {
+    bool valid = true;
+
+    if (linkBufSize <= 0) {
+        fprintf(stderr, "Interface: %d has invalid link buffer size %d\n",
+                id, linkBufSize);
+        valid = false;
+    }
+
+    if (handlerBufSize <= 0) {
+        fprintf(stderr, "Interface: %d has invalid handler buffer size %d\n",
+                id, linkBufSize);
+        valid = false;
+    }
+
+    return valid;
+}
+
+bool Interface::validate() {
+    bool valid = true;
+
+    // check handler and link
+    if (!validateHandler()) {
+        valid = false;
+    }
+
+    if (!validateLink()) {
+        valid = false;
+    }
+
+    // check variables
+    if (!validateVariables()) {
+        valid = false;
+    }
+
+    return valid;
+}
+
 #ifdef _TEST
 #include <assert.h>
 

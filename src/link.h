@@ -42,13 +42,17 @@ class Link: public NetworkObject {
         Link(int id, int speed, second_t txTime);
 
         void txPacket(Packet *p, int sourceId);
+
         bool addDest(int interfaceId);
+        bool hasInterface(int ifaceID);
         int removeDest(int interfaceId);
 
         int getSpeed();
         second_t getTxTime();
 
         set<int> getNeighbours();
+
+        bool validate();
 
     private:
         map<int, LinkQueue> dests; // map interfaceID to LinkQueue

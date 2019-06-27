@@ -86,6 +86,10 @@ bool Link::addDest(int ifaceID) {
     return true;
 }
 
+bool Link::hasInterface(int ifaceID) {
+    return dests.find(ifaceID) != dests.end();
+}
+
 // return 1 if interface was connected to link
 int Link::removeDest(int interfaceId) {
     return dests.erase(interfaceId);
@@ -101,6 +105,9 @@ set<int> Link::getNeighbours() {
     }
 
     return neighbours;
+}
+
+bool Link::validate() {
 }
 
 #ifdef _TEST

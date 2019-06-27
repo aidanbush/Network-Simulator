@@ -31,10 +31,16 @@ class Interface: public NetworkObject {
         int getHandlerID();
         set<int> getNeighbours();
 
+        bool validate();
+
 #ifdef _TEST
         static int ifaceToIface();
 #endif /* _TEST */
     private:
+        bool validateHandler();
+        bool validateLink();
+        bool validateVariables();
+
         int linkID;
         int handlerID;
 
