@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <signal.h>
+#include <errno.h>
+
 #include <queue>
 #include <map>
 #include <nlohmann/json.hpp>
@@ -19,6 +22,24 @@ using json = nlohmann::json;
 #ifndef _TEST
 Manager man;
 
+volatile sig_atomic_t exitSim;
+
+void sigintHandler(__attribute__((unused)) int par) {
+    exitSim = 1;
+}
+
+bool createSigintHandler() {
+    struct sigaction sa = {};
+    sa.sa_handler = &sigintHandler;
+
+    int err = sigaction(SIGINT, &sa, NULL);
+    if (err == -1) {
+        perror("sigaction");
+    }
+
+    return err != -1;
+}
+
 void printUsage(char *pName) {
     printf("Usage %s [OPTIONS] [config]\n"
             "Network simulator\n\n"
@@ -32,6 +53,10 @@ int main(int argc, char **argv) {
     int c;
     bool step = false;
     char const *configFile = DEFAULT_CONFIG;
+
+    if (!createSigintHandler()) {
+        return 1;
+    }
 
     while ((c = getopt(argc, argv, "hs")) != -1) {
         switch (c) {
@@ -62,7 +87,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    while (man.numEvents() > 0) {
+    while (man.numEvents() > 0 && !exitSim) {
         EventI* e = man.popEvent();
         e->call();
         delete e;
