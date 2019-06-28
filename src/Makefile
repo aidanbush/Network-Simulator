@@ -3,7 +3,7 @@ CXXFLAGS=-std=c++2a -Wall -Wextra -Wconversion -pedantic -g
 
 BUILD_DIR=../build/
 TARGETS=$(addprefix $(BUILD_DIR), simulator.o networkObject.o packetHandler.o\
-	switch.o endpoint.o interface.o flow.o link.o packet.o manager.o)
+	switch.o endpoint.o interface.o flow.o link.o packet.o manager.o config.o)
 
 .PHONY: all clean test test_clean
 
@@ -22,7 +22,9 @@ $(BUILD_DIR):
 $(BUILD_DIR)%.o: %.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ -c $<
 
-$(BUILD_DIR)simulator.o: simulator.cpp switch.h manager.h
+$(BUILD_DIR)simulator.o: simulator.cpp manager.h
+
+$(BUILD_DIR)config.o: config.cpp config.h manager.h endpoint.h switch.h interface.h link.h
 
 $(BUILD_DIR)networkObject.o: networkObject.cpp networkObject.h
 

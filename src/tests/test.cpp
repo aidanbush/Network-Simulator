@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <nlohmann/json.hpp>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -10,9 +9,7 @@
 #include "../interface.h"
 #include "../endpoint.h"
 #include "../switch.h"
-#include "../simulator.h"
-
-using json = nlohmann::json;
+#include "../config.h"
 
 Manager man;
 
@@ -55,10 +52,10 @@ int main() {
     }
 
     if (!testConfig()) {
-        printf("Switch tests failed\n");
+        printf("Config tests failed\n");
         errors++;
     } else {
-        printf("Switch tests passed\n");
+        printf("Config tests passed\n");
     }
 
     if (errors == 0) {
