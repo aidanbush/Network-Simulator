@@ -290,6 +290,11 @@ bool loadConfig(string filename) {
         return false;
     }
 
+    if (!man.validateNetwork()) {
+        man.deleteNetwork();
+        return false;
+    }
+
     return true;
 }
 
@@ -299,6 +304,8 @@ int testConfig() {
     json config = readConfig("test.json");
 
     assert(parseConfig(config));
+
+    assert(man.validateNetwork());
 
     man.deleteNetwork();
 
