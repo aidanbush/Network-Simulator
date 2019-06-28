@@ -70,8 +70,11 @@ static bool checkConfig(json &config, vector<pair<string, jsonType>> &elems,
     bool valid = true;
 
     for (pair<string, jsonType> e : elems) {
-        if (!checkConfigType(config, e.first, e.second)) {
-            fprintf(stderr, "Error in %s with %s\n", parent.c_str(), e.first.c_str());
+        if (config.find(e.first) == config.end()) {
+            fprintf(stderr, "Error in %s, %s not found\n", parent.c_str(), e.first.c_str());
+            valid = false;
+        } else if (!checkConfigObjType(config[e.first],e.second)) {
+            fprintf(stderr, "Error in %s with %s type\n", parent.c_str(), e.first.c_str());
             valid = false;
         }
     }
@@ -82,7 +85,7 @@ static bool checkConfig(json &config, vector<pair<string, jsonType>> &elems,
 static bool checkConfigArray(json &config, string key, jsonType type,
         string parent) {
     if (!checkConfigType(config, key, jsonArray)) {
-        fprintf(stderr, "Error in %s with %s\n", parent.c_str(), key.c_str());
+        fprintf(stderr, "Error in %s with key %s\n", parent.c_str(), key.c_str());
         return false;
     }
 
@@ -90,7 +93,7 @@ static bool checkConfigArray(json &config, string key, jsonType type,
 
     for (auto it : config[key].items()) {
         if (!checkConfigObjType(it.value(), type)) {
-            fprintf(stderr, "Error in %s array %s\n", parent.c_str(), key.c_str());
+            fprintf(stderr, "Error in %s type in array %s\n", parent.c_str(), key.c_str());
             valid = false;
         }
     }
@@ -275,7 +278,7 @@ static bool parseConfig(json& config) {
     }
 
     // TODO remove
-    if (!man.linkHandlers()) {
+    if (success && !man.linkHandlers()) {
         success = false;
     }
 

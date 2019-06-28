@@ -97,6 +97,8 @@ int main(int argc, char **argv) {
         }
     }
 
+    man.deleteNetwork();
+
     return 0;
 }
 
