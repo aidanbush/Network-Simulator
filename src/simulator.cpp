@@ -31,7 +31,7 @@ void printUsage(char *pName) {
 int main(int argc, char **argv) {
     int c;
     bool step = false;
-    char *configFile = DEFAULT_CONFIG;
+    char const *configFile = DEFAULT_CONFIG;
 
     while ((c = getopt(argc, argv, "hs")) != -1) {
         switch (c) {
