@@ -8,13 +8,23 @@
 #include "interface.h"
 #include "manager.h"
 
+#define LINK_STR            "Link"
+#define TX_PKT_EVENT_STR    "link tx packet"
+
 using namespace std;
 using json = nlohmann::json;
+
+LinkQueue::LinkQueue(int destID, int linkID) {
+    this->destID = destID;
+    this->linkID = linkID;
+}
 
 void LinkQueue::txPacketIfaceEvent() {
     // move packet from top of queue onto Iface
     LinkPacket p = pQueue.top();
     pQueue.pop();
+
+    man.logTxEvent(LINK_STR, linkID, TX_PKT_EVENT_STR, destID, p.packet);
 
     Interface *dest = man.getInterface(destID);
     // TODO error check
@@ -87,8 +97,7 @@ void Link::txPacket(Packet *p, int sourceID) {
 }
 
 bool Link::addDest(int ifaceID) {
-    LinkQueue lq = LinkQueue();
-    lq.destID = ifaceID;
+    LinkQueue lq = LinkQueue(ifaceID, id);
 
     Interface *iface = man.getInterface(ifaceID);
     if (iface == NULL ||

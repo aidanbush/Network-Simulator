@@ -17,7 +17,10 @@ using json = nlohmann::json;
 
 class LinkQueue {
     public:
+        LinkQueue(int destID, int linkID);
+
         int destID;
+        int linkID;
 
         void txPacketIfaceEvent(); // event to move packet to dest
         void txPacket(Packet *p, second_t txTime);
