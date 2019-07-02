@@ -45,6 +45,7 @@ void printUsage(char *pName) {
             "Network simulator\n\n"
             "If config file is not specified it defaults to \"" DEFAULT_CONFIG "\"\n\n"
             "Options\n"
+            "  -l [filename] sets the log file, if not set uses stdout\n"
             "  -s step through event by event\n"
             "  -h this usage message\n", basename(pName));
 }
@@ -58,7 +59,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    while ((c = getopt(argc, argv, "hs")) != -1) {
+    while ((c = getopt(argc, argv, "hsl:")) != -1) {
         switch (c) {
             case 's':
                 step = true;
@@ -66,14 +67,22 @@ int main(int argc, char **argv) {
             case 'h':
                 printUsage(argv[0]);
                 return 0;
+            case 'l':
+                if (!man.setLogFile(optarg)) {
+                    fprintf(stderr, "multiple log files specified\n");
+                    printUsage(argv[0]);
+                    return 1;
+                }
+                break;
             default:
+                fprintf(stderr, "Unkown option\n");
                 printUsage(argv[0]);
                 return 1;
         }
     }
 
     if (optind < argc - 1) {
-        printf("Too many arguments\n");
+        fprintf(stderr, "Too many arguments\n");
         printUsage(argv[0]);
         return 1;
     }

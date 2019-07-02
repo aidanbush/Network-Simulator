@@ -6,9 +6,11 @@
 #include "endpoint.h"
 #include "interface.h"
 #include "link.h"
+#include "packet.h"
 
 Manager::Manager() {
     time = 0;
+    logFile = stdout;
 }
 
 int Manager::addHandler(PacketHandler *handler) {
@@ -190,4 +192,27 @@ bool Manager::validateNetwork() {
     }
 
     return valid;
+}
+
+bool Manager::setLogFile(string filename) {
+    FILE *newLog = fopen(filename.c_str(), (char *)"w");
+
+    if (newLog == NULL) {
+        perror("fopen");
+        return false;
+    }
+
+    logFile = newLog;
+    return true;
+}
+
+void Manager::logTxEvent(string objName, int objID, string eventName, int destID, Packet *p) {
+    string message = "dest: " + to_string(destID) + "packet: " + to_string(p->getID()) + "flow: "
+        + to_string(p->getFlow());
+    logEvent(objName, objID, eventName, message);
+}
+
+void Manager::logEvent(string objName, int objID, string eventName, string message) {
+    fprintf(logFile, "time: %f %s: %d event: %s message: %s\n", time,
+            objName.c_str(), objID, eventName.c_str(), message.c_str());
 }
