@@ -155,6 +155,12 @@ void Manager::deleteNetwork() {
     deleteLinks();
 
     deleteEvents();
+
+    if (logFile != stdout) {
+        if (fclose(logFile)) {
+            perror("fclose");
+        }
+    }
 }
 
 bool Manager::linkHandlers() {
