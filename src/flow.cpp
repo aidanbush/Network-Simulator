@@ -6,6 +6,9 @@
 #include "endpoint.h"
 #include "networkObject.h"
 
+#define FLOW_STR        "Flow"
+#define TX_START_EVENT  "flow create packet event"
+
 using namespace std;
 
 Flow::Flow(int id, Endpoint *endpoint, int destID): NetworkObject(id) {
@@ -59,7 +62,9 @@ void TestFlow::txPacketEvent() {
     int pID = newPacketID();
 
     Packet *p = new Packet(pID, sourceID, destID, this, ttl, hSize, bSize);
-    // send p
+
+    man.logTxEvent(FLOW_STR, id, TX_START_EVENT, endpoint->getID(), p);
+
     endpoint->txPacket(p);
 
     // set up next
