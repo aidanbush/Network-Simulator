@@ -7,6 +7,10 @@
 #include "link.h"
 #include "packet.h"
 
+#define IFACE_STR               "Interface"
+#define TX_LINK_EVENT_STR       "interface link tx"
+#define TX_HANDLER_EVENT_STR    "interface handler tx"
+
 using namespace std;
 
 using json = nlohmann::json;
@@ -53,6 +57,8 @@ void Interface::txLinkEvent() {
     Packet *p = linkBuffer.front();
     linkBuffer.pop();
 
+    man.logTxEvent(IFACE_STR, id, TX_LINK_EVENT_STR, linkID, p);
+
     linkBufSize += p->fullSize();
 
     Link *link = man.getLink(linkID);
@@ -69,6 +75,8 @@ void Interface::txLinkEvent() {
 void Interface::txHandlerEvent() {
     Packet *p = handlerBuffer.front();
     handlerBuffer.pop();
+
+    man.logTxEvent(IFACE_STR, id, TX_HANDLER_EVENT_STR, linkID, p);
 
     handlerBufSize += p->fullSize();
 
