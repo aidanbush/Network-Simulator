@@ -2,121 +2,121 @@
     "endpoints": [
         {
             "id": 0,
-            "speed": 1
+            "internal_speed": 1
         }, {
             "id": 1,
-            "speed": 1
+            "internal_speed": 1
         }, {
             "id": 2,
-            "speed": 1
+            "internal_speed": 1
         }
     ],
     "switches": [
         {
             "id": 3,
-            "speed": 1
+            "internal_speed": 1
         }, {
             "id": 4,
-            "speed": 1
+            "internal_speed": 1
         }, {
             "id": 5,
-            "speed": 1
+            "internal_speed": 1
         }
     ],
     "interfaces": [
         {
             "id": 0,
-            "phId": 0,
-            "linkBufSize": 1,
-            "handlerBufSize": 1
+            "handler_id": 0,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
         }, {
             "id": 1,
-            "phId": 1,
-            "linkBufSize": 1,
-            "handlerBufSize": 1
+            "handler_id": 1,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
         }, {
             "id": 2,
-            "phId": 2,
-            "linkBufSize": 1,
-            "handlerBufSize": 1
+            "handler_id": 2,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
         }, {
             "id": 3,
-            "phId": 3,
-            "linkBufSize": 1,
-            "handlerBufSize": 1
+            "handler_id": 3,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
         }, {
             "id": 4,
-            "phId": 3,
-            "linkBufSize": 1,
-            "handlerBufSize": 1
+            "handler_id": 3,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
         }, {
             "id": 5,
-            "phId": 3,
-            "linkBufSize": 1,
-            "handlerBufSize": 1
+            "handler_id": 3,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
         }, {
             "id": 6,
-            "phId": 4,
-            "linkBufSize": 1,
-            "handlerBufSize": 1
+            "handler_id": 4,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
         }, {
             "id": 7,
-            "phId": 4,
-            "linkBufSize": 1,
-            "handlerBufSize": 1
+            "handler_id": 4,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
         }, {
             "id": 8,
-            "phId": 4,
-            "linkBufSize": 1,
-            "handlerBufSize": 1
+            "handler_id": 4,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
         }, {
             "id": 9,
-            "phId": 5,
-            "linkBufSize": 1,
-            "handlerBufSize": 1
+            "handler_id": 5,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
         }, {
             "id": 10,
-            "phId": 5,
-            "linkBufSize": 1,
-            "handlerBufSize": 1
+            "handler_id": 5,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
         }, {
             "id": 11,
-            "phId": 5,
-            "linkBufSize": 1,
-            "handlerBufSize": 1
+            "handler_id": 5,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
         }
     ],
     "links": [
         {
             "id": 0,
             "speed": 1,
-            "txTime": 1,
-            "dests": [0, 3]
+            "time": 1,
+            "ifaces": [0, 3]
         }, {
             "id": 1,
             "speed": 1,
-            "txTime": 1,
-            "dests": [1, 6]
+            "time": 1,
+            "ifaces": [1, 6]
         }, {
             "id": 2,
             "speed": 1,
-            "txTime": 1,
-            "dests": [2, 9]
+            "time": 1,
+            "ifaces": [2, 9]
         }, {
             "id": 3,
             "speed": 1,
-            "txTime": 1,
-            "dests": [4, 7]
+            "time": 1,
+            "ifaces": [4, 7]
         }, {
             "id": 4,
             "speed": 1,
-            "txTime": 1,
-            "dests": [8, 11]
+            "time": 1,
+            "ifaces": [8, 11]
         }, {
             "id": 5,
             "speed": 1,
-            "txTime": 1,
-            "dests": [10, 5]
+            "time": 1,
+            "ifaces": [10, 5]
         }
     ]
 }
