@@ -4,6 +4,10 @@
 #include "manager.h"
 #include "packet.h"
 #include "endpoint.h"
+#include "networkObject.h"
+
+#define FLOW_STR        "Flow"
+#define TX_START_EVENT  "flow create packet event"
 
 using namespace std;
 
@@ -30,6 +34,11 @@ int Flow::newPacketID() {
     return pID++;
 }
 
+bool Flow::validate() {
+    // TODO implement
+    return true;
+}
+
 #ifdef _TEST
 second_t TestFlow::nextTxTime() {
     static const second_t min = 0.001, max = 0.01;
@@ -38,7 +47,7 @@ second_t TestFlow::nextTxTime() {
 }
 
 void TestFlow::StartFlow() {
-    int nextTx = nextTxTime();
+    second_t nextTx = nextTxTime();
     EventI *e = new Event<TestFlow>(nextTx, &TestFlow::txPacketEvent, this);
     man.pushEvent(e);
 }
@@ -53,11 +62,13 @@ void TestFlow::txPacketEvent() {
     int pID = newPacketID();
 
     Packet *p = new Packet(pID, sourceID, destID, this, ttl, hSize, bSize);
-    // send p
+
+    man.logTxEvent(FLOW_STR, id, TX_START_EVENT, endpoint->getID(), p);
+
     endpoint->txPacket(p);
 
     // set up next
-    int nextTx = nextTxTime();
+    second_t nextTx = nextTxTime();
     EventI *e = new Event<TestFlow>(nextTx, &TestFlow::txPacketEvent, this);
     man.pushEvent(e);
 }

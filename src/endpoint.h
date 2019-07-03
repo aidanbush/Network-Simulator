@@ -1,5 +1,6 @@
 #ifndef ENDPOINT_H
 #define ENDPOINT_H
+
 #include <nlohmann/json.hpp>
 
 #include "packetHandler.h"
@@ -12,9 +13,10 @@ class Packet;
 
 class Endpoint: public PacketHandler {
     public:
-        Endpoint(json endpointConfig);
+        Endpoint(int id, int speed);
         void rxPacket(Packet *p);
         int txPacket(Packet *p);
+        bool validate();
 
 #ifdef _TEST
         static int endpointToEndpoint();

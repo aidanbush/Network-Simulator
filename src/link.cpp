@@ -1,24 +1,39 @@
 #include <nlohmann/json.hpp>
+#include <set>
+#include <map>
+#include <queue>
 
 #include "link.h"
 #include "packet.h"
 #include "interface.h"
 #include "manager.h"
 
+#define LINK_STR            "Link"
+#define TX_PKT_EVENT_STR    "link tx packet"
+
 using namespace std;
 using json = nlohmann::json;
 
-void LinkQueue::txPacketInterfaceEvent() {
+LinkQueue::LinkQueue(int destID, int linkID) {
+    this->destID = destID;
+    this->linkID = linkID;
+}
+
+void LinkQueue::txPacketIfaceEvent() {
     // move packet from top of queue onto Iface
     LinkPacket p = pQueue.top();
     pQueue.pop();
-    //TODO: this line doesn't work anymore, need to get the interface from the global map which isn't implemented yet
-    //dest->rxLink(p.packet);
-    
+
+    man.logTxEvent(LINK_STR, linkID, TX_PKT_EVENT_STR, destID, p.packet);
+
+    Interface *dest = man.getInterface(destID);
+    // TODO error check
+    dest->rxLink(p.packet);
+
     // if queue not empty create new event
     if (!pQueue.empty()) {
         second_t nextTx = pQueue.top().arriveTime;
-        EventI *e = new Event<LinkQueue>(nextTx, &LinkQueue::txPacketInterfaceEvent, this);
+        EventI *e = new Event<LinkQueue>(nextTx, &LinkQueue::txPacketIfaceEvent, this);
         man.pushEvent(e);
     }
 }
@@ -28,19 +43,19 @@ void LinkQueue::txPacket(Packet *p, second_t txTime) {
         .packet = p,
         .arriveTime = man.time + txTime,
     };
-    
+
     pQueue.push(lp);
-    
+
     // if now one element add tx event
     if (pQueue.size() == 1) {
-        EventI *e = new Event<LinkQueue>(lp.arriveTime, &LinkQueue::txPacketInterfaceEvent, this);
+        EventI *e = new Event<LinkQueue>(lp.arriveTime, &LinkQueue::txPacketIfaceEvent, this);
         man.pushEvent(e);
     }
 }
 
-Link::Link(json linkConfig): NetworkObject(linkConfig["id"]) {
-    this->speed = linkConfig["speed"];
-    this->txTime = linkConfig["txTime"];
+Link::Link(int id, int speed, second_t txTime): NetworkObject(id) {
+    this->speed = speed;
+    this->txTime = txTime;
 }
 
 void Link::addToInterfaces() {
@@ -81,11 +96,21 @@ void Link::txPacket(Packet *p, int sourceID) {
     }
 }
 
+bool Link::addDest(int ifaceID) {
+    LinkQueue lq = LinkQueue(ifaceID, id);
 
-bool Link::addDest(int interfaceId) {
-    LinkQueue lq = LinkQueue();
-    lq.destId = interfaceId;
-    return dests.emplace(interfaceId, lq).second;
+    Interface *iface = man.getInterface(ifaceID);
+    if (iface == NULL ||
+            !dests.emplace(ifaceID, lq).second) {
+        return false;
+    }
+
+    iface->setLink(id);
+    return true;
+}
+
+bool Link::hasInterface(int ifaceID) {
+    return dests.find(ifaceID) != dests.end();
 }
 
 // return 1 if interface was connected to link
@@ -93,37 +118,103 @@ int Link::removeDest(int interfaceId) {
     return dests.erase(interfaceId);
 }
 
+set<int> Link::getNeighbours() {
+    set<int> neighbours;
+    Interface *iface;
+
+    for (auto& [id, lQueue] : dests) {
+        iface = man.getInterface(id);
+        neighbours.insert(iface->getHandlerID());
+    }
+
+    return neighbours;
+}
+
+bool Link::validateLinkQueues() {
+    bool valid = true;
+
+    for (auto& [ifaceID, linkQueue] : dests) {
+        if (ifaceID != linkQueue.destID) {
+            fprintf(stderr, "Link: link dest id %d and linkQueue dest id %d differ\n",
+                    ifaceID, linkQueue.destID);
+            valid = false;
+        }
+
+        Interface *iface = man.getInterface(ifaceID);
+        if (iface == NULL) {
+            fprintf(stderr, "Link: interface %d of link %d is missing\n",
+                    ifaceID, id);
+            valid = false;
+        } else {
+            if (!(iface->getLinkID() == id)) {
+                fprintf(stderr, "Link: interface %d does not know of link %d",
+                    ifaceID, id);
+                valid = false;
+            }
+        }
+    }
+
+    return valid;
+}
+
+bool Link::validateVariables() {
+    bool valid = true;
+
+    if (speed < 1) {
+        fprintf(stderr, "Link: %d has invalid speed %d\n", id, speed);
+        valid = false;
+    }
+
+    if (txTime < 0) {
+        fprintf(stderr, "Link: %d has invalid tx time %f\n", id, txTime);
+        valid = false;
+    }
+
+    return valid;
+}
+
+bool Link::validate() {
+    bool valid = true;
+
+    if (!validateLinkQueues()) {
+        valid = false;
+    }
+
+    if (!validateVariables()) {
+        valid = false;
+    }
+
+    return valid;
+}
+
 #ifdef _TEST
 #include <assert.h>
 
-#define L_ID    1
-#define SPEED   8000000
-#define TX_TIME ((second_t)0.0005)
-
-#define I_ID        1
-#define I_LB_SIZE   48000
-#define I_HB_SIZE   32000
-
 int testLink() {
-    Link *l1 = new Link(L_ID, SPEED, TX_TIME);
+    const int i1ID = 1,
+          i1HID = 1,
+          i1LBSize = 1,
+          i1HBsize = 1;
+    const int l1ID = 1,
+          l1Speed = 80000;
+    const second_t l1TxTime = 0.0005;
 
-    assert(l1->getID() == L_ID);
-    assert(l1->getSpeed() == SPEED);
+    Interface *i1 = new Interface(i1ID, i1HID, i1LBSize, i1HBsize);
+    assert(man.addInterface(i1));
 
-    // test addDest
-    Interface *i1 = new Interface(I_ID, l1, I_LB_SIZE, I_HB_SIZE);
+    Link *l1 = new Link(l1ID, l1Speed, l1TxTime);
+    assert(man.addLink(l1));
 
-    assert(l1->addDest(i1));
-    assert(!l1->addDest(i1));
+    assert(l1->getID() == l1ID);
+    assert(l1->getSpeed() == l1Speed);
 
-    assert(l1->removeDest(i1->getID()));
-    assert(!l1->removeDest(i1->getID()));
+    assert(l1->addDest(i1ID));
+    assert(!l1->addDest(i1ID));
 
-    delete i1;
+    assert(l1->removeDest(i1ID));
+    assert(!l1->removeDest(i1ID));
 
-    // test txPacket
-
-    delete l1;
+    man.deleteNetwork();
 
     return 1;
 }

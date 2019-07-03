@@ -27,20 +27,13 @@ void Packet::error() {
     flow->packetError(this);
 }
 
+bool Packet::validate() {
+    // TODO implement
+    return true;
+}
+
 #ifdef _TEST
 #include <assert.h>
-
-#include "endpoint.h"
-
-#define P_ID    1
-#define S_ID    1
-#define S_SPEED 1
-#define D_ID    1
-#define F_ID    1
-#define TTL     10
-#define H_SIZE  15
-#define B_SIZE  200
-#define SIZE    ((H_SIZE) + (B_SIZE))
 
 bool Packet::fullEqual(Packet *p) {
     return id == p->id &&
@@ -53,18 +46,23 @@ bool Packet::fullEqual(Packet *p) {
 }
 
 int testPacket() {
-    Endpoint *e1 = new Endpoint(S_ID, S_SPEED);
-    Flow *f1 = new TestFlow(F_ID, e1, D_ID);
-    // test creation packet
-    Packet *p1 = new Packet(P_ID, S_ID, D_ID, f1, TTL, H_SIZE, B_SIZE);
+    const int p1ID = 1,
+          p1TTL = 15,
+          p1HSize = 50,
+          p1BSize = 200,
+          p1FullSize = p1HSize + p1BSize,
+          p1SID = 1,
+          p1DID = 2;
+    Flow *p1F;
+
+    Packet *p1 = new Packet(p1ID, p1SID, p1DID, p1F, p1TTL, p1HSize, p1BSize);
 
     // test values
-    assert(p1->fullSize() == SIZE);
-    assert(p1->getTTL() == TTL);
-    assert(p1->getID() == P_ID);
-    assert(p1->getSource() == S_ID);
-    assert(p1->getDest() == D_ID);
-    assert(p1->getFlow() == F_ID);
+    assert(p1->fullSize() == p1FullSize);
+    assert(p1->getTTL() == p1TTL);
+    assert(p1->getID() == p1ID);
+    assert(p1->getSource() == p1SID);
+    assert(p1->getDest() == p1DID);
 
     // test clone
     Packet *p2 = p1->clone();
@@ -74,13 +72,10 @@ int testPacket() {
 
     // test dec TTL
     p1->decTTL();
-    assert(p1->getTTL() == TTL - 1);
+    assert(p1->getTTL() == p1TTL - 1);
 
     delete p1;
     delete p2;
-
-    delete e1;
-    delete f1;
 
     return 1;
 }

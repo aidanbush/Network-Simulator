@@ -4,6 +4,7 @@
 
 #include <queue>
 #include <map>
+#include <set>
 
 #include "networkObject.h"
 #include "manager.h"
@@ -16,9 +17,12 @@ using json = nlohmann::json;
 
 class LinkQueue {
     public:
-        int destId;
+        LinkQueue(int destID, int linkID);
 
-        void txPacketInterfaceEvent();// event to move packet to dest
+        int destID;
+        int linkID;
+
+        void txPacketIfaceEvent(); // event to move packet to dest
         void txPacket(Packet *p, second_t txTime);
 
     private:
@@ -38,18 +42,27 @@ class LinkQueue {
 
 class Link: public NetworkObject {
     public:
-        Link(json linkConfig);
-        
+        Link(int id, int speed, second_t txTime);
+
         void addToInterfaces();
-        
+
         void txPacket(Packet *p, int sourceId);
+
         bool addDest(int interfaceId);
+        bool hasInterface(int ifaceID);
         int removeDest(int interfaceId);
-        
+
         int getSpeed();
         second_t getTxTime();
-        
+
+        set<int> getNeighbours();
+
+        bool validate();
+
     private:
+        bool validateLinkQueues();
+        bool validateVariables();
+
         map<int, LinkQueue> dests; // map interfaceID to LinkQueue
         int speed; // bits/second
         second_t txTime;

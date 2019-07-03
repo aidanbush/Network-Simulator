@@ -10,6 +10,7 @@ class Endpoint;
 class Switch;
 class Interface;
 class Link;
+class Packet;
 
 using namespace std;
 
@@ -47,41 +48,50 @@ class Manager {
 
         second_t time;
         // global stats
-        // reference to all
-        // switches
-        // endpoints
-        // links
-        // flow
 
         PacketHandler *getHandler(int id);
-        int addHandler(PacketHandler *handler);
 
         Switch *getSwitch(int id);
-        int addSwitch(Switch *netSwitch);
+        bool addSwitch(Switch *netSwitch);
 
         Endpoint *getEndpoint(int id);
-        int addEndpoint(Endpoint *endpoint);
+        bool addEndpoint(Endpoint *endpoint);
 
         Interface *getInterface(int id);
-        int addInterface(Interface *interface);
+        bool addInterface(Interface *interface);
 
         Link *getLink(int id);
-        int addLink(Link *linck);
+        bool addLink(Link *link);
 
         void pushEvent(EventI *e) {pq.push(e); }
         EventI *popEvent();
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator>::size_type
             numEvents() {return pq.size(); }
 
+        bool linkHandlers();
+        bool validateNetwork();
+        void deleteNetwork();
+
+        bool setLogFile(string filename);
+
+        void logTxEvent(string objName, int objID, string eventName, int destID, Packet *p);
+        void logEvent(string objName, int objID, string eventName, string message);
+
     private:
+        bool addHandler(PacketHandler *handler);
+
+        void deleteHandlers();
+        void deleteInterfaces();
+        void deleteLinks();
+
+        void deleteEvents();
+
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator> pq;
         map<int, PacketHandler*> packetHandlers;
-        //TODO: why do we have switches and endpoint separate (I can see having the functions separate and
-        // aliasing them to the handler functions, but we shouldn't need separate maps)
-        map<int, Switch*> switches;
-        map<int, Endpoint*> endpoints;
         map<int, Interface*> interfaces;
         map<int, Link*> links;
+
+        FILE *logFile;
 };
 
 extern Manager man;

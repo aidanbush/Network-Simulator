@@ -7,69 +7,87 @@
 #include "link.h"
 #include "packet.h"
 
+#define IFACE_STR               "Interface"
+#define TX_LINK_EVENT_STR       "interface link tx"
+#define TX_HANDLER_EVENT_STR    "interface handler tx"
+
 using namespace std;
 
 using json = nlohmann::json;
 
-Interface::Interface(json interfaceConfig): NetworkObject(interfaceConfig["id"]) {
-    this->linkBufSize = interfaceConfig["linkBufSize"];
-    this->handlerBufSize = interfaceConfig["handlerBufSize"];
-    this->packetHandlerId = interfaceConfig["phId"];
+Interface::Interface(int id, int handlerID, int linkBufSize, int handlerBufSize):
+        NetworkObject(id) {
+    this->linkBufSize = linkBufSize;
+    this->handlerBufSize = handlerBufSize;
+    this->handlerID = handlerID;
+}
+
+void Interface::setLink(int linkID) {
+    this->linkID = linkID;
+}
+
+int Interface::getLinkID() {
+    return linkID;
 }
 
 void Interface::setLink(int linkId, vector<int> neighbours) {
-    //Add the link
-    this->linkId = linkId;
-    
+    this->linkID = linkId;
+
     // For every neighbouring interface add the neighbour's handler as a neighbour to this interface's handler
-    PacketHandler* packetHandler = man.getHandler(packetHandlerId);
+    PacketHandler* packetHandler = man.getHandler(handlerID);
     for (int i: neighbours) {
         if (i != id) {
             Interface* neighbour = man.getInterface(i);
-            packetHandler->addInterface(neighbour->packetHandlerId, id);
+            packetHandler->addInterface(neighbour->getHandlerID(), id);
         }
     }
 }
 
 int Interface::getLinkSpeed() {
-    //TODO: get link from global map
-    return 0;//link->getSpeed();
+    Link *link = man.getLink(linkID);
+    return link->getSpeed();
 }
 
 second_t Interface::getLinkTxTime() {
-    //TODO: get link from global map
-    return 0;//link->getTxTime();
+    Link *link = man.getLink(linkID);
+    return link->getTxTime();
 }
 
 void Interface::txLinkEvent() {
     Packet *p = linkBuffer.front();
     linkBuffer.pop();
 
+    man.logTxEvent(IFACE_STR, id, TX_LINK_EVENT_STR, linkID, p);
+
     linkBufSize += p->fullSize();
-    //TODO: get link from global map
-    //link->txPacket(p, id);
+
+    Link *link = man.getLink(linkID);
+
+    link->txPacket(p, id);
 
     if (!linkBuffer.empty()) {
-        //TODO: get link from global map
-        //second_t nextTx = man.time + double(linkBuffer.front()->fullSizeBits()) / link->getSpeed();
-        //EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
-        //man.pushEvent(e);
+        second_t nextTx = man.time + double(linkBuffer.front()->fullSizeBits()) / link->getSpeed();
+        EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
+        man.pushEvent(e);
     }
 }
 
 void Interface::txHandlerEvent() {
     Packet *p = handlerBuffer.front();
     handlerBuffer.pop();
-    
+
+    man.logTxEvent(IFACE_STR, id, TX_HANDLER_EVENT_STR, linkID, p);
+
     handlerBufSize += p->fullSize();
-    //TODO: get packet handler from global map
-    //handler->rxPacket(p);
-    
+
+    PacketHandler *handler = man.getHandler(handlerID);
+
+    handler->rxPacket(p);
+
     if (!handlerBuffer.empty()) {
-        //TODO: get packet handler from global map
-        //second_t nextTx = man.time + double(p->fullSizeBits()) / handler->getInternalSpeed();
-        //EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
-        //man.pushEvent(e);
+        second_t nextTx = man.time + double(p->fullSizeBits()) / handler->getInternalSpeed();
+        EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
+        man.pushEvent(e);
     }
 }
 
@@ -82,10 +100,11 @@ void Interface::rxLink(Packet *p) {
     handlerBuffer.push(p);
 
     if (handlerBuffer.size() == 1) {
-        //TODO: get packet handler from global map
-        //second_t nextTx = man.time + double(p->fullSizeBits()) / handler->getInternalSpeed();
-        //EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
-        //man.pushEvent(e);
+        PacketHandler *handler = man.getHandler(handlerID);
+
+        second_t nextTx = man.time + double(p->fullSizeBits()) / handler->getInternalSpeed();
+        EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
+        man.pushEvent(e);
     }
 }
 
@@ -99,17 +118,106 @@ void Interface::rxHandler(Packet *p) {
 
     // if only one element add event
     if (linkBuffer.size() == 1) {
-        //TODO: get link from global map
-        //second_t nextTx = man.time + double(p->fullSizeBits()) / link->getSpeed();
-        //EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
-        //man.pushEvent(e);
+        Link *link = man.getLink(linkID);
+
+        second_t nextTx = man.time + double(p->fullSizeBits()) / link->getSpeed();
+        EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
+        man.pushEvent(e);
     }
+}
+
+int Interface::getHandlerID() {
+    return handlerID;
+}
+
+set<int> Interface::getNeighbours() {
+    set<int> neighbours;
+    Link *link = man.getLink(linkID);
+
+    neighbours = link->getNeighbours();
+    neighbours.erase(handlerID);
+
+    return neighbours;
+}
+
+bool Interface::validateHandler() {
+    PacketHandler *handler = man.getHandler(handlerID);
+    if (handler == NULL) {
+        fprintf(stderr, "Interface: handler %d of interface %d is missing\n",
+                handlerID, id);
+        return false;
+    }
+
+    if (!handler->hasInterface(id)) {
+        fprintf(stderr, "Interface: handler %d does not know of interface %d\n",
+                linkID, id);
+        return false;
+    }
+
+    return true;
+}
+
+bool Interface::validateLink() {
+    Link *link = man.getLink(linkID);
+    if (link == NULL) {
+        fprintf(stderr, "Interface: link %d of interface %d is missing\n",
+                linkID, id);
+        return false;
+    }
+
+    bool valid = true;
+
+    if (!link->hasInterface(id)) {
+        fprintf(stderr, "Interface: link %d does not know of interface %d\n",
+                linkID, id);
+        valid = false;
+    }
+
+    return valid;
+}
+
+bool Interface::validateVariables() {
+    bool valid = true;
+
+    if (linkBufSize <= 0) {
+        fprintf(stderr, "Interface: %d has invalid link buffer size %d\n",
+                id, linkBufSize);
+        valid = false;
+    }
+
+    if (handlerBufSize <= 0) {
+        fprintf(stderr, "Interface: %d has invalid handler buffer size %d\n",
+                id, linkBufSize);
+        valid = false;
+    }
+
+    return valid;
+}
+
+bool Interface::validate() {
+    bool valid = true;
+
+    // check handler and link
+    if (!validateHandler()) {
+        valid = false;
+    }
+
+    if (!validateLink()) {
+        valid = false;
+    }
+
+    // check variables
+    if (!validateVariables()) {
+        valid = false;
+    }
+
+    return valid;
 }
 
 #ifdef _TEST
 #include <assert.h>
 
-#include "switch.h"
+#include "endpoint.h"
 
 int Interface::ifaceToIface() {
     const int l1ID = 1,
@@ -133,29 +241,44 @@ int Interface::ifaceToIface() {
           p2TTL = 10,
           p2HSize = 40,
           p2BSize = 120;
-    const int h1Speed = 1;
+    const int e1ID = 1,
+          e1Speed = 1;
+    const int e2ID = 2,
+          e2Speed = 1;
+    const int f1ID = 1,
+          f1DestID = 1;
 
     Link *l1;
     Interface *i1, *i2;
     Packet *p1, *p2;
-    EventI *e;
-    TestHandler *h1;
     Flow *f1;
+    Endpoint *e1, *e2;
+    EventI *e;
 
     // setup network
+    e1 = new Endpoint(e1ID, e1Speed);
+    e2 = new Endpoint(e2ID, e2Speed);
+
+    man.addEndpoint(e1);
+    man.addEndpoint(e2);
+
+    i1 = new Interface(i1ID, e1ID, i1LBuf, i1HBuf);
+    i2 = new Interface(i2ID, e2ID, i2LBuf, i2HBuf);
+
+    man.addInterface(i1);
+    man.addInterface(i2);
+
     l1 = new Link(l1ID, l1Speed, l1TxTime);
 
-    i1 = new Interface(i1ID, l1, i1LBuf, i1HBuf);
-    i2 = new Interface(i2ID, l1, i2LBuf, i2HBuf);
+    l1->addDest(i1ID);
+    l1->addDest(i2ID);
 
-    l1->addDest(i1);
-    l1->addDest(i2);
+    i1->setLink(l1ID);
+    i2->setLink(l1ID);
 
-    h1 = new TestHandler(h1Speed);
+    man.addLink(l1);
 
-    i2->addHandler(h1);
-
-    f1 = NULL;
+    f1 = new TestFlow(f1ID, e1, f1DestID);
 
     p1 = new Packet(p1ID, p1SID, p1DID, f1, p1TTL, p1HSize, p1BSize);
     p2 = new Packet(p2ID, p2SID, p2DID, f1, p2TTL, p2HSize, p2BSize);
@@ -224,43 +347,31 @@ int Interface::ifaceToIface() {
 
     assert(man.numEvents() == 1);
 
-    // clean up last events
+    // clean up last event
     delete man.popEvent();
 
-    delete l1;
-    delete i1;
-    delete i2;
+    assert(man.numEvents() == 0);
+
     delete p1;
     delete p2;
-    delete h1;
+    delete f1;
+
+    man.deleteNetwork();
 
     return 1;
 }
 
-#define L_ID        1
-#define L_SPEED     80000
-#define L_TX_TIME   ((second_t)0.001)
-
-#define I_ID        1
-#define I_LB_SIZE   48000
-#define I_HB_SIZE   32000
-
-#define S_ID        1
-#define S_SPEED     1
-
 int testInterface() {
-    Link *l1 = new Link(L_ID, L_SPEED, L_TX_TIME);
+    const int l1ID = 1;
+    const int s1ID = 1;
+    const int i1ID = 1,
+          i1LBuf = 48000,
+          i1HBuf = 32000;
 
-    Interface *i1 = new Interface(I_ID, l1, I_LB_SIZE, I_HB_SIZE);
+    Interface *i1 = new Interface(i1ID, s1ID, i1LBuf, i1HBuf);
+    i1->setLink(l1ID);
 
-    Switch *s1 = new Switch(S_ID, S_SPEED);
-
-    assert(i1->addHandler(s1));
-    assert(!i1->addHandler(s1));
-
-    delete s1;
     delete i1;
-    delete l1;
 
     return Interface::ifaceToIface();
 }

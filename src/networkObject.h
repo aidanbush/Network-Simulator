@@ -11,6 +11,8 @@ class NetworkObject {
         int getID();
         int getId();
 
+        virtual bool validate() = 0;
+
     protected:
         int id;
 };

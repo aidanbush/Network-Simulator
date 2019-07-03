@@ -6,21 +6,21 @@
 #include "endpoint.h"
 #include "interface.h"
 #include "link.h"
+#include "packet.h"
 
 Manager::Manager() {
     time = 0;
+    logFile = stdout;
 }
 
-// manager
-int Manager::addHandler(PacketHandler *handler) {
+bool Manager::addHandler(PacketHandler *handler) {
     int id = handler->getID();
 
-    if (handler == NULL || packetHandlers.find(id) != packetHandlers.end()) {
-        return 0;
+    if (handler == NULL) {
+        return false;
     }
 
-    packetHandlers.insert({id, handler});
-    return 1;
+    return packetHandlers.emplace(id, handler).second;
 }
 
 PacketHandler *Manager::getHandler(int id) {
@@ -33,77 +33,71 @@ PacketHandler *Manager::getHandler(int id) {
 }
 
 // switch
-int Manager::addSwitch(Switch *netSwitch) {
-    int id = netSwitch->getID();
-
-    if (netSwitch == NULL || switches.find(id) != switches.end()) {
-        return 0;
-    }
-
-    switches.insert({id, netSwitch});
-    return 1;
+bool Manager::addSwitch(Switch *netSwitch) {
+    return addHandler(netSwitch);
 }
 
 Switch *Manager::getSwitch(int id) {
-    auto netSwitch = switches.find(id);
-    if (netSwitch == switches.end()) {
+    auto handlerIt = packetHandlers.find(id);
+    if (handlerIt == packetHandlers.end()) {
         return NULL;
     }
 
-    return netSwitch->second;
+    return dynamic_cast<Switch *>(handlerIt->second);
 }
 
 // endpoint
-int Manager::addEndpoint(Endpoint *endpoint) {
-    int id = endpoint->getID();
-
-    if (endpoint == NULL || endpoints.find(id) != endpoints.end()) {
-        return 0;
-    }
-
-    endpoints.insert({id, endpoint});
-    return 1;
+bool Manager::addEndpoint(Endpoint *endpoint) {
+    return addHandler(endpoint);
 }
 
 Endpoint *Manager::getEndpoint(int id) {
-    auto endpoint = endpoints.find(id);
-    if (endpoint == endpoints.end()) {
+    auto handlerIt = packetHandlers.find(id);
+    if (handlerIt == packetHandlers.end()) {
         return NULL;
     }
 
-    return endpoint->second;
+    return dynamic_cast<Endpoint *>(handlerIt->second);
 }
 
 // interface
-int Manager::addInterface(Interface* interface) {
-    return interfaces.emplace(interface->getId(), interface).second;
+bool Manager::addInterface(Interface *interface) {
+    int id = interface->getID();
+
+    if (interface == NULL) {
+        return false;
+    }
+
+    return interfaces.emplace(id, interface).second;
 }
 
-Interface* Manager::getInterface(int id) {
+Interface *Manager::getInterface(int id) {
     auto interface = interfaces.find(id);
     if (interface == interfaces.end()) {
-        //TODO: perhaps this should be an error instead of returning null
-        //We can use map.at() instead of map.find() to do this automatically
         return NULL;
     }
-    
+
     return interface->second;
 }
 
 // link
-int Manager::addLink(Link* linck) {
-    return links.emplace(linck->getId(), linck).second;
+bool Manager::addLink(Link *link) {
+    int id = link->getID();
+
+    if (link == NULL) {
+        return false;
+    }
+
+    return links.emplace(id, link).second;
 }
 
-Link* Manager::getLink(int id) {
-    auto linck = links.find(id); //TODO: what should switches and links be called for variable names
-    if (linck == links.end()) {
-        //TODO: perhaps this should be an error instead of returning null
-        //We can use map.at() instead of map.find() to do this automatically
+Link *Manager::getLink(int id) {
+    auto link = links.find(id);
+    if (link == links.end()) {
         return NULL;
     }
-    
-    return linck->second;
+
+    return link->second;
 }
 
 EventI *Manager::popEvent() {
@@ -116,4 +110,112 @@ EventI *Manager::popEvent() {
 
     time = e->time;
     return e;
+}
+
+void Manager::deleteHandlers() {
+    for (auto [id, handler] : packetHandlers) {
+        delete handler;
+    }
+
+    packetHandlers.clear();
+}
+
+void Manager::deleteInterfaces() {
+    for (auto [id, iface] : interfaces) {
+        delete iface;
+    }
+
+    interfaces.clear();
+}
+
+void Manager::deleteLinks() {
+    for (auto [id, link] : links) {
+        delete link;
+    }
+
+    links.clear();
+}
+
+void Manager::deleteEvents() {
+    EventI *e;
+
+    while (!pq.empty()) {
+        e = pq.top();
+        pq.pop();
+        delete e;
+    }
+}
+
+void Manager::deleteNetwork() {
+    deleteHandlers();
+    deleteInterfaces();
+    deleteLinks();
+
+    deleteEvents();
+
+    if (logFile != stdout) {
+        if (fclose(logFile)) {
+            perror("fclose");
+        }
+    }
+}
+
+bool Manager::linkHandlers() {
+    for (auto const& it : packetHandlers) {
+        if (!it.second->connectNeighbours()) {
+        return false;
+        }
+    }
+
+    return true;
+}
+
+bool Manager::validateNetwork() {
+    bool valid = true;
+
+    // validate each handler
+    for (auto& it : packetHandlers) {
+        if (!it.second->validate()) {
+            valid = false;
+        }
+    }
+
+    // validate each interface
+    for (auto& it : packetHandlers) {
+        if (!it.second->validate()) {
+            valid = false;
+        }
+    }
+
+    // validate each link
+    for (auto& it : packetHandlers) {
+        if (!it.second->validate()) {
+            valid = false;
+        }
+    }
+
+    return valid;
+}
+
+bool Manager::setLogFile(string filename) {
+    FILE *newLog = fopen(filename.c_str(), (char *)"w");
+
+    if (newLog == NULL) {
+        perror("fopen");
+        return false;
+    }
+
+    logFile = newLog;
+    return true;
+}
+
+void Manager::logTxEvent(string objName, int objID, string eventName, int destID, Packet *p) {
+    string message = "dest: " + to_string(destID) + " packet: " + to_string(p->getID()) + " flow: "
+        + to_string(p->getFlow());
+    logEvent(objName, objID, eventName, message);
+}
+
+void Manager::logEvent(string objName, int objID, string eventName, string message) {
+    fprintf(logFile, "time: %f %s: %d event: %s message: %s\n", time,
+            objName.c_str(), objID, eventName.c_str(), message.c_str());
 }

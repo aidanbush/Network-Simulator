@@ -1,7 +1,7 @@
 #ifndef SWITCH_H
 #define SWITCH_H
-#include <nlohmann/json.hpp>
 
+#include <nlohmann/json.hpp>
 #include <map>
 #include <queue>
 #include <set>
@@ -14,13 +14,15 @@ using json = nlohmann::json;
 
 class Switch: public PacketHandler {
     public:
-        Switch(json switchConfig);
+        Switch(int id, int speed);
 
         void rxPacket(Packet *p);
 
         void initSwitch();
 
-        int getInterfaceId(int destID);
+        int getInterfaceID(int destID);
+
+        bool validate();
 
     protected:
         struct routingSearchElem {

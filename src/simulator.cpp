@@ -1,15 +1,19 @@
 #include <stdio.h>
+#include <unistd.h>
+#include <libgen.h>
+#include <signal.h>
+#include <errno.h>
+
 #include <queue>
 #include <map>
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <iostream>
 
-#include "switch.h"
-#include "endpoint.h"
-#include "interface.h"
-#include "link.h"
 #include "manager.h"
+#include "config.h"
+
+#define DEFAULT_CONFIG  "config.json"
 
 using namespace std;
 
@@ -18,65 +22,93 @@ using json = nlohmann::json;
 #ifndef _TEST
 Manager man;
 
-void combineJson(json& first, json& second) {
-    for (json::iterator it = second.begin(); it != second.end(); ++it) {
-      first[it.key()] = it.value();
-    }
+volatile sig_atomic_t exitSim;
+
+void sigintHandler(__attribute__((unused)) int par) {
+    exitSim = 1;
 }
 
-json readConfig() {
-    ifstream configStream("../config.json");
-    json config;
-    configStream >> config;
-    ifstream localConfigStream("../local.json");
-    if (localConfigStream.good()) {
-        json localConfig;
-        localConfigStream >> localConfig;
-        combineJson(config, localConfig);
+bool createSigintHandler() {
+    struct sigaction sa = {};
+    sa.sa_handler = &sigintHandler;
+
+    int err = sigaction(SIGINT, &sa, NULL);
+    if (err == -1) {
+        perror("sigaction");
     }
-    return config;
+
+    return err != -1;
 }
 
-void parseConfig(json& config, map<int, PacketHandler*>& packetHandlers,
-                map<int, Interface*>& interfaces, map<int, Link*>& links) {
-    for (json::iterator it = config["endpoints"].begin(); it != config["endpoints"].end(); ++it) {
-        //it.value() gives json object of endpoint
-        packetHandlers.emplace(it.value()["id"], new Endpoint(it.value()));
-    }
-    
-    for (json::iterator it = config["switches"].begin(); it != config["switches"].end(); ++it) {
-        //it.value() gives json object of switch
-        packetHandlers.emplace(it.value()["id"], new Switch(it.value()));
-    }
-    
-    for (json::iterator it = config["interfaces"].begin(); it != config["interfaces"].end(); ++it) {
-        //it.value() gives json object of interface
-        Interface* interface = new Interface(it.value());
-        interfaces.emplace(interface->getId(), interface);
-    }
-    
-    for (json::iterator it = config["links"].begin(); it != config["links"].end(); ++it) {
-        //it.value() gives json object of link
-        Link* linck = new Link(it.value());
-        links.emplace(linck->getId(), linck);
-        linck->addToInterfaces();
-    }
+void printUsage(char *pName) {
+    printf("Usage %s [OPTIONS] [config]\n"
+            "Network simulator\n\n"
+            "If config file is not specified it defaults to \"" DEFAULT_CONFIG "\"\n\n"
+            "Options\n"
+            "  -l [filename] sets the log file, if not set uses stdout\n"
+            "  -s step through event by event\n"
+            "  -h this usage message\n", basename(pName));
 }
 
-int main() {
-    // load configuration
-    json config = readConfig();
-    map<int, PacketHandler*> packetHandlers;
-    map<int, Interface*> interfaces;
-    map<int, Link*> links;
-    parseConfig(config, packetHandlers, interfaces, links);
-    while (man.numEvents() > 0) {
+int main(int argc, char **argv) {
+    int c;
+    bool step = false;
+    char const *configFile = DEFAULT_CONFIG;
+
+    if (!createSigintHandler()) {
+        return 1;
+    }
+
+    while ((c = getopt(argc, argv, "hsl:")) != -1) {
+        switch (c) {
+            case 's':
+                step = true;
+                break;
+            case 'h':
+                printUsage(argv[0]);
+                return 0;
+            case 'l':
+                if (!man.setLogFile(optarg)) {
+                    fprintf(stderr, "multiple log files specified\n");
+                    printUsage(argv[0]);
+                    return 1;
+                }
+                break;
+            default:
+                fprintf(stderr, "Unkown option\n");
+                printUsage(argv[0]);
+                return 1;
+        }
+    }
+
+    if (optind < argc - 1) {
+        fprintf(stderr, "Too many arguments\n");
+        printUsage(argv[0]);
+        return 1;
+    }
+
+    if (optind == argc -1) {
+        configFile = argv[optind];
+    }
+
+
+    if (!loadConfig(configFile)) {
+        return 1;
+    }
+
+    while (man.numEvents() > 0 && !exitSim) {
         EventI* e = man.popEvent();
         e->call();
         delete e;
+
+        if (step) {
+            getchar();
+        }
     }
+
+    man.deleteNetwork();
 
     return 0;
 }
 
-#endif // _TEST
+#endif /* _TEST */

@@ -13,12 +13,14 @@ using namespace std;
 
 using json = nlohmann::json;
 
-Switch::Switch(json switchConfig): PacketHandler(switchConfig) {}
+Switch::Switch(int id, int speed): PacketHandler(id, speed) {}
 
 void Switch::rxPacket(Packet *p) {
-    int interfaceId = routePacket(p);
-    //TODO: get interface from global map
-    //interfaces[interfaceId]->rxHandler(p);
+    int ifaceID = routePacket(p);
+
+    Interface *iface = man.getInterface(ifaceID);
+
+    iface->rxHandler(p);
 }
 
 int Switch::routePacket(Packet *p) {
@@ -30,20 +32,21 @@ int Switch::routePacket(Packet *p) {
     return destID->second;
 }
 
-int Switch::getInterfaceId(int destID) {
+int Switch::getInterfaceID(int destID) {
     auto elem = interfaces.find(destID);
     if (elem == interfaces.end()) {
         return -1;
     }
+
     return elem->second;
 }
 
 // time / speed
 double Switch::txCost(Switch *source, int destID) {
-    //TODO: get interface from global map
-    //Interface *interface = source->getInterfaceId(destID);
+    int ifaceID = source->getInterfaceID(destID);
+    Interface *iface = man.getInterface(ifaceID);
 
-    return 0.0;//Switch::txCost(interface);
+    return Switch::txCost(iface);
 }
 
 double Switch::txCost(Interface *iface) {
@@ -52,23 +55,24 @@ double Switch::txCost(Interface *iface) {
 
 void Switch::initializeNeighbours(priority_queue<routingSearchElem> &fringe,
         Switch *netSwitch) {
-    //TODO: need replacement for getIfaceNeighbours, which is incompatible with multiple destination links
-            //as it returned a map of interfaces to destination packet handlers
-    // map<Interface *, PacketHandler *> neighbours = netSwitch->getIfaceNeighbours();
-    // double cost;
-    // routingSearchElem newElem;
-    // 
-    // for (auto const& [iface, handler] : neighbours) {
-    //     cost = Switch::txCost(iface);
-    // 
-    //     newElem = {
-    //         .cost = cost,
-    //         .curID = handler->getID(),
-    //         .firstID = iface->getID(),
-    //     };
-    // 
-    //     fringe.push(newElem);
-    // }
+    double cost;
+    routingSearchElem newElem;
+    Interface *iface;
+
+    map<int, int> neighbours = netSwitch->interfaces;
+
+    for (auto const& [handlerID, ifaceID] : neighbours) {
+        iface = man.getInterface(ifaceID);
+        cost = Switch::txCost(iface);
+
+        newElem = {
+            .cost = cost,
+            .curID = handlerID,
+            .firstID = ifaceID,
+        };
+
+        fringe.push(newElem);
+    }
 }
 
 // only add neighbours ir switch
@@ -81,26 +85,23 @@ void Switch::addNeighbours(priority_queue<routingSearchElem> &fringe,
 
     vector<int> neighbours = netSwitch->getNeighbours();
     double cost;
-    int id;
     routingSearchElem newElem;
 
-    for (int n : neighbours) {
-        //TODO: get interface from global map
-        // id = n->getID();
-        // if (explored.find(id) != explored.end()) {
-        //     continue;
-        // }
-        // 
-        // cost = Switch::txCost(netSwitch, n->getID()) + curElem.cost;
-        // 
-        // // add to
-        // newElem = {
-        //     .cost = cost,
-        //     .curID = n->getID(),
-        //     .firstID = curElem.firstID,
-        // };
-        // 
-        // fringe.push(newElem);
+    for (int neighbourID : neighbours) {
+        if (explored.find(neighbourID) != explored.end()) {
+            continue;
+        }
+
+        cost = Switch::txCost(netSwitch, neighbourID) + curElem.cost;
+
+        // add to
+        newElem = {
+            .cost = cost,
+            .curID = neighbourID,
+            .firstID = curElem.firstID,
+        };
+
+        fringe.push(newElem);
     }
 }
 
@@ -116,21 +117,22 @@ void Switch::setupRoutingTable() {
 
     // while fringe not empty
     while (!fringe.empty()) {
-        routingSearchElem elem = fringe.top();
+        curElem = fringe.top();
         fringe.pop();
 
         // continue if not new element
-        if (!explored.insert(elem.curID).second) {
+        if (!explored.insert(curElem.curID).second) {
             continue;
         }
 
         //if (dynamic_cast<Endpoint *>(elem.second.handler) != NULL) {
-        if (man.getEndpoint(elem.curID) != NULL) {
-            routingTable.insert(pair<int, int>(elem.curID, elem.firstID));
-        } else if (man.getEndpoint(elem.curID) != NULL) {
-            Switch::addNeighbours(fringe, explored, elem);
+        if (man.getEndpoint(curElem.curID) != NULL) {
+            routingTable.insert(pair<int, int>(curElem.curID, curElem.firstID));
+        } else if (man.getSwitch(curElem.curID) != NULL) {
+            Switch::addNeighbours(fringe, explored, curElem);
         } else {
             // TODO: handle error
+            fprintf(stderr, "Error in routing UCS unkown packetHandler type\n");
         }
     }
 }
@@ -138,6 +140,16 @@ void Switch::setupRoutingTable() {
 void Switch::initSwitch() {
     // set up routing table
     setupRoutingTable();
+}
+
+bool Switch::validate() {
+    bool valid = true;
+
+    if (!validateHandler()) {
+        valid = false;
+    }
+
+    return valid;
 }
 
 #ifdef _TEST
