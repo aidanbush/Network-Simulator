@@ -64,7 +64,16 @@ int Endpoint::endpointToEndpoint() {
           p1TTL = 10,
           p1HSize = 50,
           p1BSize = 100;
-    const int f1ID = 1;
+    const int f1ID = 1,
+          f1SID = e1ID,
+          f1DID = e2ID;
+
+    json f1C = {
+        {"type", "test"},
+        {"id", f1ID},
+        {"source_id", f1SID},
+        {"dest", {f1DID}},
+    };
 
     Endpoint *e1, *e2;
     Interface *i1, *i2;
@@ -96,7 +105,7 @@ int Endpoint::endpointToEndpoint() {
 
     assert(man.addLink(l1));
 
-    f1 = new TestFlow(f1ID, e1, e2ID);
+    f1 = createFlow(f1C);
 
     p1 = new Packet(p1ID, p1SID, p1DID, f1, p1TTL, p1HSize, p1BSize);
 

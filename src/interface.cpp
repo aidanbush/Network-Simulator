@@ -246,7 +246,15 @@ int Interface::ifaceToIface() {
     const int e2ID = 2,
           e2Speed = 1;
     const int f1ID = 1,
-          f1DestID = 1;
+          f1SID = 1,
+          f1DID = 2;
+
+    json f1C = {
+        {"type", "test"},
+        {"id", f1ID},
+        {"source_id", f1SID},
+        {"dest", {f1DID}},
+    };
 
     Link *l1;
     Interface *i1, *i2;
@@ -278,7 +286,7 @@ int Interface::ifaceToIface() {
 
     man.addLink(l1);
 
-    f1 = new TestFlow(f1ID, e1, f1DestID);
+    f1 = createFlow(f1C);
 
     p1 = new Packet(p1ID, p1SID, p1DID, f1, p1TTL, p1HSize, p1BSize);
     p2 = new Packet(p2ID, p2SID, p2DID, f1, p2TTL, p2HSize, p2BSize);

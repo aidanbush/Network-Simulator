@@ -1,17 +1,20 @@
 #ifndef FLOW_H
 #define FLOW_H
 
+#include <nlohmann/json.hpp>
+
 #include "networkObject.h"
 #include "manager.h"
 
 using namespace std;
+using json = nlohmann::json;
 
 class Packet;
 class Endpoint;
 
 class Flow: public NetworkObject {
     public:
-        Flow(int id, Endpoint *endpoint, int destID);
+        Flow(json &config);
 
         virtual void StartFlow() = 0;
         virtual void txPacketEvent() = 0;
@@ -30,7 +33,22 @@ class Flow: public NetworkObject {
 
         int newPacketID();
 
+        virtual second_t nextTxTime() = 0;
         // stats
+};
+
+class BasicFlow: public Flow {
+    public:
+        BasicFlow(json &config);
+
+        void StartFlow();
+        void txPacketEvent();
+
+    private:
+        second_t minTime;
+        second_t maxTime;
+
+        second_t nextTxTime();
 };
 
 #ifdef _TEST
@@ -40,8 +58,12 @@ class TestFlow: public Flow {
 
         void StartFlow();
         void txPacketEvent();
+
+    private:
         second_t nextTxTime();
 };
 #endif /* _TEST */
+
+Flow *createFlow(json &config);
 
 #endif /* FLOW_H */

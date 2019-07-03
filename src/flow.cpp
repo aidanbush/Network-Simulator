@@ -1,4 +1,8 @@
 #include <stdlib.h>
+#include <typeinfo>
+#include <typeindex>
+#include <map>
+#include <nlohmann/json.hpp>
 
 #include "flow.h"
 #include "manager.h"
@@ -11,10 +15,92 @@
 
 using namespace std;
 
-Flow::Flow(int id, Endpoint *endpoint, int destID): NetworkObject(id) {
-    this->endpoint = endpoint;
-    this->sourceID = endpoint->getID();
-    this->destID = destID;
+enum flowType {
+    BasicFlowType,
+#ifdef _TEST
+    TestFlowType,
+#endif /* _TEST */
+};
+
+Flow *createFlow(json &config) {
+    static map<string, size_t> flowTypeMap = {
+        {"basic", BasicFlowType},
+#ifdef _TEST
+        {"test", TestFlowType},
+#endif /* _TEST */
+    };
+
+    Flow *flow;
+
+    if (config.find("type") == config.end()) {
+        fprintf(stderr, "Error in flow, 'type' not found\n");
+        return NULL;
+    }
+
+    if (!config["type"].is_string()) {
+        fprintf(stderr, "Error in flow with 'type' not string type\n");
+        return NULL;
+    }
+
+    string type = config["type"];
+
+    auto it = flowTypeMap.find(type);
+    if (it == flowTypeMap.end()) {
+        fprintf(stderr, "Error flow type %s does not exist\n", type.c_str());
+        return NULL;
+    }
+
+    switch (it->second) {
+        case BasicFlowType:
+            try {
+                flow = new BasicFlow(config);
+            } catch (...) {
+                return NULL;
+            }
+            break;
+        case TestFlowType:
+            try {
+                flow = new TestFlow(config);
+            } catch (...) {
+                return NULL;
+            }
+            break;
+        default:
+            fprintf(stderr, "Internal error, cant find type %s\n", type.c_str());
+            return NULL;
+    }
+
+    return flow;
+}
+
+Flow::Flow(json &config): NetworkObject(config["id"]) {
+    if (config.find("source_id") == config.end()) {
+        fprintf(stderr, "Error in flow 'source_id' not found\n");
+        // error
+    }
+
+    if (!config["source_id"].is_number_integer()) {
+        fprintf(stderr, "Error in flow 'source_id' not type integer\n");
+        // error
+    }
+    this->sourceID = config["source_id"];
+
+    if (config.find("dest") == config.end()) {
+        fprintf(stderr, "Error in flow 'dest' not found\n");
+        // error
+    }
+
+    if (!config["dest"].is_array()) {
+        fprintf(stderr, "Error in flow 'dest' not type array\n");
+    }
+
+    for (auto it : config["dest"].items()) {
+        if (!it.value().is_number_integer()) {
+            fprintf(stderr, "Error in flow 'dest' element not type integer\n");
+            // error
+        }
+        this->destID = it.value();
+    }
 }
 
 void Flow::packetArrived(Packet *p) {
@@ -37,6 +123,21 @@ int Flow::newPacketID() {
 bool Flow::validate() {
     // TODO implement
     return true;
+}
+
+BasicFlow::BasicFlow(json &config): Flow(config) {
+    this->minTime = 0.001;
+    this->maxTime = 0.01;
+}
+
+second_t BasicFlow::nextTxTime() {
+    return 0.0;
+}
+
+void BasicFlow::StartFlow() {
+}
+
+void BasicFlow::txPacketEvent() {
 }
 
 #ifdef _TEST
