@@ -52,16 +52,16 @@ class Manager {
         PacketHandler *getHandler(int id);
 
         Switch *getSwitch(int id);
-        int addSwitch(Switch *netSwitch);
+        bool addSwitch(Switch *netSwitch);
 
         Endpoint *getEndpoint(int id);
-        int addEndpoint(Endpoint *endpoint);
+        bool addEndpoint(Endpoint *endpoint);
 
         Interface *getInterface(int id);
-        int addInterface(Interface *interface);
+        bool addInterface(Interface *interface);
 
         Link *getLink(int id);
-        int addLink(Link *link);
+        bool addLink(Link *link);
 
         void pushEvent(EventI *e) {pq.push(e); }
         EventI *popEvent();
@@ -78,7 +78,7 @@ class Manager {
         void logEvent(string objName, int objID, string eventName, string message);
 
     private:
-        int addHandler(PacketHandler *handler);
+        bool addHandler(PacketHandler *handler);
 
         void deleteHandlers();
         void deleteInterfaces();

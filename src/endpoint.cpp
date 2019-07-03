@@ -9,8 +9,7 @@
 using namespace std;
 using json = nlohmann::json;
 
-Endpoint::Endpoint(int id, int speed): PacketHandler(id, speed) {
-}
+Endpoint::Endpoint(int id, int speed): PacketHandler(id, speed) {}
 
 void Endpoint::rxPacket(Packet *p) {
     p->arrive();

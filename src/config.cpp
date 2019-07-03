@@ -247,11 +247,15 @@ static bool addLink(json &config) {
         }
     }
 
+    // l->addToInterfaces();
+
     return true;
 }
 
 static bool parseConfig(json& config) {
     bool success = true;
+
+    // json interator.value give json element
 
     for (json::iterator it = config["endpoints"].begin(); it != config["endpoints"].end(); ++it) {
         if (!addEndpoint(it.value())) {

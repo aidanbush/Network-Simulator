@@ -13,8 +13,7 @@ using namespace std;
 
 using json = nlohmann::json;
 
-Switch::Switch(int id, int speed): PacketHandler(id, speed) {
-}
+Switch::Switch(int id, int speed): PacketHandler(id, speed) {}
 
 void Switch::rxPacket(Packet *p) {
     int ifaceID = routePacket(p);
@@ -88,17 +87,17 @@ void Switch::addNeighbours(priority_queue<routingSearchElem> &fringe,
     double cost;
     routingSearchElem newElem;
 
-    for (int nID : neighbours) {
-        if (explored.find(nID) != explored.end()) {
+    for (int neighbourID : neighbours) {
+        if (explored.find(neighbourID) != explored.end()) {
             continue;
         }
 
-        cost = Switch::txCost(netSwitch, nID) + curElem.cost;
+        cost = Switch::txCost(netSwitch, neighbourID) + curElem.cost;
 
         // add to
         newElem = {
             .cost = cost,
-            .curID = nID,
+            .curID = neighbourID,
             .firstID = curElem.firstID,
         };
 

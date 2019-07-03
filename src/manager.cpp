@@ -13,15 +13,14 @@ Manager::Manager() {
     logFile = stdout;
 }
 
-int Manager::addHandler(PacketHandler *handler) {
+bool Manager::addHandler(PacketHandler *handler) {
     int id = handler->getID();
 
-    if (handler == NULL || packetHandlers.find(id) != packetHandlers.end()) {
-        return 0;
+    if (handler == NULL) {
+        return false;
     }
 
-    packetHandlers.insert({id, handler});
-    return 1;
+    return packetHandlers.emplace(id, handler).second;
 }
 
 PacketHandler *Manager::getHandler(int id) {
@@ -34,7 +33,7 @@ PacketHandler *Manager::getHandler(int id) {
 }
 
 // switch
-int Manager::addSwitch(Switch *netSwitch) {
+bool Manager::addSwitch(Switch *netSwitch) {
     return addHandler(netSwitch);
 }
 
@@ -48,7 +47,7 @@ Switch *Manager::getSwitch(int id) {
 }
 
 // endpoint
-int Manager::addEndpoint(Endpoint *endpoint) {
+bool Manager::addEndpoint(Endpoint *endpoint) {
     return addHandler(endpoint);
 }
 
@@ -62,15 +61,14 @@ Endpoint *Manager::getEndpoint(int id) {
 }
 
 // interface
-int Manager::addInterface(Interface *interface) {
+bool Manager::addInterface(Interface *interface) {
     int id = interface->getID();
 
-    if (interface == NULL || interfaces.find(id) != interfaces.end()) {
-        return 0;
+    if (interface == NULL) {
+        return false;
     }
 
-    interfaces.insert({id, interface});
-    return 1;
+    return interfaces.emplace(id, interface).second;
 }
 
 Interface *Manager::getInterface(int id) {
@@ -83,15 +81,14 @@ Interface *Manager::getInterface(int id) {
 }
 
 // link
-int Manager::addLink(Link *link) {
+bool Manager::addLink(Link *link) {
     int id = link->getID();
 
-    if (link == NULL || links.find(id) != links.end()) {
-        return 0;
+    if (link == NULL) {
+        return false;
     }
 
-    links.insert({id, link});
-    return 1;
+    return links.emplace(id, link).second;
 }
 
 Link *Manager::getLink(int id) {
@@ -213,7 +210,7 @@ bool Manager::setLogFile(string filename) {
 }
 
 void Manager::logTxEvent(string objName, int objID, string eventName, int destID, Packet *p) {
-    string message = "dest: " + to_string(destID) + "packet: " + to_string(p->getID()) + "flow: "
+    string message = "dest: " + to_string(destID) + " packet: " + to_string(p->getID()) + " flow: "
         + to_string(p->getFlow());
     logEvent(objName, objID, eventName, message);
 }
