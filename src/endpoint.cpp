@@ -72,7 +72,7 @@ int Endpoint::endpointToEndpoint() {
         {"type", "test"},
         {"id", f1ID},
         {"source_id", f1SID},
-        {"dest", {f1DID}},
+        {"dests", {f1DID}},
     };
 
     Endpoint *e1, *e2;

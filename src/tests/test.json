@@ -54,6 +54,14 @@
             "time": 0.01,
             "ifaces": [3, 4]
         }
+    ],
+    "flow": [
+        {
+            "id": 1,
+            "source_id": 1,
+            "dests": [2],
+            "type": "test"
+        }
     ]
 }
 

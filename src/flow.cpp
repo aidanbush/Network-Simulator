@@ -87,18 +87,18 @@ Flow::Flow(json &config): NetworkObject(config["id"]) {
     }
     this->sourceID = config["source_id"];
 
-    if (config.find("dest") == config.end()) {
-        fprintf(stderr, "Error in flow 'dest' not found\n");
+    if (config.find("dests") == config.end()) {
+        fprintf(stderr, "Error in flow 'dests' not found\n");
         // error
     }
 
-    if (!config["dest"].is_array()) {
-        fprintf(stderr, "Error ins flow 'dest' not type array\n");
+    if (!config["dests"].is_array()) {
+        fprintf(stderr, "Error in flow 'dests' not type array\n");
     }
 
-    for (auto it : config["dest"].items()) {
+    for (auto it : config["dests"].items()) {
         if (!it.value().is_number_integer()) {
-            fprintf(stderr, "Error in flow 'dest' element not type integer\n");
+            fprintf(stderr, "Error in flow 'dests' element not type integer\n");
             // error
         }
         this->destID = it.value();

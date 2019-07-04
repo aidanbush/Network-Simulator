@@ -8,6 +8,7 @@
 #include "switch.h"
 #include "interface.h"
 #include "link.h"
+#include "flow.h"
 
 using namespace std;
 
@@ -277,6 +278,12 @@ static bool parseConfig(json& config) {
 
     for (json::iterator it = config["links"].begin(); it != config["links"].end(); ++it) {
         if (!addLink(it.value())) {
+            success = false;
+        }
+    }
+
+    for (json::iterator it = config["flows"].begin(); it != config["flows"].end(); ++it) {
+        if (!createFlow(it.value())) {
             success = false;
         }
     }

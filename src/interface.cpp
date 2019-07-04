@@ -253,7 +253,7 @@ int Interface::ifaceToIface() {
         {"type", "test"},
         {"id", f1ID},
         {"source_id", f1SID},
-        {"dest", {f1DID}},
+        {"dests", {f1DID}},
     };
 
     Link *l1;
