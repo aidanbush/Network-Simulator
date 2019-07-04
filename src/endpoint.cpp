@@ -9,7 +9,7 @@
 using namespace std;
 using json = nlohmann::json;
 
-Endpoint::Endpoint(int id, int speed): PacketHandler(id, speed) {}
+Endpoint::Endpoint(json endpointConfig): PacketHandler(endpointConfig) {}
 
 void Endpoint::rxPacket(Packet *p) {
     p->arrive();
@@ -74,8 +74,10 @@ int Endpoint::endpointToEndpoint() {
     EventI *e;
 
     // setup network
-    e1 = new Endpoint(e1ID, e1Speed);
-    e2 = new Endpoint(e2ID, e2Speed);
+    string endpointJson1 = "{\"id\":" + to_string(e1ID) + ",\"internal_speed\":" + to_string(e1Speed) + "}";
+    string endpointJson2 = "{\"id\":" + to_string(e2ID) + ",\"internal_speed\":" + to_string(e2Speed) + "}";
+    e1 = new Endpoint(json::parse(endpointJson1));
+    e2 = new Endpoint(json::parse(endpointJson2));
 
     assert(man.addEndpoint(e1));
     assert(man.addEndpoint(e2));
@@ -126,7 +128,8 @@ int Endpoint::endpointToEndpoint() {
 int testEndpoint() {
     const int e1ID = 1,
           e1Speed = 120;
-    Endpoint *e1 = new Endpoint(e1ID, e1Speed);
+    string endpointJson = "{\"id\":" + to_string(e1ID) + ",\"internal_speed\":" + to_string(e1Speed) + "}";
+    Endpoint *e1 = new Endpoint(json::parse(endpointJson));
 
     assert(e1->getID() == e1ID);
     assert(e1->getInternalSpeed() == e1Speed);
