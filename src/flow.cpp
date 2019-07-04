@@ -140,7 +140,7 @@ second_t BasicFlow::nextTxTime() {
     return man.time + time;
 }
 
-void BasicFlow::StartFlow() {
+void BasicFlow::startFlow() {
     second_t nextTx = nextTxTime();
     EventI *e = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
     man.pushEvent(e);
@@ -169,7 +169,7 @@ second_t TestFlow::nextTxTime() {
     return man.time + min + (float)rand() / (RAND_MAX / (max - min));
 }
 
-void TestFlow::StartFlow() {
+void TestFlow::startFlow() {
     second_t nextTx = nextTxTime();
     EventI *e = new Event<TestFlow>(nextTx, &TestFlow::txPacketEvent, this);
     man.pushEvent(e);

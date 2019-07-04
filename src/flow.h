@@ -16,7 +16,7 @@ class Flow: public NetworkObject {
     public:
         Flow(json &config);
 
-        virtual void StartFlow() = 0;
+        virtual void startFlow() = 0;
         virtual void txPacketEvent() = 0;
 
         void packetArrived(Packet *p);
@@ -41,7 +41,7 @@ class BasicFlow: public Flow {
     public:
         BasicFlow(json &config);
 
-        void StartFlow();
+        void startFlow();
         void txPacketEvent();
 
     private:
@@ -62,7 +62,7 @@ class TestFlow: public Flow {
     public:
         using Flow::Flow;
 
-        void StartFlow();
+        void startFlow();
         void txPacketEvent();
 
     private:

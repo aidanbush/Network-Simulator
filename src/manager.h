@@ -11,6 +11,7 @@ class Switch;
 class Interface;
 class Link;
 class Packet;
+class Flow;
 
 using namespace std;
 
@@ -63,6 +64,9 @@ class Manager {
         Link *getLink(int id);
         bool addLink(Link *link);
 
+        Flow *getFlow(int id);
+        bool addFlow(Flow *flow);
+
         void pushEvent(EventI *e) {pq.push(e); }
         EventI *popEvent();
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator>::size_type
@@ -77,12 +81,15 @@ class Manager {
         void logTxEvent(string objName, int objID, string eventName, int destID, Packet *p);
         void logEvent(string objName, int objID, string eventName, string message);
 
+        void startSimulator();
+
     private:
         bool addHandler(PacketHandler *handler);
 
         void deleteHandlers();
         void deleteInterfaces();
         void deleteLinks();
+        void deleteFlows();
 
         void deleteEvents();
 
@@ -90,6 +97,7 @@ class Manager {
         map<int, PacketHandler*> packetHandlers;
         map<int, Interface*> interfaces;
         map<int, Link*> links;
+        map<int, Flow*> flows;
 
         FILE *logFile;
 };

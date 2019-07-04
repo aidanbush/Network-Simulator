@@ -7,6 +7,7 @@
 #include "interface.h"
 #include "link.h"
 #include "packet.h"
+#include "flow.h"
 
 Manager::Manager() {
     time = 0;
@@ -100,6 +101,26 @@ Link *Manager::getLink(int id) {
     return link->second;
 }
 
+// flow
+bool Manager::addFlow(Flow *flow) {
+    int id = flow->getID();
+
+    if (flow == NULL) {
+        return false;
+    }
+
+    return flows.emplace(id, flow).second;
+}
+
+Flow *Manager::getFlow(int id) {
+    auto flow = flows.find(id);
+    if (flow == flows.end()) {
+        return NULL;
+    }
+
+    return flow->second;
+}
+
 EventI *Manager::popEvent() {
     EventI *e = pq.top();
     pq.pop();
@@ -136,6 +157,14 @@ void Manager::deleteLinks() {
     links.clear();
 }
 
+void Manager::deleteFlows() {
+    for (auto [id, flow] : flows) {
+        delete flow;
+    }
+
+    flows.clear();
+}
+
 void Manager::deleteEvents() {
     EventI *e;
 
@@ -150,6 +179,7 @@ void Manager::deleteNetwork() {
     deleteHandlers();
     deleteInterfaces();
     deleteLinks();
+    deleteFlows();
 
     deleteEvents();
 
@@ -195,6 +225,12 @@ bool Manager::validateNetwork() {
     }
 
     return valid;
+}
+
+void Manager::startSimulator() {
+    for (auto& it : flows) {
+        it.second->startFlow();
+    }
 }
 
 bool Manager::setLogFile(string filename) {

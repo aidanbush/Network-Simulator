@@ -283,7 +283,13 @@ static bool parseConfig(json& config) {
     }
 
     for (json::iterator it = config["flows"].begin(); it != config["flows"].end(); ++it) {
-        if (!createFlow(it.value())) {
+        Flow *f = createFlow(it.value());
+        if (f == NULL) {
+            success = false;
+        }
+
+        if (!man.addFlow(f)) {
+            delete f;
             success = false;
         }
     }

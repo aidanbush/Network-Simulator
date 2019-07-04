@@ -81,8 +81,8 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (optind < argc - 1) {
-        fprintf(stderr, "Too many arguments\n");
+    if (optind != argc - 1) {
+        fprintf(stderr, "Incorrect number of arguments\n");
         printUsage(argv[0]);
         return 1;
     }
@@ -95,6 +95,8 @@ int main(int argc, char **argv) {
     if (!loadConfig(configFile)) {
         return 1;
     }
+
+    man.startSimulator();
 
     while (man.numEvents() > 0 && !exitSim) {
         EventI* e = man.popEvent();
