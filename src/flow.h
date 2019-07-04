@@ -45,8 +45,14 @@ class BasicFlow: public Flow {
         void txPacketEvent();
 
     private:
-        second_t minTime;
-        second_t maxTime;
+        second_t time;
+
+        int minHeadSize;
+        int maxHeadSize;
+        int minBodySize;
+        int maxBodySize;
+
+        int ttl;
 
         second_t nextTxTime();
 };

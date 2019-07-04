@@ -11,7 +11,7 @@
 #include "networkObject.h"
 
 #define FLOW_STR        "Flow"
-#define TX_START_EVENT  "flow create packet event"
+#define TX_PACKET_EVENT "flow create packet event"
 
 using namespace std;
 
@@ -58,6 +58,7 @@ Flow *createFlow(json &config) {
                 return NULL;
             }
             break;
+#ifdef _TEST
         case TestFlowType:
             try {
                 flow = new TestFlow(config);
@@ -65,6 +66,7 @@ Flow *createFlow(json &config) {
                 return NULL;
             }
             break;
+#endif /* _TEST */
         default:
             fprintf(stderr, "Internal error, cant find type %s\n", type.c_str());
             return NULL;
@@ -91,7 +93,7 @@ Flow::Flow(json &config): NetworkObject(config["id"]) {
     }
 
     if (!config["dest"].is_array()) {
-        fprintf(stderr, "Error in flow 'dest' not type array\n");
+        fprintf(stderr, "Error ins flow 'dest' not type array\n");
     }
 
     for (auto it : config["dest"].items()) {
@@ -126,18 +128,38 @@ bool Flow::validate() {
 }
 
 BasicFlow::BasicFlow(json &config): Flow(config) {
-    this->minTime = 0.001;
-    this->maxTime = 0.01;
+    this->time = 0.001;
+    this->minHeadSize = 20;
+    this->maxHeadSize = 32;
+    this->minBodySize = 80;
+    this->maxBodySize = 512;
+    this->ttl = 15;
 }
 
 second_t BasicFlow::nextTxTime() {
-    return 0.0;
+    return man.time + time;
 }
 
 void BasicFlow::StartFlow() {
+    second_t nextTx = nextTxTime();
+    EventI *e = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
+    man.pushEvent(e);
 }
 
 void BasicFlow::txPacketEvent() {
+    int headSize = minHeadSize + rand() % (maxHeadSize - minHeadSize);
+    int bodySize = minBodySize + rand() % (maxBodySize - minBodySize);
+    int pId = newPacketID();
+
+    Packet *p = new Packet(pId, sourceID, destID, this, ttl, headSize, bodySize);
+
+    man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, endpoint->getID(), p);
+
+    endpoint->txPacket(p);
+
+    second_t nextTx = nextTxTime();
+    EventI *e = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
+    man.pushEvent(e);
 }
 
 #ifdef _TEST
@@ -164,7 +186,7 @@ void TestFlow::txPacketEvent() {
 
     Packet *p = new Packet(pID, sourceID, destID, this, ttl, hSize, bSize);
 
-    man.logTxEvent(FLOW_STR, id, TX_START_EVENT, endpoint->getID(), p);
+    man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, endpoint->getID(), p);
 
     endpoint->txPacket(p);
 
