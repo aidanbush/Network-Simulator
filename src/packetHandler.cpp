@@ -2,18 +2,25 @@
 #include <set>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <iostream>
 
 #include "packetHandler.h"
 #include "interface.h"
 #include "packet.h"
 #include "manager.h"
+#include "config.h"
 
 using namespace std;
 
 using json = nlohmann::json;
 
-PacketHandler::PacketHandler(int id, int speed): NetworkObject(id) {
-    this->internalSpeed = speed;
+PacketHandler::PacketHandler(json handlerConfig): NetworkObject(handlerConfig["id"]) {
+    if (hasMemberOfType(handlerConfig, "speed", jsonInt)) {
+        this->internalSpeed = handlerConfig["speed"];
+    } else {
+        cerr << "PacketHandler config missing field 'speed': " << handlerConfig << endl;
+        man.setConfigInvalid();
+    }
 }
 
 int PacketHandler::getInternalSpeed() {

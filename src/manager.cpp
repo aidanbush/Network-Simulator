@@ -255,3 +255,11 @@ void Manager::logEvent(string objName, int objID, string eventName, string messa
     fprintf(logFile, "time: %f %s: %d event: %s message: %s\n", time,
             objName.c_str(), objID, eventName.c_str(), message.c_str());
 }
+
+void Manager::setConfigInvalid() {
+    configValid = false;
+}
+
+bool Manager::isConfigValid() {
+    return configValid;
+}

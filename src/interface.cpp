@@ -260,8 +260,10 @@ int Interface::ifaceToIface() {
     EventI *e;
 
     // setup network
-    e1 = new Endpoint(e1ID, e1Speed);
-    e2 = new Endpoint(e2ID, e2Speed);
+    string endpointJson1 = "{\"id\":" + to_string(e1ID) + ",\"internal_speed\":" + to_string(e1Speed) + "}";
+    string endpointJson2 = "{\"id\":" + to_string(e2ID) + ",\"internal_speed\":" + to_string(e2Speed) + "}";
+    e1 = new Endpoint(json::parse(endpointJson1));
+    e2 = new Endpoint(json::parse(endpointJson2));
 
     man.addEndpoint(e1);
     man.addEndpoint(e2);

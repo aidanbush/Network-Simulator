@@ -99,6 +99,8 @@ class Manager {
         map<int, Link*> links;
         map<int, Flow*> flows;
 
+        bool configValid = true;
+
         FILE *logFile;
 };
 

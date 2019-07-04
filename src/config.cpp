@@ -38,12 +38,6 @@ json readConfig(string filename) {
     return config;
 }
 
-enum jsonType {
-    jsonInt,
-    jsonDouble,
-    jsonArray,
-};
-
 static bool checkConfigObjType(json &obj, jsonType type) {
     switch (type) {
         case jsonInt:
@@ -58,7 +52,7 @@ static bool checkConfigObjType(json &obj, jsonType type) {
     return false;
 }
 
-static bool checkConfigType(json &parent, string key, jsonType type) {
+bool hasMemberOfType(json &parent, string key, jsonType type) {
     if (parent.find(key) == parent.end()) {
         return false;
     }
@@ -85,7 +79,7 @@ static bool checkConfig(json &config, vector<pair<string, jsonType>> &elems,
 
 static bool checkConfigArray(json &config, string key, jsonType type,
         string parent) {
-    if (!checkConfigType(config, key, jsonArray)) {
+    if (!hasMemberOfType(config, key, jsonArray)) {
         fprintf(stderr, "Error in %s with key %s\n", parent.c_str(), key.c_str());
         return false;
     }
@@ -102,23 +96,23 @@ static bool checkConfigArray(json &config, string key, jsonType type,
     return valid;
 }
 
-static bool checkEndpointConfig(json &config) {
-    vector<pair<string, jsonType>> elems = {
-        {"id", jsonInt},
-        {"internal_speed", jsonInt},
-    };
-
-    return checkConfig(config, elems, "endpoint");
-}
-
-static bool checkSwitchConfig(json &config) {
-    vector<pair<string, jsonType>> elems = {
-        {"id", jsonInt},
-        {"internal_speed", jsonInt},
-    };
-
-    return checkConfig(config, elems, "switch");
-}
+// static bool checkEndpointConfig(json &config) {
+//     vector<pair<string, jsonType>> elems = {
+//         {"id", jsonInt},
+//         {"internal_speed", jsonInt},
+//     };
+//
+//     return checkConfig(config, elems, "endpoint");
+// }
+//
+// static bool checkSwitchConfig(json &config) {
+//     vector<pair<string, jsonType>> elems = {
+//         {"id", jsonInt},
+//         {"internal_speed", jsonInt},
+//     };
+//
+//     return checkConfig(config, elems, "switch");
+// }
 
 static bool checkInterfaceConfig(json &config) {
     vector<pair<string, jsonType>> elems = {
@@ -150,43 +144,43 @@ static bool checkLinkConfig(json &config) {
     return valid;
 }
 
-static bool addEndpoint(json &config) {
-    if (!checkEndpointConfig(config)) {
-        return false;
-    }
+// static bool addEndpoint(json &config) {
+//     if (!checkEndpointConfig(config)) {
+//         return false;
+//     }
+//
+//     int id = config["id"];
+//     int speed = config["internal_speed"];
+//
+//     Endpoint *e = new Endpoint(id, speed);
+//
+//     if (!man.addEndpoint(e)) {
+//         fprintf(stderr, "Endpoint: error in adding id %d already exists\n", id);
+//         delete e;
+//         return false;
+//     }
+//
+//     return true;
+// }
 
-    int id = config["id"];
-    int speed = config["internal_speed"];
-
-    Endpoint *e = new Endpoint(id, speed);
-
-    if (!man.addEndpoint(e)) {
-        fprintf(stderr, "Endpoint: error in adding id %d already exists\n", id);
-        delete e;
-        return false;
-    }
-
-    return true;
-}
-
-static bool addSwitch(json &config) {
-    if (!checkSwitchConfig(config)) {
-        return false;
-    }
-
-    int id = config["id"];
-    int speed = config["internal_speed"];
-
-    Switch *s = new Switch(id, speed);
-
-    if (!man.addSwitch(s)) {
-        fprintf(stderr, "Switch: error in adding id %d already exists\n", id);
-        delete s;
-        return false;
-    }
-
-    return true;
-}
+// static bool addSwitch(json &config) {
+//     if (!checkSwitchConfig(config)) {
+//         return false;
+//     }
+//
+//     int id = config["id"];
+//     int speed = config["internal_speed"];
+//
+//     Switch *s = new Switch(id, speed);
+//
+//     if (!man.addSwitch(s)) {
+//         fprintf(stderr, "Switch: error in adding id %d already exists\n", id);
+//         delete s;
+//         return false;
+//     }
+//
+//     return true;
+// }
 
 static bool addInterface(json &config) {
     if (!checkInterfaceConfig(config)) {
@@ -254,31 +248,35 @@ static bool addLink(json &config) {
 }
 
 static bool parseConfig(json& config) {
-    bool success = true;
-
     // json interator.value give json element
 
     for (json::iterator it = config["endpoints"].begin(); it != config["endpoints"].end(); ++it) {
-        if (!addEndpoint(it.value())) {
-            success = false;
+        Endpoint *endpoint = new Endpoint(it.value());
+        if (!man.addEndpoint(endpoint)) {
+            //TODO: If multiple handlers are missing an id, this message will be printed
+            cerr << "Endpoint: Multiple Packet handlers exist with id " << endpoint->getId() << endl;
+            man.setConfigInvalid();
         }
     }
 
     for (json::iterator it = config["switches"].begin(); it != config["switches"].end(); ++it) {
-        if (!addSwitch(it.value())) {
-            success = false;
+        Switch *netSwitch = new Switch(it.value());
+        if (!man.addSwitch(netSwitch)) {
+            //TODO: If multiple handlers are missing an id, this message will be printed
+            cerr << "Switch: Multiple Packet handlers exist with id " << netSwitch->getId() << endl;
+            man.setConfigInvalid();
         }
     }
 
     for (json::iterator it = config["interfaces"].begin(); it != config["interfaces"].end(); ++it) {
         if (!addInterface(it.value())) {
-            success = false;
+            man.setConfigInvalid();
         }
     }
 
     for (json::iterator it = config["links"].begin(); it != config["links"].end(); ++it) {
         if (!addLink(it.value())) {
-            success = false;
+            man.setConfigInvalid();
         }
     }
 
@@ -295,11 +293,11 @@ static bool parseConfig(json& config) {
     }
 
     // TODO remove
-    if (success && !man.linkHandlers()) {
-        success = false;
+    if (man.isConfigValid() && !man.linkHandlers()) {
+        man.setConfigInvalid();
     }
 
-    return success;
+    return man.isConfigValid();
 }
 
 bool loadConfig(string filename) {

@@ -13,7 +13,7 @@ using namespace std;
 
 using json = nlohmann::json;
 
-Switch::Switch(int id, int speed): PacketHandler(id, speed) {}
+Switch::Switch(json switchConfig): PacketHandler(switchConfig) {}
 
 void Switch::rxPacket(Packet *p) {
     int ifaceID = routePacket(p);
@@ -159,7 +159,8 @@ bool Switch::validate() {
 int testSwitch() {
     static const int s1ID = 1,
                  s1InternalSpeed = 100;
-    Switch *s1 = new Switch(s1ID, s1InternalSpeed);
+    string switchJson = "{\"id\":" + to_string(s1ID) + ",\"internal_speed\":" + to_string(s1InternalSpeed) + "}";
+    Switch *s1 = new Switch(json::parse(switchJson));
 
     assert(s1->getID() == s1ID);
     assert(s1->getInternalSpeed() == s1InternalSpeed);

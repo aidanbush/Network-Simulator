@@ -30,6 +30,7 @@
 *.exe
 *.out
 *.app
+src/tests/test
 
 # Mac
 .DS_Store
