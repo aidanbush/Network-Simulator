@@ -83,10 +83,10 @@ int Endpoint::endpointToEndpoint() {
     EventI *e;
 
     // setup network
-    string endpointJson1 = "{\"id\":" + to_string(e1ID) + ",\"internal_speed\":" + to_string(e1Speed) + "}";
-    string endpointJson2 = "{\"id\":" + to_string(e2ID) + ",\"internal_speed\":" + to_string(e2Speed) + "}";
-    e1 = new Endpoint(json::parse(endpointJson1));
-    e2 = new Endpoint(json::parse(endpointJson2));
+    json endpointJson1 = {{"id", e1ID}, {"internal_speed", e1Speed}};
+    json endpointJson2 = {{"id", e2ID}, {"internal_speed", e2Speed}};
+    e1 = new Endpoint(endpointJson1);
+    e2 = new Endpoint(endpointJson2);
 
     assert(man.addEndpoint(e1));
     assert(man.addEndpoint(e2));
@@ -137,8 +137,8 @@ int Endpoint::endpointToEndpoint() {
 int testEndpoint() {
     const int e1ID = 1,
           e1Speed = 120;
-    string endpointJson = "{\"id\":" + to_string(e1ID) + ",\"internal_speed\":" + to_string(e1Speed) + "}";
-    Endpoint *e1 = new Endpoint(json::parse(endpointJson));
+    json endpointJson = {{"id", e1ID}, {"internal_speed", e1Speed}};
+    Endpoint *e1 = new Endpoint(endpointJson);
 
     assert(e1->getID() == e1ID);
     assert(e1->getInternalSpeed() == e1Speed);
