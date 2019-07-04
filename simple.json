@@ -1,0 +1,67 @@
+{
+    "endpoints": [
+        {
+            "id":1,
+            "internal_speed": 100
+        },
+        {
+            "id":2,
+            "internal_speed": 100
+        }
+    ],
+    "switches": [
+        {
+            "id": 3,
+            "internal_speed": 10000
+        }
+    ],
+    "interfaces": [
+        {
+            "id": 1,
+            "handler_id": 1,
+            "link_buf_size": 1000,
+            "handler_buf_size": 1000
+        },
+        {
+            "id": 2,
+            "handler_id": 2,
+            "link_buf_size": 1000,
+            "handler_buf_size": 1000
+        },
+        {
+            "id": 3,
+            "handler_id": 2,
+            "link_buf_size": 1000,
+            "handler_buf_size": 1000
+        },
+        {
+            "id": 4,
+            "handler_id": 3,
+            "link_buf_size": 1000,
+            "handler_buf_size": 1000
+        }
+    ],
+    "links": [
+        {
+            "id": 1,
+            "speed": 1000,
+            "time": 0.01,
+            "ifaces": [1, 2]
+        },
+        {
+            "id": 2,
+            "speed": 1000,
+            "time": 0.01,
+            "ifaces": [3, 4]
+        }
+    ],
+    "flows": [
+        {
+            "id": 1,
+            "source_id": 1,
+            "dests": [2],
+            "type": "basic"
+        }
+    ]
+}
+
