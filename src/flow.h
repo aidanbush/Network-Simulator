@@ -46,10 +46,8 @@ class BasicFlow: public Flow {
     private:
         second_t time;
 
-        int minHeadSize;
-        int maxHeadSize;
-        int minBodySize;
-        int maxBodySize;
+        int headSize;
+        int bodySize;
 
         int ttl;
 

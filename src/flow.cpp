@@ -129,10 +129,8 @@ bool Flow::validate() {
 
 BasicFlow::BasicFlow(json &config): Flow(config) {
     this->time = 0.001;
-    this->minHeadSize = 20;
-    this->maxHeadSize = 32;
-    this->minBodySize = 80;
-    this->maxBodySize = 512;
+    this->headSize = 20;
+    this->bodySize = 256;
     this->ttl = 15;
 }
 
@@ -147,11 +145,9 @@ void BasicFlow::startFlow() {
 }
 
 void BasicFlow::txPacketEvent() {
-    int headSize = minHeadSize + rand() % (maxHeadSize - minHeadSize);
-    int bodySize = minBodySize + rand() % (maxBodySize - minBodySize);
     int pId = newPacketID();
     Endpoint *endpoint = man.getEndpoint(sourceID);
-    // todo test for error
+    // TODO test for error
 
     Packet *p = new Packet(pId, sourceID, destID, this, ttl, headSize, bodySize);
 
