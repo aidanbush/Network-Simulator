@@ -65,18 +65,18 @@ Link::Link(json linkConfig): NetworkObject(validateLinkConfig(linkConfig)) {
 
 int Link::validateLinkConfig(json linkConfig) {
     string message = "";
-    if (hasMemberOfType(linkConfig, "id", jsonInt)) {
+    if (!hasMemberOfType(linkConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";
     }
-    if (hasMemberOfType(linkConfig, "speed", jsonInt)) {
+    if (!hasMemberOfType(linkConfig, "speed", jsonInt)) {
         message += "No integer with name 'speed'.\n";
     }
-    if (hasMemberOfType(linkConfig, "time", jsonInt)) {
+    if (!hasMemberOfType(linkConfig, "time", jsonInt)) {
         message += "No integer with name 'time'.\n";
     }
-    if (hasMemberOfType(linkConfig, "ifaces", jsonArray)) {
+    if (!hasMemberOfType(linkConfig, "ifaces", jsonArray)) {
         message += "No array with name 'ifaces'.\n";
-    } else if (checkArrayType(linkConfig["ifaces"], jsonInt)) {
+    } else if (!checkArrayType(linkConfig["ifaces"], jsonInt)) {
         message += "Array 'ifaces' has non integer entry.\n";
     }
     if (!message.empty()) {

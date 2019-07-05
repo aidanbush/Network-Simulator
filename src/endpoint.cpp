@@ -14,10 +14,10 @@ Endpoint::Endpoint(json endpointConfig): PacketHandler(validateEndpointConfig(en
 
 json Endpoint::validateEndpointConfig(json endpointConfig) {
     string message = "";
-    if (hasMemberOfType(endpointConfig, "id", jsonInt)) {
+    if (!hasMemberOfType(endpointConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";
     }
-    if (hasMemberOfType(endpointConfig, "internal_speed", jsonInt)) {
+    if (!hasMemberOfType(endpointConfig, "internal_speed", jsonInt)) {
         message += "No integer with name 'internal_speed'.\n";
     }
     if (!message.empty()) {
