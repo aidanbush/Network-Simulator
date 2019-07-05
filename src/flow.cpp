@@ -122,9 +122,37 @@ int Flow::newPacketID() {
     return pID++;
 }
 
-bool Flow::validate() {
-    // TODO implement
+bool Flow::validateSource() {
+    if (endpoint == NULL) {
+        fprintf(stderr, "Flow: endpoint of flow %d is missing\n", id);
+        return false;
+    }
+
     return true;
+}
+
+bool Flow::validateDest() {
+    Endpoint *endpoint = man.getEndpoint(destID);
+    if (endpoint == NULL) {
+        fprintf(stderr, "Flow: destination %d of flow %d is missing\n", destID, id);
+        return false;
+    }
+
+    return true;
+}
+
+bool Flow::validate() {
+    bool valid = true;
+
+    if (!validateSource()) {
+        valid = false;
+    }
+
+    if (!validateDest()) {
+        valid = false;
+    }
+
+    return valid;
 }
 
 BasicFlow::BasicFlow(json &config): Flow(config) {

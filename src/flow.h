@@ -26,6 +26,9 @@ class Flow: public NetworkObject {
         bool validate();
 
     protected:
+        bool validateSource();
+        bool validateDest();
+
         vector<Packet *> packets;
         int sourceID;
         int destID;
