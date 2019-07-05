@@ -23,20 +23,32 @@ class Flow: public NetworkObject {
         void packetDropped(Packet *p);
         void packetError(Packet *p);
 
+        int getPacketsCreated();
+        int getPacketsArrived();
+        int getPacketsDropped();
+        int getPacketsErrored();
+
         bool validate();
 
     protected:
         bool validateSource();
         bool validateDest();
 
+        int newPacketID();
+
+        Packet *createPacket(int ttl, int headSize, int bodySize);
+
         vector<Packet *> packets;
         int sourceID;
         int destID;
 
-        int newPacketID();
-
         virtual second_t nextTxTime() = 0;
+
         // stats
+        int packetsCreated;
+        int packetsArrived;
+        int packetsDropped;
+        int packetsErrored;
 };
 
 class BasicFlow: public Flow {

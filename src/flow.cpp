@@ -103,17 +103,25 @@ Flow::Flow(json &config): NetworkObject(config["id"]) {
         }
         this->destID = it.value();
     }
+
+    this->packetsCreated = 0;
+    this->packetsArrived = 0;
+    this->packetsDropped = 0;
+    this->packetsErrored = 0;
 }
 
 void Flow::packetArrived(Packet *p) {
+    packetsArrived++;
     delete p;
 }
 
 void Flow::packetDropped(Packet *p) {
+    packetsDropped++;
     delete p;
 }
 
 void Flow::packetError(Packet *p) {
+    packetsErrored++;
     delete p;
 }
 
@@ -122,8 +130,24 @@ int Flow::newPacketID() {
     return pID++;
 }
 
+int Flow::getPacketsCreated() {
+    return packetsCreated;
+}
+
+int Flow::getPacketsArrived() {
+    return packetsArrived;
+}
+
+int Flow::getPacketsDropped() {
+    return packetsDropped;
+}
+
+int Flow::getPacketsErrored() {
+    return packetsErrored;
+}
+
 bool Flow::validateSource() {
-    if (endpoint == NULL) {
+    if (man.getEndpoint(sourceID) == NULL) {
         fprintf(stderr, "Flow: endpoint of flow %d is missing\n", id);
         return false;
     }
@@ -153,6 +177,16 @@ bool Flow::validate() {
     }
 
     return valid;
+}
+
+Packet *Flow::createPacket(int ttl, int headSize, int bodySize) {
+    int pId = newPacketID();
+
+    Packet *p = new Packet(pId, sourceID, destID, this, ttl, headSize, bodySize);
+
+    packetsCreated++;
+
+    return new Packet(pId, sourceID, destID, this, ttl, headSize, bodySize);
 }
 
 BasicFlow::BasicFlow(json &config): Flow(config) {
@@ -208,11 +242,11 @@ void TestFlow::txPacketEvent() {
 
     int hSize = hMin + rand() % (hMax - hMin);
     int bSize = bMin + rand() % (bMax - bMin);
-    int pID = newPacketID();
+
     Endpoint *endpoint = man.getEndpoint(sourceID);
     // todo test for error
 
-    Packet *p = new Packet(pID, sourceID, destID, this, ttl, hSize, bSize);
+    Packet *p = createPacket(ttl, hSize, bSize);
 
     man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceID, p);
 
