@@ -15,12 +15,8 @@ using namespace std;
 using json = nlohmann::json;
 
 PacketHandler::PacketHandler(json handlerConfig): NetworkObject(handlerConfig["id"]) {
-    if (hasMemberOfType(handlerConfig, "speed", jsonInt)) {
-        this->internalSpeed = handlerConfig["speed"];
-    } else {
-        cerr << "PacketHandler config missing field 'speed': " << handlerConfig << endl;
-        man.setConfigInvalid();
-    }
+    //Should only be called by Endpoint or switch constructors which guarantee these values exist
+    this->internalSpeed = handlerConfig["internal_speed"];
 }
 
 int PacketHandler::getInternalSpeed() {

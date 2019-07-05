@@ -47,6 +47,9 @@ class Switch: public PacketHandler {
                 set<int> &explored, routingSearchElem curElem);
 
         void setupRoutingTable();
+
+    private:
+        static json validateSwitchConfig(json switchConfig);
 };
 
 #ifdef _TEST

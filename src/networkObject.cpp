@@ -13,15 +13,6 @@ NetworkObject::NetworkObject(int id) {
     this->id = id;
 }
 
-NetworkObject::NetworkObject(json objectConfig) {
-    if (hasMemberOfType(objectConfig, "id", jsonInt)) {
-        this->id = objectConfig["id"];
-    } else {
-        cerr << "NetworkObject config missing field 'id': " << objectConfig << endl;
-        man.setConfigInvalid();
-    }
-}
-
 int NetworkObject::getID() {
     return id;
 }

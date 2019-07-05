@@ -13,7 +13,22 @@ using namespace std;
 
 using json = nlohmann::json;
 
-Switch::Switch(json switchConfig): PacketHandler(switchConfig) {}
+Switch::Switch(json switchConfig): PacketHandler(validateSwitchConfig(switchConfig)) {}
+
+static json Switch::validateSwitchConfig(json switchConfig) {
+    string message = "";
+    if (hasMemberOfType(switchConfig, "id", jsonInt)) {
+        message += "No integer with name 'id'.\n";
+    }
+    if (hasMemberOfType(switchConfig, "internal_speed", jsonInt)) {
+        message += "No integer with name 'internal_speed'.\n";
+    }
+    if (!message.empty()) {
+        message = "Switch:\n" + message + switchConfig.dump(4)
+        throw runtime_error(message);
+    }
+    return switchConfig;
+}
 
 void Switch::rxPacket(Packet *p) {
     int ifaceID = routePacket(p);

@@ -77,10 +77,6 @@ class Manager {
         void logTxEvent(string objName, int objID, string eventName, int destID, Packet *p);
         void logEvent(string objName, int objID, string eventName, string message);
 
-        void setConfigInvalid();
-
-        bool isConfigValid();
-
     private:
         bool addHandler(PacketHandler *handler);
 
@@ -94,8 +90,6 @@ class Manager {
         map<int, PacketHandler*> packetHandlers;
         map<int, Interface*> interfaces;
         map<int, Link*> links;
-
-        bool configValid = true;
 
         FILE *logFile;
 };
