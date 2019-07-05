@@ -2,17 +2,17 @@
     "endpoints": [
         {
             "id":1,
-            "internal_speed": 100
+            "internal_speed": 1000000
         },
         {
             "id":2,
-            "internal_speed": 100
+            "internal_speed": 1000000
         }
     ],
     "switches": [
         {
             "id": 3,
-            "internal_speed": 10000
+            "internal_speed": 1000000
         }
     ],
     "interfaces": [
@@ -44,14 +44,14 @@
     "links": [
         {
             "id": 1,
-            "speed": 1000,
-            "time": 0.01,
+            "speed": 1000000,
+            "time": 0.001,
             "ifaces": [1, 2]
         },
         {
             "id": 2,
-            "speed": 1000,
-            "time": 0.01,
+            "speed": 1000000,
+            "time": 0.001,
             "ifaces": [3, 4]
         }
     ],
