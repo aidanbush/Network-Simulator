@@ -16,6 +16,8 @@ bool loadConfig(string filename);
 
 bool hasMemberOfType(json &parent, string key, jsonType type);
 
+bool checkArrayType(json &config, jsonType type);
+
 #ifdef _TEST
 int testConfig();
 #endif /* _TEST */

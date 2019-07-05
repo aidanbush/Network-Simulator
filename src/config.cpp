@@ -76,18 +76,11 @@ static bool checkConfig(json &config, vector<pair<string, jsonType>> &elems,
     return valid;
 }
 
-static bool checkConfigArray(json &config, string key, jsonType type,
-        string parent) {
-    if (!hasMemberOfType(config, key, jsonArray)) {
-        fprintf(stderr, "Error in %s with key %s\n", parent.c_str(), key.c_str());
-        return false;
-    }
-
+bool checkArrayType(json &config, jsonType type) {
     bool valid = true;
 
-    for (auto it : config[key].items()) {
+    for (auto it : config.items()) {
         if (!checkConfigObjType(it.value(), type)) {
-            fprintf(stderr, "Error in %s type in array %s\n", parent.c_str(), key.c_str());
             valid = false;
         }
     }
@@ -124,24 +117,24 @@ static bool checkConfigArray(json &config, string key, jsonType type,
 //     return checkConfig(config, elems, "interface");
 // }
 
-static bool checkLinkConfig(json &config) {
-    vector<pair<string, jsonType>> elems = {
-        {"id", jsonInt},
-        {"speed", jsonInt},
-        {"time", jsonDouble},
-    };
-    bool valid = true;
-
-    if (!checkConfig(config, elems, "link")) {
-        valid = false;
-    }
-
-    if (!checkConfigArray(config, "ifaces", jsonInt, "link")) {
-        valid = false;
-    }
-
-    return valid;
-}
+// static bool checkLinkConfig(json &config) {
+//     vector<pair<string, jsonType>> elems = {
+//         {"id", jsonInt},
+//         {"speed", jsonInt},
+//         {"time", jsonDouble},
+//     };
+//     bool valid = true;
+//
+//     if (!checkConfig(config, elems, "link")) {
+//         valid = false;
+//     }
+//
+//     if (!checkConfigArray(config, "ifaces", jsonInt, "link")) {
+//         valid = false;
+//     }
+//
+//     return valid;
+// }
 
 // static bool addEndpoint(json &config) {
 //     if (!checkEndpointConfig(config)) {
@@ -216,35 +209,35 @@ static bool checkLinkConfig(json &config) {
 //     return true;
 // }
 
-static bool addLink(json &config) {
-    if (!checkLinkConfig(config)) {
-        return false;
-    }
-
-    int id = config["id"];
-    int speed = config["speed"];
-    second_t txTime = config["time"];
-
-    Link *l = new Link(id, speed, txTime);
-
-    if (!man.addLink(l)) {
-        delete l;
-        return false;
-    }
-
-    for (auto it : config["ifaces"].items()) {
-        int ifaceID = it.value();
-        if (!l->addDest(ifaceID)) {
-            fprintf(stderr, "Link: interface with id %d unable to add\n", ifaceID);
-            // delete and undo all adds?
-            return false;
-        }
-    }
-
-    // l->addToInterfaces();
-
-    return true;
-}
+// static bool addLink(json &config) {
+//     if (!checkLinkConfig(config)) {
+//         return false;
+//     }
+//
+//     int id = config["id"];
+//     int speed = config["speed"];
+//     second_t txTime = config["time"];
+//
+//     Link *l = new Link(id, speed, txTime);
+//
+//     if (!man.addLink(l)) {
+//         delete l;
+//         return false;
+//     }
+//
+//     for (auto it : config["ifaces"].items()) {
+//         int ifaceID = it.value();
+//         if (!l->addDest(ifaceID)) {
+//             fprintf(stderr, "Link: interface with id %d unable to add\n", ifaceID);
+//             // delete and undo all adds?
+//             return false;
+//         }
+//     }
+//
+//     // l->addToInterfaces();
+//
+//     return true;
+// }
 
 static bool parseConfig(json& config) {
     // json interator.value give json element
@@ -291,7 +284,14 @@ static bool parseConfig(json& config) {
     }
 
     for (json::iterator it = config["links"].begin(); it != config["links"].end(); ++it) {
-        if (!addLink(it.value())) {
+        try {
+            Link *netLink = new Link(it.value());
+            if (!man.addLink(netLink)) {
+                cerr << "Link:\nMultiple links exist with id '" << netLink->getId() << "'." << endl;
+                success = false;
+            }
+        } catch (const runtime_error &e) {
+            cerr << e.what() << endl;
             success = false;
         }
     }

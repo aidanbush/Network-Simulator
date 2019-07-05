@@ -7,6 +7,7 @@
 #include "packet.h"
 #include "interface.h"
 #include "manager.h"
+#include "config.h"
 
 #define LINK_STR            "Link"
 #define TX_PKT_EVENT_STR    "link tx packet"
@@ -53,9 +54,36 @@ void LinkQueue::txPacket(Packet *p, second_t txTime) {
     }
 }
 
-Link::Link(int id, int speed, second_t txTime): NetworkObject(id) {
-    this->speed = speed;
-    this->txTime = txTime;
+Link::Link(json linkConfig): NetworkObject(validateLinkConfig(linkConfig)) {
+    this->speed = linkConfig["speed"];
+    this->txTime = linkConfig["time"];
+    for (auto it: linkConfig["ifaces"].items()) {
+        LinkQueue lq = LinkQueue(it.value(), id);
+        dests.emplace(it.value(), lq);
+    }
+}
+
+int Link::validateLinkConfig(json linkConfig) {
+    string message = "";
+    if (hasMemberOfType(linkConfig, "id", jsonInt)) {
+        message += "No integer with name 'id'.\n";
+    }
+    if (hasMemberOfType(linkConfig, "speed", jsonInt)) {
+        message += "No integer with name 'speed'.\n";
+    }
+    if (hasMemberOfType(linkConfig, "time", jsonInt)) {
+        message += "No integer with name 'time'.\n";
+    }
+    if (hasMemberOfType(linkConfig, "ifaces", jsonArray)) {
+        message += "No array with name 'ifaces'.\n";
+    } else if (checkArrayType(linkConfig["ifaces"], jsonInt)) {
+        message += "Array 'ifaces' has non integer entry.\n";
+    }
+    if (!message.empty()) {
+        message = "Link:\n" + message + linkConfig.dump(4);
+        throw runtime_error(message);
+    }
+    return linkConfig["id"];
 }
 
 void Link::addToInterfaces() {
@@ -96,6 +124,7 @@ void Link::txPacket(Packet *p, int sourceID) {
     }
 }
 
+//TODO: This isn't used in setup anymore, do we still need it?
 bool Link::addDest(int ifaceID) {
     LinkQueue lq = LinkQueue(ifaceID, id);
 
@@ -204,7 +233,8 @@ int testLink() {
     Interface *i1 = new Interface(interfaceJson);
     assert(man.addInterface(i1));
 
-    Link *l1 = new Link(l1ID, l1Speed, l1TxTime);
+    json linkJson = {{"id", l1ID}, {"speed", l1Speed}, {"time", l1TxTime}, {"ifaces", {}}};
+    Link *l1 = new Link(linkJson);
     assert(man.addLink(l1));
 
     assert(l1->getID() == l1ID);
