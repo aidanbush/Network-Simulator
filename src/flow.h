@@ -27,7 +27,6 @@ class Flow: public NetworkObject {
 
     protected:
         vector<Packet *> packets;
-        Endpoint *endpoint;
         int sourceID;
         int destID;
 

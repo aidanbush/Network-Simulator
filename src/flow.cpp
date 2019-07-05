@@ -150,10 +150,12 @@ void BasicFlow::txPacketEvent() {
     int headSize = minHeadSize + rand() % (maxHeadSize - minHeadSize);
     int bodySize = minBodySize + rand() % (maxBodySize - minBodySize);
     int pId = newPacketID();
+    Endpoint *endpoint = man.getEndpoint(sourceID);
+    // todo test for error
 
     Packet *p = new Packet(pId, sourceID, destID, this, ttl, headSize, bodySize);
 
-    man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, endpoint->getID(), p);
+    man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceID, p);
 
     endpoint->txPacket(p);
 
@@ -183,10 +185,12 @@ void TestFlow::txPacketEvent() {
     int hSize = hMin + rand() % (hMax - hMin);
     int bSize = bMin + rand() % (bMax - bMin);
     int pID = newPacketID();
+    Endpoint *endpoint = man.getEndpoint(sourceID);
+    // todo test for error
 
     Packet *p = new Packet(pID, sourceID, destID, this, ttl, hSize, bSize);
 
-    man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, endpoint->getID(), p);
+    man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceID, p);
 
     endpoint->txPacket(p);
 
