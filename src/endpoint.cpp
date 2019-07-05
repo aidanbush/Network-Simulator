@@ -110,9 +110,6 @@ int Endpoint::endpointToEndpoint() {
     l1 = new Link(linkJson);
     l1->addToInterfaces();
 
-    i1->setLink(l1ID);
-    i2->setLink(l1ID);
-
     assert(man.addLink(l1));
 
     f1 = new TestFlow(f1ID, e1, e2ID);

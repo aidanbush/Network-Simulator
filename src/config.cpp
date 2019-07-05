@@ -59,22 +59,22 @@ bool hasMemberOfType(json &parent, string key, jsonType type) {
     return checkConfigObjType(parent[key], type);
 }
 
-static bool checkConfig(json &config, vector<pair<string, jsonType>> &elems,
-        string parent) {
-    bool valid = true;
-
-    for (pair<string, jsonType> e : elems) {
-        if (config.find(e.first) == config.end()) {
-            fprintf(stderr, "Error in %s, %s not found\n", parent.c_str(), e.first.c_str());
-            valid = false;
-        } else if (!checkConfigObjType(config[e.first],e.second)) {
-            fprintf(stderr, "Error in %s with %s type\n", parent.c_str(), e.first.c_str());
-            valid = false;
-        }
-    }
-
-    return valid;
-}
+// static bool checkConfig(json &config, vector<pair<string, jsonType>> &elems,
+//         string parent) {
+//     bool valid = true;
+//
+//     for (pair<string, jsonType> e : elems) {
+//         if (config.find(e.first) == config.end()) {
+//             fprintf(stderr, "Error in %s, %s not found\n", parent.c_str(), e.first.c_str());
+//             valid = false;
+//         } else if (!checkConfigObjType(config[e.first],e.second)) {
+//             fprintf(stderr, "Error in %s with %s type\n", parent.c_str(), e.first.c_str());
+//             valid = false;
+//         }
+//     }
+//
+//     return valid;
+// }
 
 bool checkArrayType(json &config, jsonType type) {
     bool valid = true;
@@ -290,16 +290,20 @@ static bool parseConfig(json& config) {
                 cerr << "Link:\nMultiple links exist with id '" << netLink->getId() << "'." << endl;
                 success = false;
             }
+            if (success && !netLink->addToInterfaces()) {
+                cerr << "Error connecting network." << endl;
+                success = false;
+            }
         } catch (const runtime_error &e) {
             cerr << e.what() << endl;
             success = false;
         }
     }
-
-    // TODO remove
-    if (success && !man.linkHandlers()) {
-        success = false;
-    }
+    //
+    // // TODO remove
+    // if (success && !man.linkHandlers()) {
+    //     success = false;
+    // }
 
     return success;
 }
