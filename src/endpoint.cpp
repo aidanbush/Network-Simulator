@@ -115,10 +115,9 @@ int Endpoint::endpointToEndpoint() {
     assert(man.addInterface(i1));
     assert(man.addInterface(i2));
 
-    l1 = new Link(l1ID, l1Speed, l1TxTime);
-
-    l1->addDest(i1ID);
-    l1->addDest(i2ID);
+    json linkJson = {{"id", l1ID}, {"speed", l1Speed}, {"time", l1TxTime}, {"ifaces", {i1ID, i2ID}}};
+    l1 = new Link(linkJson);
+    l1->addToInterfaces();
 
     i1->setLink(l1ID);
     i2->setLink(l1ID);
