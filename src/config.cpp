@@ -254,13 +254,12 @@ static bool parseConfig(json& config) {
     for (json::iterator it = config["endpoints"].begin(); it != config["endpoints"].end(); ++it) {
         try {
             Endpoint *endpoint = new Endpoint(it.value());
+            if (!man.addEndpoint(endpoint)) {
+                cerr << "Endpoint:\nMultiple packet handlers exist with id '" << endpoint->getId() << "'." << endl;
+                success = false;
+            }
         } catch (const runtime_error &e) {
             cerr << e.what() << endl;
-            success = false;
-            continue;
-        }
-        if (!man.addEndpoint(endpoint)) {
-            cerr << "Endpoint:\nMultiple packet handlers exist with id '" << endpoint->getId() << "'." << endl;
             success = false;
         }
     }
@@ -268,13 +267,12 @@ static bool parseConfig(json& config) {
     for (json::iterator it = config["switches"].begin(); it != config["switches"].end(); ++it) {
         try {
             Switch *netSwitch = new Switch(it.value());
+            if (!man.addSwitch(netSwitch)) {
+                cerr << "Switch:\nMultiple packet handlers exist with id '" << netSwitch->getId() << "'." << endl;
+                success = false;
+            }
         } catch (const runtime_error &e) {
             cerr << e.what() << endl;
-            success = false;
-            continue;
-        }
-        if (!man.addSwitch(netSwitch)) {
-            cerr << "Switch:\nMultiple packet handlers exist with id '" << netSwitch->getId() << "'." << endl;
             success = false;
         }
     }
@@ -282,13 +280,12 @@ static bool parseConfig(json& config) {
     for (json::iterator it = config["interfaces"].begin(); it != config["interfaces"].end(); ++it) {
         try {
             Interface *interface = new Interface(it.value());
+            if (!man.addInterface(interface)) {
+                cerr << "Interface:\nMultiple interfaces exist with id '" << interface->getId() << "'." << endl;
+                success = false;
+            }
         } catch (const runtime_error &e) {
             cerr << e.what() << endl;
-            success = false;
-            continue;
-        }
-        if (!addInterface(it.value())) {
-            cerr << "Interface:\nMultiple interfaces exist with id '" << interface->getId() << "'." << endl;
             success = false;
         }
     }

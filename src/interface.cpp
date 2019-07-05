@@ -22,7 +22,7 @@ Interface::Interface(json interfaceConfig): NetworkObject(validateInterfaceConfi
     this->handlerID = interfaceConfig["handler_id"];
 }
 
-static int Interface::validateInterfaceConfig(json interfaceConfig) {
+int Interface::validateInterfaceConfig(json interfaceConfig) {
     string message = "";
     if (hasMemberOfType(interfaceConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";
@@ -37,7 +37,7 @@ static int Interface::validateInterfaceConfig(json interfaceConfig) {
         message += "No integer with name 'handler_id'.\n";
     }
     if (!message.empty()) {
-        message = "Interface:\n" + message + interfaceConfig.dump(4)
+        message = "Interface:\n" + message + interfaceConfig.dump(4);
         throw runtime_error(message);
     }
     return interfaceConfig["id"];
@@ -285,8 +285,10 @@ int Interface::ifaceToIface() {
     man.addEndpoint(e1);
     man.addEndpoint(e2);
 
-    i1 = new Interface(i1ID, e1ID, i1LBuf, i1HBuf);
-    i2 = new Interface(i2ID, e2ID, i2LBuf, i2HBuf);
+    json interfaceJson1 = {{"id", i1ID}, {"handler_id", e1ID}, {"link_buf_size", i1LBuf}, {"handler_buf_size", i1HBuf}};
+    json interfaceJson2 = {{"id", i2ID}, {"handler_id", e2ID}, {"link_buf_size", i2LBuf}, {"handler_buf_size", i2HBuf}};
+    i1 = new Interface(interfaceJson1);
+    i2 = new Interface(interfaceJson2);
 
     man.addInterface(i1);
     man.addInterface(i2);
@@ -391,7 +393,8 @@ int testInterface() {
           i1LBuf = 48000,
           i1HBuf = 32000;
 
-    Interface *i1 = new Interface(i1ID, s1ID, i1LBuf, i1HBuf);
+    json interfaceJson = {{"id", i1ID}, {"handler_id", s1ID}, {"link_buf_size", i1LBuf}, {"handler_buf_size", i1HBuf}};
+    Interface *i1 = new Interface(interfaceJson);
     i1->setLink(l1ID);
 
     delete i1;

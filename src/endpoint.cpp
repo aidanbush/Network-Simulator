@@ -5,13 +5,14 @@
 #include "interface.h"
 #include "packet.h"
 #include "packetHandler.h"
+#include "config.h"
 
 using namespace std;
 using json = nlohmann::json;
 
 Endpoint::Endpoint(json endpointConfig): PacketHandler(validateEndpointConfig(endpointConfig)) {}
 
-static json Endpoint::validateEndpointConfig(json endpointConfig) {
+json Endpoint::validateEndpointConfig(json endpointConfig) {
     string message = "";
     if (hasMemberOfType(endpointConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";
@@ -20,7 +21,7 @@ static json Endpoint::validateEndpointConfig(json endpointConfig) {
         message += "No integer with name 'internal_speed'.\n";
     }
     if (!message.empty()) {
-        message = "Endpoint:\n" + message + endpointConfig.dump(4)
+        message = "Endpoint:\n" + message + endpointConfig.dump(4);
         throw runtime_error(message);
     }
     return endpointConfig;
@@ -97,8 +98,10 @@ int Endpoint::endpointToEndpoint() {
     assert(man.addEndpoint(e1));
     assert(man.addEndpoint(e2));
 
-    i1 = new Interface(i1ID, e1ID, i1LBuf, i1HBuf);
-    i2 = new Interface(i2ID, e2ID, i2LBuf, i2HBuf);
+    json interfaceJson1 = {{"id", i1ID}, {"handler_id", e1ID}, {"link_buf_size", i1LBuf}, {"handler_buf_size", i1HBuf}};
+    json interfaceJson2 = {{"id", i2ID}, {"handler_id", e2ID}, {"link_buf_size", i2LBuf}, {"handler_buf_size", i2HBuf}};
+    i1 = new Interface(interfaceJson1);
+    i2 = new Interface(interfaceJson2);
 
     assert(man.addInterface(i1));
     assert(man.addInterface(i2));
