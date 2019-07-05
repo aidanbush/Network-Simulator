@@ -17,12 +17,12 @@ class Endpoint: public PacketHandler {
         void rxPacket(Packet *p);
         int txPacket(Packet *p);
         bool validate();
-    private:
-        static json validateEndpointConfig(json endpointConfig);
-
 #ifdef _TEST
         static int endpointToEndpoint();
 #endif /* _TEST */
+
+    private:
+        static json validateEndpointConfig(json endpointConfig);
 };
 
 #ifdef _TEST

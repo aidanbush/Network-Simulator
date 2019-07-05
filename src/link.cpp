@@ -199,7 +199,9 @@ int testLink() {
           l1Speed = 80000;
     const second_t l1TxTime = 0.0005;
 
-    Interface *i1 = new Interface(i1ID, i1HID, i1LBSize, i1HBsize);
+    json interfaceJson = {{"id", i1ID}, {"handler_id", i1HID}, {"link_buf_size", i1LBSize},
+                            {"handler_buf_size", i1HBsize}};
+    Interface *i1 = new Interface(interfaceJson);
     assert(man.addInterface(i1));
 
     Link *l1 = new Link(l1ID, l1Speed, l1TxTime);
