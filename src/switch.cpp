@@ -18,10 +18,10 @@ Switch::Switch(json switchConfig): PacketHandler(validateSwitchConfig(switchConf
 
 json Switch::validateSwitchConfig(json switchConfig) {
     string message = "";
-    if (hasMemberOfType(switchConfig, "id", jsonInt)) {
+    if (!hasMemberOfType(switchConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";
     }
-    if (hasMemberOfType(switchConfig, "internal_speed", jsonInt)) {
+    if (!hasMemberOfType(switchConfig, "internal_speed", jsonInt)) {
         message += "No integer with name 'internal_speed'.\n";
     }
     if (!message.empty()) {

@@ -24,16 +24,16 @@ Interface::Interface(json interfaceConfig): NetworkObject(validateInterfaceConfi
 
 int Interface::validateInterfaceConfig(json interfaceConfig) {
     string message = "";
-    if (hasMemberOfType(interfaceConfig, "id", jsonInt)) {
+    if (!hasMemberOfType(interfaceConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";
     }
-    if (hasMemberOfType(interfaceConfig, "link_buf_size", jsonInt)) {
+    if (!hasMemberOfType(interfaceConfig, "link_buf_size", jsonInt)) {
         message += "No integer with name 'link_buf_size'.\n";
     }
-    if (hasMemberOfType(interfaceConfig, "handler_buf_size", jsonInt)) {
+    if (!hasMemberOfType(interfaceConfig, "handler_buf_size", jsonInt)) {
         message += "No integer with name 'handler_buf_size'.\n";
     }
-    if (hasMemberOfType(interfaceConfig, "handler_id", jsonInt)) {
+    if (!hasMemberOfType(interfaceConfig, "handler_id", jsonInt)) {
         message += "No integer with name 'handler_id'.\n";
     }
     if (!message.empty()) {
