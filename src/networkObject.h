@@ -9,7 +9,6 @@ using json = nlohmann::json;
 class NetworkObject {
     public:
         NetworkObject(int id);
-        NetworkObject(json objectConfig);
         virtual ~NetworkObject() = default;
 
         int getID();

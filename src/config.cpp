@@ -250,33 +250,45 @@ static bool addLink(json &config) {
 static bool parseConfig(json& config) {
     // json interator.value give json element
 
+    success = true;
+
     for (json::iterator it = config["endpoints"].begin(); it != config["endpoints"].end(); ++it) {
-        Endpoint *endpoint = new Endpoint(it.value());
+        try {
+            Endpoint *endpoint = new Endpoint(it.value());
+        } catch (const runtime_error &e) {
+            cerr << e.what() << endl;
+            success = false;
+            continue;
+        }
         if (!man.addEndpoint(endpoint)) {
-            //TODO: If multiple handlers are missing an id, this message will be printed
-            cerr << "Endpoint: Multiple Packet handlers exist with id " << endpoint->getId() << endl;
-            man.setConfigInvalid();
+            cerr << "Endpoint: Multiple Packet handlers exist with id '" << endpoint->getId() << "'." << endl;
+            success = false;
         }
     }
 
     for (json::iterator it = config["switches"].begin(); it != config["switches"].end(); ++it) {
-        Switch *netSwitch = new Switch(it.value());
+        try {
+            Switch *netSwitch = new Switch(it.value());
+        } catch (const runtime_error &e) {
+            cerr << e.what() << endl;
+            success = false;
+            continue;
+        }
         if (!man.addSwitch(netSwitch)) {
-            //TODO: If multiple handlers are missing an id, this message will be printed
-            cerr << "Switch: Multiple Packet handlers exist with id " << netSwitch->getId() << endl;
-            man.setConfigInvalid();
+            cerr << "Switch: Multiple Packet handlers exist with id '" << netSwitch->getId() << "'." << endl;
+            success = false;
         }
     }
 
     for (json::iterator it = config["interfaces"].begin(); it != config["interfaces"].end(); ++it) {
         if (!addInterface(it.value())) {
-            man.setConfigInvalid();
+            success = false;
         }
     }
 
     for (json::iterator it = config["links"].begin(); it != config["links"].end(); ++it) {
         if (!addLink(it.value())) {
-            man.setConfigInvalid();
+            success = false;
         }
     }
 
@@ -293,11 +305,11 @@ static bool parseConfig(json& config) {
     }
 
     // TODO remove
-    if (man.isConfigValid() && !man.linkHandlers()) {
-        man.setConfigInvalid();
+    if (success && !man.linkHandlers()) {
+        success = false;
     }
 
-    return man.isConfigValid();
+    return success;
 }
 
 bool loadConfig(string filename) {

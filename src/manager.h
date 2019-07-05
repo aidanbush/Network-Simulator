@@ -81,8 +81,6 @@ class Manager {
         void logTxEvent(string objName, int objID, string eventName, int destID, Packet *p);
         void logEvent(string objName, int objID, string eventName, string message);
 
-        void startSimulator();
-
     private:
         bool addHandler(PacketHandler *handler);
 
@@ -98,8 +96,6 @@ class Manager {
         map<int, Interface*> interfaces;
         map<int, Link*> links;
         map<int, Flow*> flows;
-
-        bool configValid = true;
 
         FILE *logFile;
 };

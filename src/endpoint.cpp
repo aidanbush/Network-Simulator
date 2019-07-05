@@ -9,7 +9,22 @@
 using namespace std;
 using json = nlohmann::json;
 
-Endpoint::Endpoint(json endpointConfig): PacketHandler(endpointConfig) {}
+Endpoint::Endpoint(json endpointConfig): PacketHandler(validateEndpointConfig(endpointConfig)) {}
+
+static json Endpoint::validateEndpointConfig(json endpointConfig) {
+    string message = "";
+    if (hasMemberOfType(endpointConfig, "id", jsonInt)) {
+        message += "No integer with name 'id'.\n";
+    }
+    if (hasMemberOfType(endpointConfig, "internal_speed", jsonInt)) {
+        message += "No integer with name 'internal_speed'.\n";
+    }
+    if (!message.empty()) {
+        message = "Endpoint:\n" + message + endpointConfig.dump(4)
+        throw runtime_error(message);
+    }
+    return endpointConfig;
+}
 
 void Endpoint::rxPacket(Packet *p) {
     p->arrive();
