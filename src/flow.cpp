@@ -108,6 +108,7 @@ Flow::Flow(json &config): NetworkObject(config["id"]) {
     this->packetsArrived = 0;
     this->packetsDropped = 0;
     this->packetsErrored = 0;
+    this->curPId = 0;
 }
 
 void Flow::packetArrived(Packet *p) {
@@ -125,9 +126,8 @@ void Flow::packetError(Packet *p) {
     delete p;
 }
 
-int Flow::newPacketID() {
-    static int pID = 0;
-    return pID++;
+int Flow::newPacketId() {
+    return curPId++;
 }
 
 int Flow::getPacketsCreated() {
@@ -180,7 +180,7 @@ bool Flow::validate() {
 }
 
 Packet *Flow::createPacket(int ttl, int headSize, int bodySize) {
-    int pId = newPacketID();
+    int pId = newPacketId();
 
     Packet *p = new Packet(pId, sourceID, destID, this, ttl, headSize, bodySize);
 
@@ -207,7 +207,7 @@ void BasicFlow::startFlow() {
 }
 
 void BasicFlow::txPacketEvent() {
-    int pId = newPacketID();
+    int pId = newPacketId();
     Endpoint *endpoint = man.getEndpoint(sourceID);
     // TODO test for error
 

@@ -34,9 +34,14 @@ class Flow: public NetworkObject {
         bool validateSource();
         bool validateDest();
 
-        int newPacketID();
+        void removePacket(Packet *p);
+        bool addPacket(Packet *p);
 
         Packet *createPacket(int ttl, int headSize, int bodySize);
+
+        int newPacketId();
+
+        int curPId;
 
         vector<Packet *> packets;
         int sourceID;
