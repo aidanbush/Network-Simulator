@@ -114,16 +114,16 @@ static bool checkConfigArray(json &config, string key, jsonType type,
 //     return checkConfig(config, elems, "switch");
 // }
 
-static bool checkInterfaceConfig(json &config) {
-    vector<pair<string, jsonType>> elems = {
-        {"id", jsonInt},
-        {"handler_id", jsonInt},
-        {"link_buf_size", jsonInt},
-        {"handler_buf_size", jsonInt},
-    };
-
-    return checkConfig(config, elems, "interface");
-}
+// static bool checkInterfaceConfig(json &config) {
+//     vector<pair<string, jsonType>> elems = {
+//         {"id", jsonInt},
+//         {"handler_id", jsonInt},
+//         {"link_buf_size", jsonInt},
+//         {"handler_buf_size", jsonInt},
+//     };
+//
+//     return checkConfig(config, elems, "interface");
+// }
 
 static bool checkLinkConfig(json &config) {
     vector<pair<string, jsonType>> elems = {
@@ -182,40 +182,40 @@ static bool checkLinkConfig(json &config) {
 //     return true;
 // }
 
-static bool addInterface(json &config) {
-    if (!checkInterfaceConfig(config)) {
-        return false;
-    }
-    PacketHandler *handler;
-
-    int id = config["id"];
-    int handlerID = config["handler_id"];
-    int linkBufSize = config["link_buf_size"];
-    int handlerBufSize = config["handler_buf_size"];
-
-    handler = man.getHandler(handlerID);
-    if (handler == NULL) {
-        fprintf(stderr, "Interface: handler with id %d does not exists\n", handlerID);
-        return false;
-    }
-
-    Interface *i = new Interface(id, handlerID, linkBufSize, handlerBufSize);
-
-    if (!man.addInterface(i)) {
-        delete i;
-        return false;
-    }
-
-    // inform handler
-    if (!handler->addInterfaceConfig(id)) {
-        fprintf(stderr, "Interface: error in linking handler %d with interface %d\n",
-                handlerID, id);
-        delete i;
-        return false;
-    }
-
-    return true;
-}
+// static bool addInterface(json &config) {
+//     if (!checkInterfaceConfig(config)) {
+//         return false;
+//     }
+//     PacketHandler *handler;
+//
+//     int id = config["id"];
+//     int handlerID = config["handler_id"];
+//     int linkBufSize = config["link_buf_size"];
+//     int handlerBufSize = config["handler_buf_size"];
+//
+//     handler = man.getHandler(handlerID);
+//     if (handler == NULL) {
+//         fprintf(stderr, "Interface: handler with id %d does not exists\n", handlerID);
+//         return false;
+//     }
+//
+//     Interface *i = new Interface(id, handlerID, linkBufSize, handlerBufSize);
+//
+//     if (!man.addInterface(i)) {
+//         delete i;
+//         return false;
+//     }
+//
+//     // inform handler
+//     if (!handler->addInterfaceConfig(id)) {
+//         fprintf(stderr, "Interface: error in linking handler %d with interface %d\n",
+//                 handlerID, id);
+//         delete i;
+//         return false;
+//     }
+//
+//     return true;
+// }
 
 static bool addLink(json &config) {
     if (!checkLinkConfig(config)) {
@@ -250,7 +250,7 @@ static bool addLink(json &config) {
 static bool parseConfig(json& config) {
     // json interator.value give json element
 
-    success = true;
+    bool success = true;
 
     for (json::iterator it = config["endpoints"].begin(); it != config["endpoints"].end(); ++it) {
         try {
@@ -261,7 +261,7 @@ static bool parseConfig(json& config) {
             continue;
         }
         if (!man.addEndpoint(endpoint)) {
-            cerr << "Endpoint: Multiple Packet handlers exist with id '" << endpoint->getId() << "'." << endl;
+            cerr << "Endpoint:\nMultiple packet handlers exist with id '" << endpoint->getId() << "'." << endl;
             success = false;
         }
     }
@@ -275,13 +275,21 @@ static bool parseConfig(json& config) {
             continue;
         }
         if (!man.addSwitch(netSwitch)) {
-            cerr << "Switch: Multiple Packet handlers exist with id '" << netSwitch->getId() << "'." << endl;
+            cerr << "Switch:\nMultiple packet handlers exist with id '" << netSwitch->getId() << "'." << endl;
             success = false;
         }
     }
 
     for (json::iterator it = config["interfaces"].begin(); it != config["interfaces"].end(); ++it) {
+        try {
+            Interface *interface = new Interface(it.value());
+        } catch (const runtime_error &e) {
+            cerr << e.what() << endl;
+            success = false;
+            continue;
+        }
         if (!addInterface(it.value())) {
+            cerr << "Interface:\nMultiple interfaces exist with id '" << interface->getId() << "'." << endl;
             success = false;
         }
     }

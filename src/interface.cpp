@@ -6,6 +6,7 @@
 #include "manager.h"
 #include "link.h"
 #include "packet.h"
+#include "config.h"
 
 #define IFACE_STR               "Interface"
 #define TX_LINK_EVENT_STR       "interface link tx"
@@ -17,11 +18,31 @@ using namespace std;
 
 using json = nlohmann::json;
 
-Interface::Interface(int id, int handlerID, int linkBufSize, int handlerBufSize):
-        NetworkObject(id) {
-    this->linkBufSize = linkBufSize;
-    this->handlerBufSize = handlerBufSize;
-    this->handlerID = handlerID;
+Interface::Interface(json interfaceConfig): NetworkObject(validateInterfaceConfig(interfaceConfig)) {
+    this->linkBufSize = interfaceConfig["link_buf_size"];
+    this->handlerBufSize = interfaceConfig["handler_buf_size"];
+    this->handlerID = interfaceConfig["handler_id"];
+}
+
+static int Interface::validateInterfaceConfig(json interfaceConfig) {
+    string message = "";
+    if (hasMemberOfType(interfaceConfig, "id", jsonInt)) {
+        message += "No integer with name 'id'.\n";
+    }
+    if (hasMemberOfType(interfaceConfig, "link_buf_size", jsonInt)) {
+        message += "No integer with name 'link_buf_size'.\n";
+    }
+    if (hasMemberOfType(interfaceConfig, "handler_buf_size", jsonInt)) {
+        message += "No integer with name 'handler_buf_size'.\n";
+    }
+    if (hasMemberOfType(interfaceConfig, "handler_id", jsonInt)) {
+        message += "No integer with name 'handler_id'.\n";
+    }
+    if (!message.empty()) {
+        message = "Interface:\n" + message + interfaceConfig.dump(4)
+        throw runtime_error(message);
+    }
+    return interfaceConfig["id"];
 }
 
 void Interface::setLink(int linkID) {
