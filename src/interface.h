@@ -18,8 +18,7 @@ using json = nlohmann::json;
 class Interface: public NetworkObject {
     public:
         Interface(json interfaceConfig);
-        void setLink(int linkID);
-        void setLink(int linkId, vector<int> neighbours);
+        bool setLink(int linkId, vector<int> neighbours);
         int getLinkID();
 
         void txLinkEvent();

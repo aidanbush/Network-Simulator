@@ -60,22 +60,22 @@ bool hasMemberOfType(json &parent, string key, jsonType type) {
     return checkConfigObjType(parent[key], type);
 }
 
-static bool checkConfig(json &config, vector<pair<string, jsonType>> &elems,
-        string parent) {
-    bool valid = true;
-
-    for (pair<string, jsonType> e : elems) {
-        if (config.find(e.first) == config.end()) {
-            fprintf(stderr, "Error in %s, %s not found\n", parent.c_str(), e.first.c_str());
-            valid = false;
-        } else if (!checkConfigObjType(config[e.first],e.second)) {
-            fprintf(stderr, "Error in %s with %s type\n", parent.c_str(), e.first.c_str());
-            valid = false;
-        }
-    }
-
-    return valid;
-}
+// static bool checkConfig(json &config, vector<pair<string, jsonType>> &elems,
+//         string parent) {
+//     bool valid = true;
+//
+//     for (pair<string, jsonType> e : elems) {
+//         if (config.find(e.first) == config.end()) {
+//             fprintf(stderr, "Error in %s, %s not found\n", parent.c_str(), e.first.c_str());
+//             valid = false;
+//         } else if (!checkConfigObjType(config[e.first],e.second)) {
+//             fprintf(stderr, "Error in %s with %s type\n", parent.c_str(), e.first.c_str());
+//             valid = false;
+//         }
+//     }
+//
+//     return valid;
+// }
 
 bool checkArrayType(json &config, jsonType type) {
     bool valid = true;
@@ -289,6 +289,10 @@ static bool parseConfig(json& config) {
             Link *netLink = new Link(it.value());
             if (!man.addLink(netLink)) {
                 cerr << "Link:\nMultiple links exist with id '" << netLink->getId() << "'." << endl;
+                success = false;
+            }
+            if (success && !netLink->addToInterfaces()) {
+                cerr << "Error connecting network." << endl;
                 success = false;
             }
         } catch (const runtime_error &e) {

@@ -86,7 +86,7 @@ int Link::validateLinkConfig(json linkConfig) {
     return linkConfig["id"];
 }
 
-void Link::addToInterfaces() {
+bool Link::addToInterfaces() {
     //TODO: maybe this vector should be stored in the object, it seems weird to create the map from a vector
     // and then throw it away, only to recreate it again here, however this is the only place it is needed
     // so it may be unecessary to store it in memory
@@ -96,8 +96,14 @@ void Link::addToInterfaces() {
     }
     for (int i: neighbours) {
         Interface* interface = man.getInterface(i);
-        interface->setLink(id, neighbours);
+        if (interface == NULL) {
+            return false;
+        }
+        if (!interface->setLink(id, neighbours)) {
+            return false;
+        }
     }
+    return true;
 }
 
 int Link::getSpeed() {
@@ -122,20 +128,6 @@ void Link::txPacket(Packet *p, int sourceID) {
             first = false;
         }
     }
-}
-
-//TODO: This isn't used in setup anymore, do we still need it?
-bool Link::addDest(int ifaceID) {
-    LinkQueue lq = LinkQueue(ifaceID, id);
-
-    Interface *iface = man.getInterface(ifaceID);
-    if (iface == NULL ||
-            !dests.emplace(ifaceID, lq).second) {
-        return false;
-    }
-
-    iface->setLink(id);
-    return true;
 }
 
 bool Link::hasInterface(int ifaceID) {
@@ -239,9 +231,6 @@ int testLink() {
 
     assert(l1->getID() == l1ID);
     assert(l1->getSpeed() == l1Speed);
-
-    assert(l1->addDest(i1ID));
-    assert(!l1->addDest(i1ID));
 
     assert(l1->removeDest(i1ID));
     assert(!l1->removeDest(i1ID));

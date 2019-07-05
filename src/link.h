@@ -44,11 +44,10 @@ class Link: public NetworkObject {
     public:
         Link(json LinkConfig);
 
-        void addToInterfaces();
+        bool addToInterfaces();
 
         void txPacket(Packet *p, int sourceId);
 
-        bool addDest(int interfaceId);
         bool hasInterface(int ifaceID);
         int removeDest(int interfaceId);
 

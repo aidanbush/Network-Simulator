@@ -45,15 +45,11 @@ int Interface::validateInterfaceConfig(json interfaceConfig) {
     return interfaceConfig["id"];
 }
 
-void Interface::setLink(int linkID) {
-    this->linkID = linkID;
-}
-
 int Interface::getLinkID() {
     return linkID;
 }
 
-void Interface::setLink(int linkId, vector<int> neighbours) {
+bool Interface::setLink(int linkId, vector<int> neighbours) {
     this->linkID = linkId;
 
     // For every neighbouring interface add the neighbour's handler as a neighbour to this interface's handler
@@ -61,9 +57,15 @@ void Interface::setLink(int linkId, vector<int> neighbours) {
     for (int i: neighbours) {
         if (i != id) {
             Interface* neighbour = man.getInterface(i);
-            packetHandler->addInterface(neighbour->getHandlerID(), id);
+            if (neighbour == NULL) {
+                return false;
+            }
+            if (!packetHandler->addInterface(neighbour->getHandlerID(), id)) {
+                return false;
+            }
         }
     }
+    return true;
 }
 
 int Interface::getLinkSpeed() {
@@ -301,9 +303,6 @@ int Interface::ifaceToIface() {
     l1 = new Link(linkJson);
     l1->addToInterfaces();
 
-    i1->setLink(l1ID);
-    i2->setLink(l1ID);
-
     man.addLink(l1);
 
     p1 = new Packet(p1ID, p1SID, p1DID, f1ID, p1TTL, p1HSize, p1BSize);
@@ -395,7 +394,6 @@ int testInterface() {
 
     json interfaceJson = {{"id", i1ID}, {"handler_id", s1ID}, {"link_buf_size", i1LBuf}, {"handler_buf_size", i1HBuf}};
     Interface *i1 = new Interface(interfaceJson);
-    i1->setLink(l1ID);
 
     delete i1;
 
