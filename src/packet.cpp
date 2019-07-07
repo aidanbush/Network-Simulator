@@ -1,30 +1,33 @@
 #include "packet.h"
 #include "flow.h"
 
-Packet::Packet(int id, int sourceID, int destID, Flow *flow, int ttl,
+Packet::Packet(int id, int sourceID, int destID, int flowId, int ttl,
         int headerSize, int bodySize): NetworkObject(id) {
     this->sourceID = sourceID;
     this->destID = destID;
-    this->flow = flow;
+    this->flowId = flowId;
     this->ttl = ttl;
     this->headerSize = headerSize;
     this->bodySize = bodySize;
 }
 
 Packet *Packet::clone() {
-    return new Packet(id, sourceID, destID, flow, ttl, headerSize, bodySize);
+    return new Packet(id, sourceID, destID, flowId, ttl, headerSize, bodySize);
 }
 
 void Packet::arrive() {
-    flow->packetArrived(this);
+    Flow *f = man.getFlow(flowId);
+    f->packetArrived(this);
 }
 
 void Packet::drop() {
-    flow->packetDropped(this);
+    Flow *f = man.getFlow(flowId);
+    f->packetDropped(this);
 }
 
 void Packet::error() {
-    flow->packetError(this);
+    Flow *f = man.getFlow(flowId);
+    f->packetError(this);
 }
 
 bool Packet::validate() {
@@ -42,7 +45,7 @@ bool Packet::fullEqual(Packet *p) {
         ttl == p->ttl &&
         sourceID == p->sourceID &&
         destID == p->destID &&
-        flow == p->flow;
+        flowId == p->flowId;
 }
 
 int testPacket() {
@@ -52,10 +55,10 @@ int testPacket() {
           p1BSize = 200,
           p1FullSize = p1HSize + p1BSize,
           p1SID = 1,
-          p1DID = 2;
-    Flow *p1F = NULL;
+          p1DID = 2,
+          p1FID = 1;
 
-    Packet *p1 = new Packet(p1ID, p1SID, p1DID, p1F, p1TTL, p1HSize, p1BSize);
+    Packet *p1 = new Packet(p1ID, p1SID, p1DID, p1FID, p1TTL, p1HSize, p1BSize);
 
     // test values
     assert(p1->fullSize() == p1FullSize);

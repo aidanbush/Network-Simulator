@@ -245,21 +245,11 @@ int Interface::ifaceToIface() {
           e1Speed = 1;
     const int e2ID = 2,
           e2Speed = 1;
-    const int f1ID = 1,
-          f1SID = 1,
-          f1DID = 2;
-
-    json f1C = {
-        {"type", "test"},
-        {"id", f1ID},
-        {"source_id", f1SID},
-        {"dests", {f1DID}},
-    };
+    const int f1ID = 1;
 
     Link *l1;
     Interface *i1, *i2;
     Packet *p1, *p2;
-    Flow *f1;
     Endpoint *e1, *e2;
     EventI *e;
 
@@ -286,10 +276,8 @@ int Interface::ifaceToIface() {
 
     man.addLink(l1);
 
-    f1 = createFlow(f1C);
-
-    p1 = new Packet(p1ID, p1SID, p1DID, f1, p1TTL, p1HSize, p1BSize);
-    p2 = new Packet(p2ID, p2SID, p2DID, f1, p2TTL, p2HSize, p2BSize);
+    p1 = new Packet(p1ID, p1SID, p1DID, f1ID, p1TTL, p1HSize, p1BSize);
+    p2 = new Packet(p2ID, p2SID, p2DID, f1ID, p2TTL, p2HSize, p2BSize);
 
     // add p1
     i1->rxHandler(p1);
@@ -362,7 +350,6 @@ int Interface::ifaceToIface() {
 
     delete p1;
     delete p2;
-    delete f1;
 
     man.deleteNetwork();
 

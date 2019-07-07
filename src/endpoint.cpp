@@ -107,7 +107,9 @@ int Endpoint::endpointToEndpoint() {
 
     f1 = createFlow(f1C);
 
-    p1 = new Packet(p1ID, p1SID, p1DID, f1, p1TTL, p1HSize, p1BSize);
+    assert(man.addFlow(f1));
+
+    p1 = new Packet(p1ID, p1SID, p1DID, f1ID, p1TTL, p1HSize, p1BSize);
 
     e1->addInterface(e2ID, i1ID);
     e2->addInterface(e1ID, i2ID);
@@ -124,8 +126,6 @@ int Endpoint::endpointToEndpoint() {
     }
 
     // no more events
-
-    delete f1;
 
     man.deleteNetwork();
 

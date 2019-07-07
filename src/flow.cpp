@@ -193,7 +193,7 @@ bool Flow::validate() {
 Packet *Flow::createPacket(int ttl, int headSize, int bodySize) {
     int pId = newPacketId();
 
-    Packet *p = new Packet(pId, sourceID, destID, this, ttl, headSize, bodySize);
+    Packet *p = new Packet(pId, sourceID, destID, id, ttl, headSize, bodySize);
 
     if (!addPacket(p)) {
         delete p;
@@ -226,7 +226,7 @@ void BasicFlow::txPacketEvent() {
     Endpoint *endpoint = man.getEndpoint(sourceID);
     // TODO test for error
 
-    Packet *p = new Packet(pId, sourceID, destID, this, ttl, headSize, bodySize);
+    Packet *p = new Packet(pId, sourceID, destID, id, ttl, headSize, bodySize);
 
     man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceID, p);
 

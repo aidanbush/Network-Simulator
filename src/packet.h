@@ -10,14 +10,14 @@ class Flow;
 
 class Packet: public NetworkObject {
     public:
-        Packet(int id, int sourceID, int destID, Flow *flow, int ttl,
+        Packet(int id, int sourceID, int destID, int flowId, int ttl,
                 int headerSize, int bodySize);
         ~Packet() = default;
 
         Packet *clone();
 
         int getTTL() {return ttl; }
-        int getFlow() {return flow->getID(); }
+        int getFlow() {return flowId; }
         int getSource() {return sourceID; }
         int getDest() {return destID; }
 
@@ -41,8 +41,7 @@ class Packet: public NetworkObject {
         int ttl;
         int sourceID;
         int destID;
-
-        Flow *flow;
+        int flowId;
 };
 
 #ifdef _TEST
