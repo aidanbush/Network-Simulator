@@ -22,7 +22,6 @@ class Interface: public NetworkObject {
         void setLink(int linkId, vector<int> neighbours);
         int getLinkID();
 
-
         void txLinkEvent();
         void txHandlerEvent();
 

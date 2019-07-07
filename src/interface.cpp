@@ -10,6 +10,8 @@
 #define IFACE_STR               "Interface"
 #define TX_LINK_EVENT_STR       "interface link tx"
 #define TX_HANDLER_EVENT_STR    "interface handler tx"
+#define RX_LINK_EVENT_STR       "interface link rx"
+#define RX_HANDLER_EVENT_STR    "interface handler rx"
 
 using namespace std;
 
@@ -62,11 +64,11 @@ void Interface::txLinkEvent() {
     linkBufSize += p->fullSize();
 
     Link *link = man.getLink(linkID);
-
     link->txPacket(p, id);
 
     if (!linkBuffer.empty()) {
-        second_t nextTx = man.time + double(linkBuffer.front()->fullSizeBits()) / link->getSpeed();
+        second_t nextTx = man.time + double(linkBuffer.front()->fullSizeBits())
+            / link->getSpeed();
         EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
         man.pushEvent(e);
     }
@@ -81,19 +83,21 @@ void Interface::txHandlerEvent() {
     handlerBufSize += p->fullSize();
 
     PacketHandler *handler = man.getHandler(handlerID);
-
     handler->rxPacket(p);
 
     if (!handlerBuffer.empty()) {
-        second_t nextTx = man.time + double(p->fullSizeBits()) / handler->getInternalSpeed();
+        second_t nextTx = man.time + double(handlerBuffer.front()->fullSizeBits())
+            / handler->getInternalSpeed();
         EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
         man.pushEvent(e);
     }
 }
 
 void Interface::rxLink(Packet *p) {
-    if (handlerBufSize - p->fullSize() >= 0) {
-        // TODO: drop packet
+    if (handlerBufSize - p->fullSize() < 0) {
+        p->drop();
+        man.logEvent(IFACE_STR, id, RX_LINK_EVENT_STR, "Packet dropped");
+        return;
     }
 
     handlerBufSize -= p->fullSize();
@@ -109,8 +113,10 @@ void Interface::rxLink(Packet *p) {
 }
 
 void Interface::rxHandler(Packet *p) {
-    if (linkBufSize - p->fullSize() >= 0) {
-        // TODO: drop packet
+    if (linkBufSize - p->fullSize() < 0) {
+        p->drop();
+        man.logEvent(IFACE_STR, id, RX_HANDLER_EVENT_STR, "Packet dropped");
+        return;
     }
 
     linkBufSize -= p->fullSize();
