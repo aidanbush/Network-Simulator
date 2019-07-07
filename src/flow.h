@@ -16,6 +16,7 @@ class Endpoint;
 class Flow: public NetworkObject {
     public:
         Flow(json &config);
+        ~Flow();
 
         virtual void startFlow() = 0;
         virtual void txPacketEvent() = 0;

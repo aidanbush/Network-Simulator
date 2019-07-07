@@ -111,6 +111,12 @@ Flow::Flow(json &config): NetworkObject(config["id"]) {
     this->curPId = 0;
 }
 
+Flow::~Flow() {
+    for (auto it : packets) {
+        delete it.second;
+    }
+}
+
 void Flow::removePacket(Packet *p) {
     packets.erase(p->getId());
 }
@@ -226,7 +232,7 @@ void BasicFlow::txPacketEvent() {
     Endpoint *endpoint = man.getEndpoint(sourceID);
     // TODO test for error
 
-    Packet *p = new Packet(pId, sourceID, destID, id, ttl, headSize, bodySize);
+    Packet *p = createPacket(ttl, headSize, bodySize);
 
     man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceID, p);
 
