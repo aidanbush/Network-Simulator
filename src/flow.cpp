@@ -111,17 +111,28 @@ Flow::Flow(json &config): NetworkObject(config["id"]) {
     this->curPId = 0;
 }
 
+void Flow::removePacket(Packet *p) {
+    packets.erase(p->getId());
+}
+
+bool Flow::addPacket(Packet *p) {
+    return packets.emplace(p->getId(), p).second;
+}
+
 void Flow::packetArrived(Packet *p) {
+    removePacket(p);
     packetsArrived++;
     delete p;
 }
 
 void Flow::packetDropped(Packet *p) {
+    removePacket(p);
     packetsDropped++;
     delete p;
 }
 
 void Flow::packetError(Packet *p) {
+    removePacket(p);
     packetsErrored++;
     delete p;
 }
@@ -184,9 +195,13 @@ Packet *Flow::createPacket(int ttl, int headSize, int bodySize) {
 
     Packet *p = new Packet(pId, sourceID, destID, this, ttl, headSize, bodySize);
 
+    if (!addPacket(p)) {
+        delete p;
+        return NULL;
+    }
     packetsCreated++;
 
-    return new Packet(pId, sourceID, destID, this, ttl, headSize, bodySize);
+    return p;
 }
 
 BasicFlow::BasicFlow(json &config): Flow(config) {

@@ -2,6 +2,7 @@
 #define FLOW_H
 
 #include <nlohmann/json.hpp>
+#include <map>
 
 #include "networkObject.h"
 #include "manager.h"
@@ -43,7 +44,7 @@ class Flow: public NetworkObject {
 
         int curPId;
 
-        vector<Packet *> packets;
+        map<int, Packet *> packets;
         int sourceID;
         int destID;
 
