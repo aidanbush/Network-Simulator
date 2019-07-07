@@ -71,7 +71,7 @@ int Link::validateLinkConfig(json linkConfig) {
     if (!hasMemberOfType(linkConfig, "speed", jsonInt)) {
         message += "No integer with name 'speed'.\n";
     }
-    if (!hasMemberOfType(linkConfig, "time", jsonInt)) {
+    if (!hasMemberOfType(linkConfig, "time", jsonDouble)) {
         message += "No integer with name 'time'.\n";
     }
     if (!hasMemberOfType(linkConfig, "ifaces", jsonArray)) {
@@ -225,8 +225,9 @@ int testLink() {
     Interface *i1 = new Interface(interfaceJson);
     assert(man.addInterface(i1));
 
-    json linkJson = {{"id", l1ID}, {"speed", l1Speed}, {"time", l1TxTime}, {"ifaces", {}}};
+    json linkJson = {{"id", l1ID}, {"speed", l1Speed}, {"time", l1TxTime}, {"ifaces", {i1ID}}};
     Link *l1 = new Link(linkJson);
+    l1->addToInterfaces();
     assert(man.addLink(l1));
 
     assert(l1->getID() == l1ID);

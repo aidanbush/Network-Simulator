@@ -386,7 +386,6 @@ int Interface::ifaceToIface() {
 }
 
 int testInterface() {
-    const int l1ID = 1;
     const int s1ID = 1;
     const int i1ID = 1,
           i1LBuf = 48000,
