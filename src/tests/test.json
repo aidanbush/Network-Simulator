@@ -1,59 +1,122 @@
 {
     "endpoints": [
         {
-            "id":1,
-            "internal_speed": 100
-        },
-        {
-            "id":2,
-            "internal_speed": 100
+            "id": 0,
+            "internal_speed": 1
+        }, {
+            "id": 1,
+            "internal_speed": 1
+        }, {
+            "id": 2,
+            "internal_speed": 1
         }
     ],
     "switches": [
         {
             "id": 3,
-            "internal_speed": 10000
+            "internal_speed": 1
+        }, {
+            "id": 4,
+            "internal_speed": 1
+        }, {
+            "id": 5,
+            "internal_speed": 1
         }
     ],
     "interfaces": [
         {
+            "id": 0,
+            "handler_id": 0,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
+        }, {
             "id": 1,
             "handler_id": 1,
-            "link_buf_size": 1000,
-            "handler_buf_size": 1000
-        },
-        {
+            "link_buf_size": 1,
+            "handler_buf_size": 1
+        }, {
             "id": 2,
             "handler_id": 2,
-            "link_buf_size": 1000,
-            "handler_buf_size": 1000
-        },
-        {
+            "link_buf_size": 1,
+            "handler_buf_size": 1
+        }, {
             "id": 3,
-            "handler_id": 2,
-            "link_buf_size": 1000,
-            "handler_buf_size": 1000
-        },
-        {
+            "handler_id": 3,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
+        }, {
             "id": 4,
             "handler_id": 3,
-            "link_buf_size": 1000,
-            "handler_buf_size": 1000
+            "link_buf_size": 1,
+            "handler_buf_size": 1
+        }, {
+            "id": 5,
+            "handler_id": 3,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
+        }, {
+            "id": 6,
+            "handler_id": 4,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
+        }, {
+            "id": 7,
+            "handler_id": 4,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
+        }, {
+            "id": 8,
+            "handler_id": 4,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
+        }, {
+            "id": 9,
+            "handler_id": 5,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
+        }, {
+            "id": 10,
+            "handler_id": 5,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
+        }, {
+            "id": 11,
+            "handler_id": 5,
+            "link_buf_size": 1,
+            "handler_buf_size": 1
         }
     ],
     "links": [
         {
+            "id": 0,
+            "speed": 1,
+            "time": 1.0,
+            "ifaces": [0, 3]
+        }, {
             "id": 1,
-            "speed": 1000,
-            "time": 0.01,
-            "ifaces": [1, 2]
-        },
-        {
+            "speed": 1,
+            "time": 1.0,
+            "ifaces": [1, 6]
+        }, {
             "id": 2,
-            "speed": 1000,
-            "time": 0.01,
-            "ifaces": [3, 4]
+            "speed": 1,
+            "time": 1.0,
+            "ifaces": [2, 9]
+        }, {
+            "id": 3,
+            "speed": 1,
+            "time": 1.0,
+            "ifaces": [4, 7]
+        }, {
+            "id": 4,
+            "speed": 1,
+            "time": 1.0,
+            "ifaces": [8, 11]
+        }, {
+            "id": 5,
+            "speed": 1,
+            "time": 1.0,
+            "ifaces": [10, 5]
         }
     ]
 }
-
