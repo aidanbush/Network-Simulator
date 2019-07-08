@@ -53,7 +53,7 @@ int testPacket() {
           p1FullSize = p1HSize + p1BSize,
           p1SID = 1,
           p1DID = 2;
-    Flow *p1F;
+    Flow *p1F = NULL;
 
     Packet *p1 = new Packet(p1ID, p1SID, p1DID, p1F, p1TTL, p1HSize, p1BSize);
 
