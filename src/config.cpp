@@ -166,7 +166,7 @@ bool loadConfig(string filename) {
 #ifdef _TEST
 
 int testConfig() {
-    json config = readConfig("src/tests/test.json");
+    json config = readConfig("test.json");
 
     assert(parseConfig(config));
 
