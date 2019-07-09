@@ -55,7 +55,7 @@
             "ifaces": [3, 4]
         }
     ],
-    "flow": [
+    "flows": [
         {
             "id": 1,
             "source_id": 1,

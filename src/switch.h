@@ -18,11 +18,15 @@ class Switch: public PacketHandler {
 
         void rxPacket(Packet *p);
 
-        void initSwitch();
+        bool initSwitch();
 
         int getInterfaceID(int destID);
 
         bool validate();
+
+#ifdef _TEST
+        static int testRoutingTableSearch();
+#endif /* _TEST */
 
     protected:
         struct routingSearchElem {
@@ -46,7 +50,9 @@ class Switch: public PacketHandler {
         static void addNeighbours(priority_queue<routingSearchElem> &fringe,
                 set<int> &explored, routingSearchElem curElem);
 
-        void setupRoutingTable();
+        bool setupRoutingTable();
+
+        void printRoutingTable();
 };
 
 #ifdef _TEST

@@ -61,6 +61,18 @@ Endpoint *Manager::getEndpoint(int id) {
     return dynamic_cast<Endpoint *>(handlerIt->second);
 }
 
+vector<int> Manager::getEndpoints() {
+    vector<int> endpoints;
+
+    for (auto &it : packetHandlers) {
+        if (dynamic_cast<Endpoint *>(it.second) != NULL) {
+            endpoints.push_back(it.first);
+        }
+    }
+
+    return endpoints;
+}
+
 // interface
 bool Manager::addInterface(Interface *interface) {
     int id = interface->getID();
@@ -227,10 +239,21 @@ bool Manager::validateNetwork() {
     return valid;
 }
 
-void Manager::startSimulator() {
+bool Manager::startSimulator() {
+    for (auto &it : packetHandlers) {
+        Switch *netSwitch = dynamic_cast<Switch *>(it.second);
+        if (netSwitch != NULL) {
+            if (!netSwitch->initSwitch()) {
+                return false;
+            }
+        }
+    }
+
     for (auto& it : flows) {
         it.second->startFlow();
     }
+
+    return true;
 }
 
 bool Manager::setLogFile(string filename) {
