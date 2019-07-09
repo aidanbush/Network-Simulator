@@ -57,6 +57,7 @@ int testPacket() {
           p1SID = 1,
           p1DID = 2,
           p1FID = 1;
+    Flow *p1F = NULL;
 
     Packet *p1 = new Packet(p1ID, p1SID, p1DID, p1FID, p1TTL, p1HSize, p1BSize);
 

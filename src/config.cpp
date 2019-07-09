@@ -14,25 +14,10 @@ using namespace std;
 
 using json = nlohmann::json;
 
-void combineJson(json& first, json& second) {
-    for (json::iterator it = second.begin(); it != second.end(); ++it) {
-      first[it.key()] = it.value();
-    }
-}
-
 json readConfig(string filename) {
     ifstream configStream(filename);
     json config;
     configStream >> config;
-
-    /*
-    ifstream localConfigStream("../local.json");
-    if (localConfigStream.good()) {
-        json localConfig;
-        localConfigStream >> localConfig;
-        combineJson(config, localConfig);
-    }
-    */
 
     return config;
 }
