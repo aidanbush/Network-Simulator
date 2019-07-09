@@ -22,7 +22,7 @@ class Endpoint: public PacketHandler {
 #endif /* _TEST */
 
     private:
-        static json validateEndpointConfig(json &endpointConfig);
+        static json &validateEndpointConfig(json &endpointConfig);
 };
 
 #ifdef _TEST

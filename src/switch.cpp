@@ -16,7 +16,7 @@ using json = nlohmann::json;
 
 Switch::Switch(json &switchConfig): PacketHandler(validateSwitchConfig(switchConfig)) {}
 
-json Switch::validateSwitchConfig(json &switchConfig) {
+json &Switch::validateSwitchConfig(json &switchConfig) {
     string message = "";
     if (!hasMemberOfType(switchConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";

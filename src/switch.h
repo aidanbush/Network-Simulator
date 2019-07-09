@@ -49,7 +49,7 @@ class Switch: public PacketHandler {
         void setupRoutingTable();
 
     private:
-        static json validateSwitchConfig(json &switchConfig);
+        static json &validateSwitchConfig(json &switchConfig);
 };
 
 #ifdef _TEST
