@@ -18,13 +18,13 @@ using namespace std;
 
 using json = nlohmann::json;
 
-Interface::Interface(json interfaceConfig): NetworkObject(validateInterfaceConfig(interfaceConfig)) {
+Interface::Interface(json &interfaceConfig): NetworkObject(validateInterfaceConfig(interfaceConfig)) {
     this->linkBufSize = interfaceConfig["link_buf_size"];
     this->handlerBufSize = interfaceConfig["handler_buf_size"];
     this->handlerID = interfaceConfig["handler_id"];
 }
 
-int Interface::validateInterfaceConfig(json interfaceConfig) {
+int Interface::validateInterfaceConfig(json &interfaceConfig) {
     string message = "";
     if (!hasMemberOfType(interfaceConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";

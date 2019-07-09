@@ -14,7 +14,7 @@ using namespace std;
 
 using json = nlohmann::json;
 
-PacketHandler::PacketHandler(json handlerConfig): NetworkObject(handlerConfig["id"]) {
+PacketHandler::PacketHandler(json &handlerConfig): NetworkObject(handlerConfig["id"]) {
     //Should only be called by Endpoint or switch constructors which guarantee these values exist
     this->internalSpeed = handlerConfig["internal_speed"];
 }

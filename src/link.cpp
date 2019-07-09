@@ -54,7 +54,7 @@ void LinkQueue::txPacket(Packet *p, second_t txTime) {
     }
 }
 
-Link::Link(json linkConfig): NetworkObject(validateLinkConfig(linkConfig)) {
+Link::Link(json &linkConfig): NetworkObject(validateLinkConfig(linkConfig)) {
     this->speed = linkConfig["speed"];
     this->txTime = linkConfig["time"];
     for (auto it: linkConfig["ifaces"].items()) {
@@ -63,7 +63,7 @@ Link::Link(json linkConfig): NetworkObject(validateLinkConfig(linkConfig)) {
     }
 }
 
-int Link::validateLinkConfig(json linkConfig) {
+int Link::validateLinkConfig(json &linkConfig) {
     string message = "";
     if (!hasMemberOfType(linkConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";

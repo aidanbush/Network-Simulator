@@ -13,7 +13,7 @@ class Packet;
 
 class Endpoint: public PacketHandler {
     public:
-        Endpoint(json endpointConfig);
+        Endpoint(json &endpointConfig);
         void rxPacket(Packet *p);
         int txPacket(Packet *p);
         bool validate();
@@ -22,7 +22,7 @@ class Endpoint: public PacketHandler {
 #endif /* _TEST */
 
     private:
-        static json validateEndpointConfig(json endpointConfig);
+        static json validateEndpointConfig(json &endpointConfig);
 };
 
 #ifdef _TEST

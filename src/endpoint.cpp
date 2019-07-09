@@ -10,9 +10,9 @@
 using namespace std;
 using json = nlohmann::json;
 
-Endpoint::Endpoint(json endpointConfig): PacketHandler(validateEndpointConfig(endpointConfig)) {}
+Endpoint::Endpoint(json &endpointConfig): PacketHandler(validateEndpointConfig(endpointConfig)) {}
 
-json Endpoint::validateEndpointConfig(json endpointConfig) {
+json Endpoint::validateEndpointConfig(json &endpointConfig) {
     string message = "";
     if (!hasMemberOfType(endpointConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";
