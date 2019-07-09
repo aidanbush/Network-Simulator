@@ -28,6 +28,8 @@ static bool checkConfigObjType(json &obj, jsonType type) {
             return obj.is_number_integer();
         case jsonDouble:
             return obj.is_number_float() || obj.is_number_integer();
+        case jsonString:
+            return obj.is_string();
         case jsonArray:
             return obj.is_array();
     }
@@ -66,6 +68,7 @@ static bool parseConfig(json& config) {
             Endpoint *endpoint = new Endpoint(it.value());
             if (!man.addEndpoint(endpoint)) {
                 cerr << "Endpoint:\nMultiple packet handlers exist with id '" << endpoint->getId() << "'." << endl;
+                delete endpoint;
                 success = false;
             }
         } catch (const runtime_error &e) {
@@ -79,6 +82,7 @@ static bool parseConfig(json& config) {
             Switch *netSwitch = new Switch(it.value());
             if (!man.addSwitch(netSwitch)) {
                 cerr << "Switch:\nMultiple packet handlers exist with id '" << netSwitch->getId() << "'." << endl;
+                delete netSwitch;
                 success = false;
             }
         } catch (const runtime_error &e) {
@@ -92,6 +96,7 @@ static bool parseConfig(json& config) {
             Interface *interface = new Interface(it.value());
             if (!man.addInterface(interface)) {
                 cerr << "Interface:\nMultiple interfaces exist with id '" << interface->getId() << "'." << endl;
+                delete interface;
                 success = false;
             }
         } catch (const runtime_error &e) {
@@ -105,6 +110,7 @@ static bool parseConfig(json& config) {
             Link *netLink = new Link(it.value());
             if (!man.addLink(netLink)) {
                 cerr << "Link:\nMultiple links exist with id '" << netLink->getId() << "'." << endl;
+                delete netLink;
                 success = false;
             }
             if (success && !netLink->addToInterfaces()) {
@@ -118,13 +124,14 @@ static bool parseConfig(json& config) {
     }
 
     for (json::iterator it = config["flows"].begin(); it != config["flows"].end(); ++it) {
-        Flow *f = createFlow(it.value());
-        if (f == NULL) {
-            success = false;
-        }
-
-        if (!man.addFlow(f)) {
-            delete f;
+        try {
+            Flow *flow = createFlow(it.value());
+            if (!man.addFlow(flow)) {
+                delete flow;
+                success = false;
+            }
+        } catch (const runtime_error &e) {
+            cerr << e.what() << endl;
             success = false;
         }
     }

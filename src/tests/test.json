@@ -123,7 +123,7 @@
         {
             "id": 1,
             "source_id": 1,
-            "dests": [2],
+            "dest": 2,
             "type": "test"
         }
     ]

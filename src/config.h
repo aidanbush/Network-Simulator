@@ -9,6 +9,7 @@ using json = nlohmann::json;
 enum jsonType {
     jsonInt,
     jsonDouble,
+    jsonString,
     jsonArray,
 };
 

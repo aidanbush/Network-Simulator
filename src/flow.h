@@ -15,7 +15,7 @@ class Endpoint;
 
 class Flow: public NetworkObject {
     public:
-        Flow(json &config);
+        Flow(json &flowConfig);
         ~Flow();
 
         virtual void startFlow() = 0;
@@ -89,6 +89,8 @@ class TestFlow: public Flow {
 };
 #endif /* _TEST */
 
-Flow *createFlow(json &config);
+Flow *createFlow(json &flowConfig);
+
+string validateFlowConfig(json &flowConfig);
 
 #endif /* FLOW_H */
