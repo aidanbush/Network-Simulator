@@ -1,13 +1,6 @@
-#include <nlohmann/json.hpp>
-#include <iostream>
-
 #include "networkObject.h"
-#include "config.h"
-#include "manager.h"
 
 using namespace std;
-
-using json = nlohmann::json;
 
 NetworkObject::NetworkObject(int id) {
     this->id = id;

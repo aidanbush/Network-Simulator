@@ -1,10 +1,6 @@
 #ifndef NETWORK_OBJECT_H
 #define NETWORK_OBJECT_H
-#include <nlohmann/json.hpp>
-
 using namespace std;
-
-using json = nlohmann::json;
 
 class NetworkObject {
     public:
