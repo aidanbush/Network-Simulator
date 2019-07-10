@@ -57,6 +57,7 @@ void LinkQueue::txPacket(Packet *p, second_t txTime) {
 Link::Link(json &linkConfig): NetworkObject(validateLinkConfig(linkConfig)) {
     this->speed = linkConfig["speed"];
     this->txTime = linkConfig["time"];
+
     for (auto it: linkConfig["ifaces"].items()) {
         LinkQueue lq = LinkQueue(it.value(), id);
         dests.emplace(it.value(), lq);
