@@ -57,8 +57,8 @@ Flow *createFlow(json &flowConfig) {
     return flow;
 }
 
+//flowConfig already validated
 Flow::Flow(json &flowConfig): NetworkObject(flowConfig["id"]) {
-    //flowConfig already validated
     this->sourceID = flowConfig["source_id"];
     this->destID = flowConfig["dest"];
 
