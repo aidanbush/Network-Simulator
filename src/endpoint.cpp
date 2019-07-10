@@ -17,9 +17,11 @@ json &Endpoint::validateEndpointConfig(json &endpointConfig) {
     if (!hasMemberOfType(endpointConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";
     }
+
     if (!hasMemberOfType(endpointConfig, "internal_speed", jsonInt)) {
         message += "No integer with name 'internal_speed'.\n";
     }
+
     if (!message.empty()) {
         message = "Endpoint:\n" + message + endpointConfig.dump(4);
         throw runtime_error(message);

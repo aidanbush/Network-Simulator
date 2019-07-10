@@ -113,6 +113,7 @@ static bool parseConfig(json& config) {
                 delete netLink;
                 success = false;
             }
+
             if (success && !netLink->addToInterfaces()) {
                 cerr << "Error connecting network." << endl;
                 success = false;

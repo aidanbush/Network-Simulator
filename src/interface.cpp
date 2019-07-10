@@ -29,15 +29,19 @@ int Interface::validateInterfaceConfig(json &interfaceConfig) {
     if (!hasMemberOfType(interfaceConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";
     }
+
     if (!hasMemberOfType(interfaceConfig, "link_buf_size", jsonInt)) {
         message += "No integer with name 'link_buf_size'.\n";
     }
+
     if (!hasMemberOfType(interfaceConfig, "handler_buf_size", jsonInt)) {
         message += "No integer with name 'handler_buf_size'.\n";
     }
+
     if (!hasMemberOfType(interfaceConfig, "handler_id", jsonInt)) {
         message += "No integer with name 'handler_id'.\n";
     }
+
     if (!message.empty()) {
         message = "Interface:\n" + message + interfaceConfig.dump(4);
         throw runtime_error(message);
@@ -60,6 +64,7 @@ bool Interface::setLink(int linkId, vector<int> neighbours) {
             if (neighbour == NULL) {
                 return false;
             }
+
             if (!packetHandler->addInterface(neighbour->getHandlerID(), id)) {
                 return false;
             }

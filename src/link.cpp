@@ -68,17 +68,21 @@ int Link::validateLinkConfig(json &linkConfig) {
     if (!hasMemberOfType(linkConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";
     }
+
     if (!hasMemberOfType(linkConfig, "speed", jsonInt)) {
         message += "No integer with name 'speed'.\n";
     }
+
     if (!hasMemberOfType(linkConfig, "time", jsonDouble)) {
         message += "No integer with name 'time'.\n";
     }
+
     if (!hasMemberOfType(linkConfig, "ifaces", jsonArray)) {
         message += "No array with name 'ifaces'.\n";
     } else if (!checkArrayType(linkConfig["ifaces"], jsonInt)) {
         message += "Array 'ifaces' has non integer entry.\n";
     }
+
     if (!message.empty()) {
         message = "Link:\n" + message + linkConfig.dump(4);
         throw runtime_error(message);
@@ -99,6 +103,7 @@ bool Link::addToInterfaces() {
         if (interface == NULL) {
             return false;
         }
+
         if (!interface->setLink(id, neighbours)) {
             return false;
         }

@@ -74,15 +74,19 @@ string validateFlowConfig(json &flowConfig) {
     if (!hasMemberOfType(flowConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";
     }
+
     if (!hasMemberOfType(flowConfig, "source_id", jsonInt)) {
         message += "No integer with name 'source_id'.\n";
     }
+
     if (!hasMemberOfType(flowConfig, "dest", jsonInt)) {
         message += "No integer with name 'dest'.\n";
     }
+
     if (!hasMemberOfType(flowConfig, "type", jsonString)) {
         message += "No string with name 'type'.\n";
     }
+
     if (!message.empty()) {
         message = "Flow:\n" + message + flowConfig.dump(4);
         throw runtime_error(message);
