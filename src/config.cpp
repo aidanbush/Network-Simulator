@@ -27,7 +27,7 @@ static bool checkConfigObjType(json &obj, jsonType type) {
         case jsonInt:
             return obj.is_number_integer();
         case jsonDouble:
-            return obj.is_number_float() || obj.is_number_integer();
+            return obj.is_number();
         case jsonString:
             return obj.is_string();
         case jsonArray:
