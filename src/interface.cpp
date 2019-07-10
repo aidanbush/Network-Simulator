@@ -283,23 +283,44 @@ int Interface::ifaceToIface() {
     EventI *e;
 
     // setup network
-    json endpointJson1 = {{"id", e1ID}, {"internal_speed", e1Speed}};
-    json endpointJson2 = {{"id", e2ID}, {"internal_speed", e2Speed}};
+    json endpointJson1 = {
+        {"id", e1ID},
+        {"internal_speed", e1Speed}
+    };
+    json endpointJson2 = {
+        {"id", e2ID},
+        {"internal_speed", e2Speed}
+    };
     e1 = new Endpoint(endpointJson1);
     e2 = new Endpoint(endpointJson2);
 
     man.addEndpoint(e1);
     man.addEndpoint(e2);
 
-    json interfaceJson1 = {{"id", i1ID}, {"handler_id", e1ID}, {"link_buf_size", i1LBuf}, {"handler_buf_size", i1HBuf}};
-    json interfaceJson2 = {{"id", i2ID}, {"handler_id", e2ID}, {"link_buf_size", i2LBuf}, {"handler_buf_size", i2HBuf}};
+    json interfaceJson1 = {
+        {"id", i1ID},
+        {"handler_id", e1ID},
+        {"link_buf_size", i1LBuf},
+        {"handler_buf_size", i1HBuf}
+    };
+    json interfaceJson2 = {
+        {"id", i2ID},
+        {"handler_id", e2ID},
+        {"link_buf_size", i2LBuf},
+        {"handler_buf_size", i2HBuf}
+    };
     i1 = new Interface(interfaceJson1);
     i2 = new Interface(interfaceJson2);
 
     man.addInterface(i1);
     man.addInterface(i2);
 
-    json linkJson = {{"id", l1ID}, {"speed", l1Speed}, {"time", l1TxTime}, {"ifaces", {i1ID, i2ID}}};
+    json linkJson = {
+        {"id", l1ID},
+        {"speed", l1Speed},
+        {"time", l1TxTime},
+        {"ifaces", {i1ID, i2ID}}
+    };
     l1 = new Link(linkJson);
     l1->addToInterfaces();
 
@@ -391,7 +412,12 @@ int testInterface() {
           i1LBuf = 48000,
           i1HBuf = 32000;
 
-    json interfaceJson = {{"id", i1ID}, {"handler_id", s1ID}, {"link_buf_size", i1LBuf}, {"handler_buf_size", i1HBuf}};
+    json interfaceJson = {
+        {"id", i1ID},
+        {"handler_id", s1ID},
+        {"link_buf_size", i1LBuf},
+        {"handler_buf_size", i1HBuf}
+    };
     Interface *i1 = new Interface(interfaceJson);
 
     delete i1;

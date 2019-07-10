@@ -175,8 +175,10 @@ bool Switch::validate() {
 int testSwitch() {
     static const int s1ID = 1,
                  s1InternalSpeed = 100;
-    string switchJsonString = "{\"id\":" + to_string(s1ID) + ",\"internal_speed\":" + to_string(s1InternalSpeed) + "}";
-    json switchJson = json::parse(switchJsonString);
+    json switchJson = {
+        {"id", s1ID},
+        {"internal_speed", s1InternalSpeed}
+    };
     Switch *s1 = new Switch(switchJson);
 
     assert(s1->getID() == s1ID);
