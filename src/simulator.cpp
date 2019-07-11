@@ -96,7 +96,10 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    man.startSimulator();
+    if (!man.startSimulator()) {
+        man.deleteNetwork();
+        return 1;
+    }
 
     while (man.numEvents() > 0 && !exitSim) {
         EventI* e = man.popEvent();
