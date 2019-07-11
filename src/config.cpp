@@ -22,7 +22,7 @@ json readConfig(string filename) {
     return config;
 }
 
-static bool checkConfigObjType(json &obj, jsonType type) {
+static bool checkConfigObjType(json &obj, JsonType type) {
     switch (type) {
         case jsonInt:
             return obj.is_number_integer();
@@ -38,7 +38,7 @@ static bool checkConfigObjType(json &obj, jsonType type) {
     return false;
 }
 
-bool hasMemberOfType(json &parent, string key, jsonType type) {
+bool hasMemberOfType(json &parent, string key, JsonType type) {
     if (parent.find(key) == parent.end()) {
         return false;
     }
@@ -46,7 +46,7 @@ bool hasMemberOfType(json &parent, string key, jsonType type) {
     return checkConfigObjType(parent[key], type);
 }
 
-bool checkArrayType(json &config, jsonType type) {
+bool checkArrayType(json &config, JsonType type) {
     bool valid = true;
 
     for (auto it : config.items()) {

@@ -6,7 +6,7 @@ using namespace std;
 
 using json = nlohmann::json;
 
-enum jsonType {
+enum JsonType {
     jsonInt,
     jsonDouble,
     jsonString,
@@ -15,9 +15,9 @@ enum jsonType {
 
 bool loadConfig(string filename);
 
-bool hasMemberOfType(json &parent, string key, jsonType type);
+bool hasMemberOfType(json &parent, string key, JsonType type);
 
-bool checkArrayType(json &config, jsonType type);
+bool checkArrayType(json &config, JsonType type);
 
 #ifdef _TEST
 int testConfig();
