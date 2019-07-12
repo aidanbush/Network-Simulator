@@ -66,7 +66,10 @@ class BasicFlow: public Flow {
         void txPacketEvent();
 
     private:
-        BasicFlow(json &config);
+        BasicFlow(json &flowConfig);
+
+        static json &validateBasicFlowConfig(json &flowConfig);
+
         second_t time;
 
         int headSize;
@@ -81,18 +84,18 @@ class BasicFlow: public Flow {
 class TestFlow: public Flow {
     friend Flow *createFlow(json &flowConfig);
     public:
-        using Flow::Flow;
+        TestFlow(json &flowConfig);
 
         void startFlow();
         void txPacketEvent();
 
     private:
+        static json &validateTestFlowConfig(json &flowConfig);
+
         second_t nextTxTime();
 };
 #endif /* _TEST */
 
 Flow *createFlow(json &flowConfig);
-
-string validateFlowConfig(json &flowConfig);
 
 #endif /* FLOW_H */
