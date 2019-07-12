@@ -123,7 +123,7 @@ void Switch::addNeighbours(priority_queue<routingSearchElem> &fringe,
     }
 }
 
-void Switch::setupRoutingTable() {
+bool Switch::setupRoutingTable() {
     priority_queue<routingSearchElem> fringe;
     set<int> explored; // explored packetHandlers
     routingSearchElem curElem;
@@ -153,11 +153,28 @@ void Switch::setupRoutingTable() {
             fprintf(stderr, "Error in routing UCS unkown packetHandler type\n");
         }
     }
+
+    // validate routing table
+    vector<int> endpoints = man.getEndpoints();
+    for (int eId : endpoints) {
+        if (routingTable.find(eId) == routingTable.end()) {
+            fprintf(stderr, "Error: Switch: %d routing table does not have endpoint %d\n", id, eId);
+            return false;
+        }
+    }
+
+    return true;
 }
 
-void Switch::initSwitch() {
-    // set up routing table
-    setupRoutingTable();
+void Switch::printRoutingTable() {
+    printf("switch: %d routingTable:\n", id);
+    for (auto it : routingTable) {
+        printf("\tdest: %d interface: %d\n", it.first, it.second);
+    }
+}
+
+bool Switch::initSwitch() {
+    return setupRoutingTable();
 }
 
 bool Switch::validate() {
@@ -173,6 +190,61 @@ bool Switch::validate() {
 #ifdef _TEST
 
 #include <assert.h>
+#include "config.h"
+
+int Switch::testRoutingTableSearch() {
+    // create network
+    loadConfig("switchTest.json");
+
+    man.startSimulator();
+
+    // test routes
+    Switch *s = man.getSwitch(1);
+    assert(s->routingTable.find(7)->second == 4);
+    assert(s->routingTable.find(8)->second == 1);
+    assert(s->routingTable.find(9)->second == 1);
+    assert(s->routingTable.find(10)->second == 2);
+    assert(s->routingTable.find(11)->second == 3);
+
+    s = man.getSwitch(2);
+    assert(s->routingTable.find(7)->second == 5);
+    assert(s->routingTable.find(8)->second == 7);
+    assert(s->routingTable.find(9)->second == 8);
+    assert(s->routingTable.find(10)->second == 6);
+    assert(s->routingTable.find(11)->second == 5);
+
+    s = man.getSwitch(3);
+    assert(s->routingTable.find(7)->second == 9);
+    assert(s->routingTable.find(8)->second == 10);
+    assert(s->routingTable.find(9)->second == 10);
+    assert(s->routingTable.find(10)->second == 11);
+    assert(s->routingTable.find(11)->second == 9);
+
+    s = man.getSwitch(4);
+    assert(s->routingTable.find(7)->second == 12);
+    assert(s->routingTable.find(8)->second == 12);
+    assert(s->routingTable.find(9)->second == 12);
+    assert(s->routingTable.find(10)->second == 12);
+    assert(s->routingTable.find(11)->second == 13);
+
+    s = man.getSwitch(5);
+    assert(s->routingTable.find(7)->second == 14);
+    assert(s->routingTable.find(8)->second == 15);
+    assert(s->routingTable.find(9)->second == 14);
+    assert(s->routingTable.find(10)->second == 14);
+    assert(s->routingTable.find(11)->second == 14);
+
+    s = man.getSwitch(6);
+    assert(s->routingTable.find(7)->second == 16);
+    assert(s->routingTable.find(8)->second == 16);
+    assert(s->routingTable.find(9)->second == 16);
+    assert(s->routingTable.find(10)->second == 16);
+    assert(s->routingTable.find(11)->second == 17);
+
+    man.deleteNetwork();
+
+    return 1;
+}
 
 int testSwitch() {
     static const int s1ID = 1,
@@ -188,7 +260,7 @@ int testSwitch() {
 
     delete s1;
 
-    return 1;
+    return Switch::testRoutingTableSearch();
 }
 
 #endif /* _TEST */
