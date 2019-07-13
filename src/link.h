@@ -49,7 +49,7 @@ class Link: public NetworkObject {
         void txPacket(Packet *p, int sourceId);
 
         bool hasInterface(int ifaceID);
-        int removeDest(int interfaceId);
+        bool removeDest(int interfaceId);
 
         int getSpeed();
         second_t getTxTime();

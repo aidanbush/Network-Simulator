@@ -212,7 +212,6 @@ void BasicFlow::startFlow() {
 }
 
 void BasicFlow::txPacketEvent() {
-    int pId = newPacketId();
     Endpoint *endpoint = man.getEndpoint(sourceID);
     // TODO test for error
 

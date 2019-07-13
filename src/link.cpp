@@ -141,7 +141,7 @@ bool Link::hasInterface(int ifaceID) {
 }
 
 // return 1 if interface was connected to link
-int Link::removeDest(int interfaceId) {
+bool Link::removeDest(int interfaceId) {
     return dests.erase(interfaceId);
 }
 
