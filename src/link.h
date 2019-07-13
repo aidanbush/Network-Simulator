@@ -17,10 +17,10 @@ using json = nlohmann::json;
 
 class LinkQueue {
     public:
-        LinkQueue(int destID, int linkID);
+        LinkQueue(int destId, int linkId);
 
-        int destID;
-        int linkID;
+        int destId;
+        int linkId;
 
         void txPacketIfaceEvent(); // event to move packet to dest
         void txPacket(Packet *p, second_t txTime);
@@ -48,7 +48,7 @@ class Link: public NetworkObject {
 
         void txPacket(Packet *p, int sourceId);
 
-        bool hasInterface(int ifaceID);
+        bool hasInterface(int ifaceId);
         int removeDest(int interfaceId);
 
         int getSpeed();
@@ -64,7 +64,7 @@ class Link: public NetworkObject {
         bool validateLinkQueues();
         bool validateVariables();
 
-        map<int, LinkQueue> dests; // map interfaceID to LinkQueue
+        map<int, LinkQueue> dests; // map interfaceId to LinkQueue
         int speed; // bits/second
         second_t txTime;
 };

@@ -15,9 +15,9 @@
 using namespace std;
 using json = nlohmann::json;
 
-LinkQueue::LinkQueue(int destID, int linkID) {
-    this->destID = destID;
-    this->linkID = linkID;
+LinkQueue::LinkQueue(int destId, int linkId) {
+    this->destId = destId;
+    this->linkId = linkId;
 }
 
 void LinkQueue::txPacketIfaceEvent() {
@@ -25,9 +25,9 @@ void LinkQueue::txPacketIfaceEvent() {
     LinkPacket p = pQueue.top();
     pQueue.pop();
 
-    man.logTxEvent(LINK_STR, linkID, TX_PKT_EVENT_STR, destID, p.packet);
+    man.logTxEvent(LINK_STR, linkId, TX_PKT_EVENT_STR, destId, p.packet);
 
-    Interface *dest = man.getInterface(destID);
+    Interface *dest = man.getInterface(destId);
     // TODO error check
     dest->rxLink(p.packet);
 
@@ -120,12 +120,12 @@ second_t Link::getTxTime() {
     return txTime;
 }
 
-void Link::txPacket(Packet *p, int sourceID) {
+void Link::txPacket(Packet *p, int sourceId) {
     bool first = true;
 
     // enqueue packet into queue for destinations
     for (auto& [id, lQueue] : dests) {
-        if (id != sourceID) {
+        if (id != sourceId) {
             // clone packet if not first
             if (!first) {
                 p = p->clone();
@@ -136,8 +136,8 @@ void Link::txPacket(Packet *p, int sourceID) {
     }
 }
 
-bool Link::hasInterface(int ifaceID) {
-    return dests.find(ifaceID) != dests.end();
+bool Link::hasInterface(int ifaceId) {
+    return dests.find(ifaceId) != dests.end();
 }
 
 // return 1 if interface was connected to link
@@ -151,7 +151,7 @@ set<int> Link::getNeighbours() {
 
     for (auto& [id, lQueue] : dests) {
         iface = man.getInterface(id);
-        neighbours.insert(iface->getHandlerID());
+        neighbours.insert(iface->getHandlerId());
     }
 
     return neighbours;
@@ -160,22 +160,22 @@ set<int> Link::getNeighbours() {
 bool Link::validateLinkQueues() {
     bool valid = true;
 
-    for (auto& [ifaceID, linkQueue] : dests) {
-        if (ifaceID != linkQueue.destID) {
+    for (auto& [ifaceId, linkQueue] : dests) {
+        if (ifaceId != linkQueue.destId) {
             fprintf(stderr, "Link: link dest id %d and linkQueue dest id %d differ\n",
-                    ifaceID, linkQueue.destID);
+                    ifaceId, linkQueue.destId);
             valid = false;
         }
 
-        Interface *iface = man.getInterface(ifaceID);
+        Interface *iface = man.getInterface(ifaceId);
         if (iface == NULL) {
             fprintf(stderr, "Link: interface %d of link %d is missing\n",
-                    ifaceID, id);
+                    ifaceId, id);
             valid = false;
         } else {
-            if (!(iface->getLinkID() == id)) {
+            if (!(iface->getLinkId() == id)) {
                 fprintf(stderr, "Link: interface %d does not know of link %d",
-                    ifaceID, id);
+                    ifaceId, id);
                 valid = false;
             }
         }
@@ -218,17 +218,17 @@ bool Link::validate() {
 #include <assert.h>
 
 int testLink() {
-    const int i1ID = 1,
-          i1HID = 1,
+    const int i1Id = 1,
+          i1HId = 1,
           i1LBSize = 1,
           i1HBsize = 1;
-    const int l1ID = 1,
+    const int l1Id = 1,
           l1Speed = 80000;
     const second_t l1TxTime = 0.0005;
 
     json interfaceJson = {
-        {"id", i1ID},
-        {"handler_id", i1HID},
+        {"id", i1Id},
+        {"handler_id", i1HId},
         {"link_buf_size", i1LBSize},
         {"handler_buf_size", i1HBsize}
     };
@@ -236,20 +236,20 @@ int testLink() {
     assert(man.addInterface(i1));
 
     json linkJson = {
-        {"id", l1ID},
+        {"id", l1Id},
         {"speed", l1Speed},
         {"time", l1TxTime},
-        {"ifaces", {i1ID}}
+        {"ifaces", {i1Id}}
     };
     Link *l1 = new Link(linkJson);
     l1->addToInterfaces();
     assert(man.addLink(l1));
 
-    assert(l1->getID() == l1ID);
+    assert(l1->getId() == l1Id);
     assert(l1->getSpeed() == l1Speed);
 
-    assert(l1->removeDest(i1ID));
-    assert(!l1->removeDest(i1ID));
+    assert(l1->removeDest(i1Id));
+    assert(!l1->removeDest(i1Id));
 
     man.deleteNetwork();
 

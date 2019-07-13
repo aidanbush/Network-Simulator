@@ -15,7 +15,7 @@ Manager::Manager() {
 }
 
 bool Manager::addHandler(PacketHandler *handler) {
-    int id = handler->getID();
+    int id = handler->getId();
 
     if (handler == NULL) {
         return false;
@@ -75,7 +75,7 @@ vector<int> Manager::getEndpoints() {
 
 // interface
 bool Manager::addInterface(Interface *interface) {
-    int id = interface->getID();
+    int id = interface->getId();
 
     if (interface == NULL) {
         return false;
@@ -95,7 +95,7 @@ Interface *Manager::getInterface(int id) {
 
 // link
 bool Manager::addLink(Link *link) {
-    int id = link->getID();
+    int id = link->getId();
 
     if (link == NULL) {
         return false;
@@ -115,7 +115,7 @@ Link *Manager::getLink(int id) {
 
 // flow
 bool Manager::addFlow(Flow *flow) {
-    int id = flow->getID();
+    int id = flow->getId();
 
     if (flow == NULL) {
         return false;
@@ -268,13 +268,13 @@ bool Manager::setLogFile(string filename) {
     return true;
 }
 
-void Manager::logTxEvent(string objName, int objID, string eventName, int destID, Packet *p) {
-    string message = "dest: " + to_string(destID) + " packet: " + to_string(p->getID()) + " flow: "
+void Manager::logTxEvent(string objName, int objId, string eventName, int destId, Packet *p) {
+    string message = "dest: " + to_string(destId) + " packet: " + to_string(p->getId()) + " flow: "
         + to_string(p->getFlow());
-    logEvent(objName, objID, eventName, message);
+    logEvent(objName, objId, eventName, message);
 }
 
-void Manager::logEvent(string objName, int objID, string eventName, string message) {
+void Manager::logEvent(string objName, int objId, string eventName, string message) {
     fprintf(logFile, "time: %f %s: %d event: %s message: %s\n", time,
-            objName.c_str(), objID, eventName.c_str(), message.c_str());
+            objName.c_str(), objId, eventName.c_str(), message.c_str());
 }

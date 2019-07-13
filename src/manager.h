@@ -79,8 +79,8 @@ class Manager {
 
         bool setLogFile(string filename);
 
-        void logTxEvent(string objName, int objID, string eventName, int destID, Packet *p);
-        void logEvent(string objName, int objID, string eventName, string message);
+        void logTxEvent(string objName, int objId, string eventName, int destId, Packet *p);
+        void logEvent(string objName, int objId, string eventName, string message);
 
         bool startSimulator();
 

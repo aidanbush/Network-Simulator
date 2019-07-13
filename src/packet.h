@@ -10,7 +10,7 @@ class Flow;
 
 class Packet: public NetworkObject {
     public:
-        Packet(int id, int sourceID, int destID, int flowId, int ttl,
+        Packet(int id, int sourceId, int destId, int flowId, int ttl,
                 int headerSize, int bodySize);
         ~Packet() = default;
 
@@ -18,8 +18,8 @@ class Packet: public NetworkObject {
 
         int getTTL() {return ttl; }
         int getFlow() {return flowId; }
-        int getSource() {return sourceID; }
-        int getDest() {return destID; }
+        int getSource() {return sourceId; }
+        int getDest() {return destId; }
 
         int fullSize() {return headerSize + bodySize; }
         int fullSizeBits() {return (headerSize + bodySize) * BITS_PER_BYTE; }
@@ -39,8 +39,8 @@ class Packet: public NetworkObject {
         int headerSize;
         int bodySize;
         int ttl;
-        int sourceID;
-        int destID;
+        int sourceId;
+        int destId;
         int flowId;
 };
 
