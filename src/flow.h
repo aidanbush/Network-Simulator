@@ -15,7 +15,6 @@ class Endpoint;
 
 class Flow: public NetworkObject {
     public:
-        Flow(json &config);
         ~Flow();
 
         virtual void startFlow() = 0;
@@ -33,6 +32,7 @@ class Flow: public NetworkObject {
         bool validate();
 
     protected:
+        Flow(json &flowConfig);
         bool validateSource();
         bool validateDest();
 
@@ -59,13 +59,17 @@ class Flow: public NetworkObject {
 };
 
 class BasicFlow: public Flow {
+    friend Flow *createFlow(json &flowConfig);
     public:
-        BasicFlow(json &config);
 
         void startFlow();
         void txPacketEvent();
 
     private:
+        BasicFlow(json &flowConfig);
+
+        static json &validateBasicFlowConfig(json &flowConfig);
+
         second_t time;
 
         int headSize;
@@ -78,17 +82,20 @@ class BasicFlow: public Flow {
 
 #ifdef _TEST
 class TestFlow: public Flow {
+    friend Flow *createFlow(json &flowConfig);
     public:
-        using Flow::Flow;
+        TestFlow(json &flowConfig);
 
         void startFlow();
         void txPacketEvent();
 
     private:
+        static json &validateTestFlowConfig(json &flowConfig);
+
         second_t nextTxTime();
 };
 #endif /* _TEST */
 
-Flow *createFlow(json &config);
+Flow *createFlow(json &flowConfig);
 
 #endif /* FLOW_H */

@@ -9,100 +9,63 @@
 #include "packet.h"
 #include "endpoint.h"
 #include "networkObject.h"
+#include "config.h"
 
 #define FLOW_STR        "Flow"
 #define TX_PACKET_EVENT "flow create packet event"
 
 using namespace std;
 
-enum flowType {
+enum FlowType {
     BasicFlowType,
 #ifdef _TEST
     TestFlowType,
 #endif /* _TEST */
 };
 
-Flow *createFlow(json &config) {
-    static map<string, size_t> flowTypeMap = {
+Flow *createFlow(json &flowConfig) {
+    static map<string, FlowType> flowTypeMap = {
         {"basic", BasicFlowType},
 #ifdef _TEST
         {"test", TestFlowType},
 #endif /* _TEST */
     };
 
+
+    if (!hasMemberOfType(flowConfig, "type", jsonString)) {
+        throw runtime_error("Flow:\nNo string with name 'type'\n" + flowConfig.dump(4));
+    }
+
+    string flowTypeString = flowConfig["type"];
+    FlowType flowType;
+    try {
+        flowType = flowTypeMap.at(flowTypeString);
+    } catch (out_of_range&) {
+        throw runtime_error("Flow:\nInvalid flow type: " + flowTypeString);
+    }
+
     Flow *flow;
 
-    if (config.find("type") == config.end()) {
-        fprintf(stderr, "Error in flow, 'type' not found\n");
-        return NULL;
-    }
-
-    if (!config["type"].is_string()) {
-        fprintf(stderr, "Error in flow with 'type' not string type\n");
-        return NULL;
-    }
-
-    string type = config["type"];
-
-    auto it = flowTypeMap.find(type);
-    if (it == flowTypeMap.end()) {
-        fprintf(stderr, "Error flow type %s does not exist\n", type.c_str());
-        return NULL;
-    }
-
-    switch (it->second) {
+    switch (flowType) {
         case BasicFlowType:
-            try {
-                flow = new BasicFlow(config);
-            } catch (...) {
-                return NULL;
-            }
+            flow = new BasicFlow(flowConfig);
             break;
 #ifdef _TEST
         case TestFlowType:
-            try {
-                flow = new TestFlow(config);
-            } catch (...) {
-                return NULL;
-            }
+            flow = new TestFlow(flowConfig);
             break;
 #endif /* _TEST */
         default:
-            fprintf(stderr, "Internal error, cant find type %s\n", type.c_str());
-            return NULL;
+            throw runtime_error("Flow:\nInvalid flow type: " + flowTypeString);
     }
 
     return flow;
 }
 
-Flow::Flow(json &config): NetworkObject(config["id"]) {
-    if (config.find("source_id") == config.end()) {
-        fprintf(stderr, "Error in flow 'source_id' not found\n");
-        // error
-    }
-
-    if (!config["source_id"].is_number_integer()) {
-        fprintf(stderr, "Error in flow 'source_id' not type integer\n");
-        // error
-    }
-    this->sourceID = config["source_id"];
-
-    if (config.find("dests") == config.end()) {
-        fprintf(stderr, "Error in flow 'dests' not found\n");
-        // error
-    }
-
-    if (!config["dests"].is_array()) {
-        fprintf(stderr, "Error in flow 'dests' not type array\n");
-    }
-
-    for (auto it : config["dests"].items()) {
-        if (!it.value().is_number_integer()) {
-            fprintf(stderr, "Error in flow 'dests' element not type integer\n");
-            // error
-        }
-        this->destID = it.value();
-    }
+//flowConfig already validated
+Flow::Flow(json &flowConfig): NetworkObject(flowConfig["id"]) {
+    this->sourceID = flowConfig["source_id"];
+    this->destID = flowConfig["dest"];
 
     this->packetsCreated = 0;
     this->packetsArrived = 0;
@@ -210,11 +173,32 @@ Packet *Flow::createPacket(int ttl, int headSize, int bodySize) {
     return p;
 }
 
-BasicFlow::BasicFlow(json &config): Flow(config) {
+BasicFlow::BasicFlow(json &flowConfig): Flow(validateBasicFlowConfig(flowConfig)) {
     this->time = 0.001;
     this->headSize = 20;
     this->bodySize = 256;
     this->ttl = 15;
+}
+
+json &BasicFlow::validateBasicFlowConfig(json &flowConfig) {
+    string message = "";
+    if (!hasMemberOfType(flowConfig, "id", jsonInt)) {
+        message += "No integer with name 'id'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "source_id", jsonInt)) {
+        message += "No integer with name 'source_id'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "dest", jsonInt)) {
+        message += "No integer with name 'dest'.\n";
+    }
+
+    if (!message.empty()) {
+        message = "Basic Flow:\n" + message + flowConfig.dump(4);
+        throw runtime_error(message);
+    }
+    return flowConfig;
 }
 
 second_t BasicFlow::nextTxTime() {
@@ -244,6 +228,29 @@ void BasicFlow::txPacketEvent() {
 }
 
 #ifdef _TEST
+TestFlow::TestFlow(json &flowConfig): Flow(validateTestFlowConfig(flowConfig)) {}
+
+json &TestFlow::validateTestFlowConfig(json &flowConfig) {
+    string message = "";
+    if (!hasMemberOfType(flowConfig, "id", jsonInt)) {
+        message += "No integer with name 'id'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "source_id", jsonInt)) {
+        message += "No integer with name 'source_id'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "dest", jsonInt)) {
+        message += "No integer with name 'dest'.\n";
+    }
+
+    if (!message.empty()) {
+        message = "Test Flow:\n" + message + flowConfig.dump(4);
+        throw runtime_error(message);
+    }
+    return flowConfig;
+}
+
 second_t TestFlow::nextTxTime() {
     static const second_t min = 0.001, max = 0.01;
 

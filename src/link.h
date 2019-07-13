@@ -42,13 +42,12 @@ class LinkQueue {
 
 class Link: public NetworkObject {
     public:
-        Link(int id, int speed, second_t txTime);
+        Link(json &LinkConfig);
 
-        void addToInterfaces();
+        bool addToInterfaces();
 
         void txPacket(Packet *p, int sourceId);
 
-        bool addDest(int interfaceId);
         bool hasInterface(int ifaceID);
         int removeDest(int interfaceId);
 
@@ -60,6 +59,8 @@ class Link: public NetworkObject {
         bool validate();
 
     private:
+        static int validateLinkConfig(json &linkConfig);
+
         bool validateLinkQueues();
         bool validateVariables();
 

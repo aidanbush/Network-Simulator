@@ -16,7 +16,7 @@ class Packet;
 
 class PacketHandler: public NetworkObject {
     public:
-        PacketHandler(int id, int speed);
+        PacketHandler(json &handlerConfig);
 
         vector<int> getInterfaces();
 
@@ -49,11 +49,11 @@ class PacketHandler: public NetworkObject {
 #ifdef _TEST
 class TestHandler: public PacketHandler {
     public:
-        TestHandler(int id, int internalSpeed): PacketHandler(id, internalSpeed) {; }
+        TestHandler(json testHandlerConfig): PacketHandler(testHandlerConfig) {}
 
-        void rxPacket(Packet *) {; }
+        void rxPacket(Packet *) {}
 
-        bool validate() {return true; }
+        bool validate() {return true;}
 };
 #endif /* _TEST */
 

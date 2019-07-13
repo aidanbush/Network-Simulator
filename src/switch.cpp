@@ -8,12 +8,30 @@
 #include "packet.h"
 #include "packetHandler.h"
 #include "endpoint.h"
+#include "config.h"
 
 using namespace std;
 
 using json = nlohmann::json;
 
-Switch::Switch(int id, int speed): PacketHandler(id, speed) {}
+Switch::Switch(json &switchConfig): PacketHandler(validateSwitchConfig(switchConfig)) {}
+
+json &Switch::validateSwitchConfig(json &switchConfig) {
+    string message = "";
+    if (!hasMemberOfType(switchConfig, "id", jsonInt)) {
+        message += "No integer with name 'id'.\n";
+    }
+
+    if (!hasMemberOfType(switchConfig, "internal_speed", jsonInt)) {
+        message += "No integer with name 'internal_speed'.\n";
+    }
+
+    if (!message.empty()) {
+        message = "Switch:\n" + message + switchConfig.dump(4);
+        throw runtime_error(message);
+    }
+    return switchConfig;
+}
 
 void Switch::rxPacket(Packet *p) {
     int ifaceID = routePacket(p);
@@ -231,7 +249,11 @@ int Switch::testRoutingTableSearch() {
 int testSwitch() {
     static const int s1ID = 1,
                  s1InternalSpeed = 100;
-    Switch *s1 = new Switch(s1ID, s1InternalSpeed);
+    json switchJson = {
+        {"id", s1ID},
+        {"internal_speed", s1InternalSpeed}
+    };
+    Switch *s1 = new Switch(switchJson);
 
     assert(s1->getID() == s1ID);
     assert(s1->getInternalSpeed() == s1InternalSpeed);

@@ -14,7 +14,7 @@ using json = nlohmann::json;
 
 class Switch: public PacketHandler {
     public:
-        Switch(int id, int speed);
+        Switch(json &switchConfig);
 
         void rxPacket(Packet *p);
 
@@ -53,6 +53,9 @@ class Switch: public PacketHandler {
         bool setupRoutingTable();
 
         void printRoutingTable();
+
+    private:
+        static json &validateSwitchConfig(json &switchConfig);
 };
 
 #ifdef _TEST

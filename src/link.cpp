@@ -7,6 +7,7 @@
 #include "packet.h"
 #include "interface.h"
 #include "manager.h"
+#include "config.h"
 
 #define LINK_STR            "Link"
 #define TX_PKT_EVENT_STR    "link tx packet"
@@ -53,12 +54,44 @@ void LinkQueue::txPacket(Packet *p, second_t txTime) {
     }
 }
 
-Link::Link(int id, int speed, second_t txTime): NetworkObject(id) {
-    this->speed = speed;
-    this->txTime = txTime;
+Link::Link(json &linkConfig): NetworkObject(validateLinkConfig(linkConfig)) {
+    this->speed = linkConfig["speed"];
+    this->txTime = linkConfig["time"];
+
+    for (auto it: linkConfig["ifaces"].items()) {
+        LinkQueue lq = LinkQueue(it.value(), id);
+        dests.emplace(it.value(), lq);
+    }
 }
 
-void Link::addToInterfaces() {
+int Link::validateLinkConfig(json &linkConfig) {
+    string message = "";
+    if (!hasMemberOfType(linkConfig, "id", jsonInt)) {
+        message += "No integer with name 'id'.\n";
+    }
+
+    if (!hasMemberOfType(linkConfig, "speed", jsonInt)) {
+        message += "No integer with name 'speed'.\n";
+    }
+
+    if (!hasMemberOfType(linkConfig, "time", jsonDouble)) {
+        message += "No integer with name 'time'.\n";
+    }
+
+    if (!hasMemberOfType(linkConfig, "ifaces", jsonArray)) {
+        message += "No array with name 'ifaces'.\n";
+    } else if (!checkArrayType(linkConfig["ifaces"], jsonInt)) {
+        message += "Array 'ifaces' has non integer entry.\n";
+    }
+
+    if (!message.empty()) {
+        message = "Link:\n" + message + linkConfig.dump(4);
+        throw runtime_error(message);
+    }
+    return linkConfig["id"];
+}
+
+bool Link::addToInterfaces() {
     //TODO: maybe this vector should be stored in the object, it seems weird to create the map from a vector
     // and then throw it away, only to recreate it again here, however this is the only place it is needed
     // so it may be unecessary to store it in memory
@@ -68,8 +101,15 @@ void Link::addToInterfaces() {
     }
     for (int i: neighbours) {
         Interface* interface = man.getInterface(i);
-        interface->setLink(id, neighbours);
+        if (interface == NULL) {
+            return false;
+        }
+
+        if (!interface->setLink(id, neighbours)) {
+            return false;
+        }
     }
+    return true;
 }
 
 int Link::getSpeed() {
@@ -94,19 +134,6 @@ void Link::txPacket(Packet *p, int sourceID) {
             first = false;
         }
     }
-}
-
-bool Link::addDest(int ifaceID) {
-    LinkQueue lq = LinkQueue(ifaceID, id);
-
-    Interface *iface = man.getInterface(ifaceID);
-    if (iface == NULL ||
-            !dests.emplace(ifaceID, lq).second) {
-        return false;
-    }
-
-    iface->setLink(id);
-    return true;
 }
 
 bool Link::hasInterface(int ifaceID) {
@@ -199,17 +226,27 @@ int testLink() {
           l1Speed = 80000;
     const second_t l1TxTime = 0.0005;
 
-    Interface *i1 = new Interface(i1ID, i1HID, i1LBSize, i1HBsize);
+    json interfaceJson = {
+        {"id", i1ID},
+        {"handler_id", i1HID},
+        {"link_buf_size", i1LBSize},
+        {"handler_buf_size", i1HBsize}
+    };
+    Interface *i1 = new Interface(interfaceJson);
     assert(man.addInterface(i1));
 
-    Link *l1 = new Link(l1ID, l1Speed, l1TxTime);
+    json linkJson = {
+        {"id", l1ID},
+        {"speed", l1Speed},
+        {"time", l1TxTime},
+        {"ifaces", {i1ID}}
+    };
+    Link *l1 = new Link(linkJson);
+    l1->addToInterfaces();
     assert(man.addLink(l1));
 
     assert(l1->getID() == l1ID);
     assert(l1->getSpeed() == l1Speed);
-
-    assert(l1->addDest(i1ID));
-    assert(!l1->addDest(i1ID));
 
     assert(l1->removeDest(i1ID));
     assert(!l1->removeDest(i1ID));

@@ -2,18 +2,21 @@
 #include <set>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <iostream>
 
 #include "packetHandler.h"
 #include "interface.h"
 #include "packet.h"
 #include "manager.h"
+#include "config.h"
 
 using namespace std;
 
 using json = nlohmann::json;
 
-PacketHandler::PacketHandler(int id, int speed): NetworkObject(id) {
-    this->internalSpeed = speed;
+//Should only be called by Endpoint or switch constructors which already validate the json
+PacketHandler::PacketHandler(json &handlerConfig): NetworkObject(handlerConfig["id"]) {
+    this->internalSpeed = handlerConfig["internal_speed"];
 }
 
 int PacketHandler::getInternalSpeed() {

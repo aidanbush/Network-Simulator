@@ -13,14 +13,16 @@ class Packet;
 
 class Endpoint: public PacketHandler {
     public:
-        Endpoint(int id, int speed);
+        Endpoint(json &endpointConfig);
         void rxPacket(Packet *p);
         int txPacket(Packet *p);
         bool validate();
-
 #ifdef _TEST
         static int endpointToEndpoint();
 #endif /* _TEST */
+
+    private:
+        static json &validateEndpointConfig(json &endpointConfig);
 };
 
 #ifdef _TEST

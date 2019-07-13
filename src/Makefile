@@ -11,7 +11,6 @@ all: $(BUILD_DIR) $(TARGETS)
 
 test:
 	make -C tests CXXFLAGS="$(CXXFLAGS)"
-	make -C tests clean
 
 test_clean:
 	make -C tests clean

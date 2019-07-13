@@ -5,11 +5,29 @@
 #include "interface.h"
 #include "packet.h"
 #include "packetHandler.h"
+#include "config.h"
 
 using namespace std;
 using json = nlohmann::json;
 
-Endpoint::Endpoint(int id, int speed): PacketHandler(id, speed) {}
+Endpoint::Endpoint(json &endpointConfig): PacketHandler(validateEndpointConfig(endpointConfig)) {}
+
+json &Endpoint::validateEndpointConfig(json &endpointConfig) {
+    string message = "";
+    if (!hasMemberOfType(endpointConfig, "id", jsonInt)) {
+        message += "No integer with name 'id'.\n";
+    }
+
+    if (!hasMemberOfType(endpointConfig, "internal_speed", jsonInt)) {
+        message += "No integer with name 'internal_speed'.\n";
+    }
+
+    if (!message.empty()) {
+        message = "Endpoint:\n" + message + endpointConfig.dump(4);
+        throw runtime_error(message);
+    }
+    return endpointConfig;
+}
 
 void Endpoint::rxPacket(Packet *p) {
     p->arrive();
@@ -72,7 +90,7 @@ int Endpoint::endpointToEndpoint() {
         {"type", "test"},
         {"id", f1ID},
         {"source_id", f1SID},
-        {"dests", {f1DID}},
+        {"dest", f1DID},
     };
 
     Endpoint *e1, *e2;
@@ -83,25 +101,46 @@ int Endpoint::endpointToEndpoint() {
     EventI *e;
 
     // setup network
-    e1 = new Endpoint(e1ID, e1Speed);
-    e2 = new Endpoint(e2ID, e2Speed);
+    json endpointJson1 = {
+        {"id", e1ID},
+        {"internal_speed", e1Speed}
+    };
+    json endpointJson2 = {
+        {"id", e2ID},
+        {"internal_speed", e2Speed}
+    };
+    e1 = new Endpoint(endpointJson1);
+    e2 = new Endpoint(endpointJson2);
 
     assert(man.addEndpoint(e1));
     assert(man.addEndpoint(e2));
 
-    i1 = new Interface(i1ID, e1ID, i1LBuf, i1HBuf);
-    i2 = new Interface(i2ID, e2ID, i2LBuf, i2HBuf);
+    json interfaceJson1 = {
+        {"id", i1ID},
+        {"handler_id", e1ID},
+        {"link_buf_size", i1LBuf},
+        {"handler_buf_size", i1HBuf}
+    };
+    json interfaceJson2 = {
+        {"id", i2ID},
+        {"handler_id", e2ID},
+        {"link_buf_size", i2LBuf},
+        {"handler_buf_size", i2HBuf}
+    };
+    i1 = new Interface(interfaceJson1);
+    i2 = new Interface(interfaceJson2);
 
     assert(man.addInterface(i1));
     assert(man.addInterface(i2));
 
-    l1 = new Link(l1ID, l1Speed, l1TxTime);
-
-    l1->addDest(i1ID);
-    l1->addDest(i2ID);
-
-    i1->setLink(l1ID);
-    i2->setLink(l1ID);
+    json linkJson = {
+        {"id", l1ID},
+        {"speed", l1Speed},
+        {"time", l1TxTime},
+        {"ifaces", {i1ID, i2ID}}
+    };
+    l1 = new Link(linkJson);
+    l1->addToInterfaces();
 
     assert(man.addLink(l1));
 
@@ -135,7 +174,11 @@ int Endpoint::endpointToEndpoint() {
 int testEndpoint() {
     const int e1ID = 1,
           e1Speed = 120;
-    Endpoint *e1 = new Endpoint(e1ID, e1Speed);
+    json endpointJson = {
+        {"id", e1ID},
+        {"internal_speed", e1Speed}
+    };
+    Endpoint *e1 = new Endpoint(endpointJson);
 
     assert(e1->getID() == e1ID);
     assert(e1->getInternalSpeed() == e1Speed);
