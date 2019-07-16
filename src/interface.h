@@ -48,11 +48,11 @@ class Interface: public NetworkObject {
         int linkID;
         int handlerID;
 
-        int linkBufSize; // bytes
-        int handlerBufSize; // bytes
+        int outBufSize; // bytes
+        int inBufSize; // bytes
 
-        queue<Packet*> linkBuffer;
-        queue<Packet*> handlerBuffer;
+        queue<Packet*> outBuffer;
+        queue<Packet*> inBuffer;
 };
 
 #ifdef _TEST
