@@ -63,34 +63,34 @@ bool Endpoint::validate() {
 #include "link.h"
 
 int Endpoint::endpointToEndpoint() {
-    const int e1ID = 1,
+    const int e1Id = 1,
           e1Speed = 1000,
-          e2ID = 2,
+          e2Id = 2,
           e2Speed = 1000;
-    const int i1ID = 1,
+    const int i1Id = 1,
           i1LBuf = 1000,
           i1HBuf = 1000;
-    const int i2ID = 2,
+    const int i2Id = 2,
           i2LBuf = 1000,
           i2HBuf = 1000;
-    const int l1ID = 1,
+    const int l1Id = 1,
           l1Speed = 1600000;
     const second_t l1TxTime = 0.01;
-    const int p1ID = 1,
-          p1SID = 1,
-          p1DID = 2,
+    const int p1Id = 1,
+          p1SId = 1,
+          p1DId = 2,
           p1TTL = 10,
           p1HSize = 50,
           p1BSize = 100;
-    const int f1ID = 1,
-          f1SID = e1ID,
-          f1DID = e2ID;
+    const int f1Id = 1,
+          f1SId = e1Id,
+          f1DId = e2Id;
 
     json f1C = {
         {"type", "test"},
-        {"id", f1ID},
-        {"source_id", f1SID},
-        {"dest", f1DID},
+        {"id", f1Id},
+        {"source_id", f1SId},
+        {"dest", f1DId},
     };
 
     Endpoint *e1, *e2;
@@ -102,11 +102,11 @@ int Endpoint::endpointToEndpoint() {
 
     // setup network
     json endpointJson1 = {
-        {"id", e1ID},
+        {"id", e1Id},
         {"internal_speed", e1Speed}
     };
     json endpointJson2 = {
-        {"id", e2ID},
+        {"id", e2Id},
         {"internal_speed", e2Speed}
     };
     e1 = new Endpoint(endpointJson1);
@@ -116,16 +116,16 @@ int Endpoint::endpointToEndpoint() {
     assert(man.addEndpoint(e2));
 
     json interfaceJson1 = {
-        {"id", i1ID},
-        {"handler_id", e1ID},
-        {"link_buf_size", i1LBuf},
-        {"handler_buf_size", i1HBuf}
+        {"id", i1Id},
+        {"handler_id", e1Id},
+        {"out_buf_size", i1LBuf},
+        {"in_buf_size", i1HBuf}
     };
     json interfaceJson2 = {
-        {"id", i2ID},
-        {"handler_id", e2ID},
-        {"link_buf_size", i2LBuf},
-        {"handler_buf_size", i2HBuf}
+        {"id", i2Id},
+        {"handler_id", e2Id},
+        {"out_buf_size", i2LBuf},
+        {"in_buf_size", i2HBuf}
     };
     i1 = new Interface(interfaceJson1);
     i2 = new Interface(interfaceJson2);
@@ -134,10 +134,10 @@ int Endpoint::endpointToEndpoint() {
     assert(man.addInterface(i2));
 
     json linkJson = {
-        {"id", l1ID},
+        {"id", l1Id},
         {"speed", l1Speed},
         {"time", l1TxTime},
-        {"ifaces", {i1ID, i2ID}}
+        {"ifaces", {i1Id, i2Id}}
     };
     l1 = new Link(linkJson);
     l1->addToInterfaces();
@@ -148,10 +148,10 @@ int Endpoint::endpointToEndpoint() {
 
     assert(man.addFlow(f1));
 
-    p1 = new Packet(p1ID, p1SID, p1DID, f1ID, p1TTL, p1HSize, p1BSize);
+    p1 = new Packet(p1Id, p1SId, p1DId, f1Id, p1TTL, p1HSize, p1BSize);
 
-    e1->addInterface(e2ID, i1ID);
-    e2->addInterface(e1ID, i2ID);
+    e1->addInterface(e2Id, i1Id);
+    e2->addInterface(e1Id, i2Id);
 
     // add to endpoint 1
     e1->txPacket(p1);
@@ -172,15 +172,15 @@ int Endpoint::endpointToEndpoint() {
 }
 
 int testEndpoint() {
-    const int e1ID = 1,
+    const int e1Id = 1,
           e1Speed = 120;
     json endpointJson = {
-        {"id", e1ID},
+        {"id", e1Id},
         {"internal_speed", e1Speed}
     };
     Endpoint *e1 = new Endpoint(endpointJson);
 
-    assert(e1->getID() == e1ID);
+    assert(e1->getId() == e1Id);
     assert(e1->getInternalSpeed() == e1Speed);
 
     delete e1;

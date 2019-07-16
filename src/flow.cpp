@@ -64,8 +64,8 @@ Flow *createFlow(json &flowConfig) {
 
 //flowConfig already validated
 Flow::Flow(json &flowConfig): NetworkObject(flowConfig["id"]) {
-    this->sourceID = flowConfig["source_id"];
-    this->destID = flowConfig["dest"];
+    this->sourceId = flowConfig["source_id"];
+    this->destId = flowConfig["dest"];
 
     this->packetsCreated = 0;
     this->packetsArrived = 0;
@@ -127,7 +127,7 @@ int Flow::getPacketsErrored() {
 }
 
 bool Flow::validateSource() {
-    if (man.getEndpoint(sourceID) == NULL) {
+    if (man.getEndpoint(sourceId) == NULL) {
         fprintf(stderr, "Flow: endpoint of flow %d is missing\n", id);
         return false;
     }
@@ -136,9 +136,9 @@ bool Flow::validateSource() {
 }
 
 bool Flow::validateDest() {
-    Endpoint *endpoint = man.getEndpoint(destID);
+    Endpoint *endpoint = man.getEndpoint(destId);
     if (endpoint == NULL) {
-        fprintf(stderr, "Flow: destination %d of flow %d is missing\n", destID, id);
+        fprintf(stderr, "Flow: destination %d of flow %d is missing\n", destId, id);
         return false;
     }
 
@@ -162,7 +162,7 @@ bool Flow::validate() {
 Packet *Flow::createPacket(int ttl, int headSize, int bodySize) {
     int pId = newPacketId();
 
-    Packet *p = new Packet(pId, sourceID, destID, id, ttl, headSize, bodySize);
+    Packet *p = new Packet(pId, sourceId, destId, id, ttl, headSize, bodySize);
 
     if (!addPacket(p)) {
         delete p;
@@ -212,12 +212,12 @@ void BasicFlow::startFlow() {
 }
 
 void BasicFlow::txPacketEvent() {
-    Endpoint *endpoint = man.getEndpoint(sourceID);
+    Endpoint *endpoint = man.getEndpoint(sourceId);
     // TODO test for error
 
     Packet *p = createPacket(ttl, headSize, bodySize);
 
-    man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceID, p);
+    man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceId, p);
 
     endpoint->txPacket(p);
 
@@ -270,12 +270,12 @@ void TestFlow::txPacketEvent() {
     int hSize = hMin + rand() % (hMax - hMin);
     int bSize = bMin + rand() % (bMax - bMin);
 
-    Endpoint *endpoint = man.getEndpoint(sourceID);
+    Endpoint *endpoint = man.getEndpoint(sourceId);
     // todo test for error
 
     Packet *p = createPacket(ttl, hSize, bSize);
 
-    man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceID, p);
+    man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceId, p);
 
     endpoint->txPacket(p);
 

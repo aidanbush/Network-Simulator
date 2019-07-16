@@ -21,9 +21,9 @@ class PacketHandler: public NetworkObject {
         vector<int> getInterfaces();
 
         bool addInterface(int destId, int interfaceId);
-        bool addInterfaceConfig(int ifaceID);
+        bool addInterfaceConfig(int ifaceId);
 
-        bool hasInterface(int ifaceID);
+        bool hasInterface(int ifaceId);
 
         void removeInterface(int interfaceId);
 

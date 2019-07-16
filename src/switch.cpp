@@ -34,24 +34,24 @@ json &Switch::validateSwitchConfig(json &switchConfig) {
 }
 
 void Switch::rxPacket(Packet *p) {
-    int ifaceID = routePacket(p);
+    int ifaceId = routePacket(p);
 
-    Interface *iface = man.getInterface(ifaceID);
+    Interface *iface = man.getInterface(ifaceId);
 
     iface->rxHandler(p);
 }
 
 int Switch::routePacket(Packet *p) {
-    auto destID = routingTable.find(p->getDest());
-    if (destID == routingTable.end()) {
+    auto destId = routingTable.find(p->getDest());
+    if (destId == routingTable.end()) {
         // TODO handle error
     }
 
-    return destID->second;
+    return destId->second;
 }
 
-int Switch::getInterfaceID(int destID) {
-    auto elem = interfaces.find(destID);
+int Switch::getInterfaceId(int destId) {
+    auto elem = interfaces.find(destId);
     if (elem == interfaces.end()) {
         return -1;
     }
@@ -60,9 +60,9 @@ int Switch::getInterfaceID(int destID) {
 }
 
 // time / speed
-double Switch::txCost(Switch *source, int destID) {
-    int ifaceID = source->getInterfaceID(destID);
-    Interface *iface = man.getInterface(ifaceID);
+double Switch::txCost(Switch *source, int destId) {
+    int ifaceId = source->getInterfaceId(destId);
+    Interface *iface = man.getInterface(ifaceId);
 
     return Switch::txCost(iface);
 }
@@ -79,14 +79,14 @@ void Switch::initializeNeighbours(priority_queue<routingSearchElem> &fringe,
 
     map<int, int> neighbours = netSwitch->interfaces;
 
-    for (auto const& [handlerID, ifaceID] : neighbours) {
-        iface = man.getInterface(ifaceID);
+    for (auto const& [handlerId, ifaceId] : neighbours) {
+        iface = man.getInterface(ifaceId);
         cost = Switch::txCost(iface);
 
         newElem = {
             .cost = cost,
-            .curID = handlerID,
-            .firstID = ifaceID,
+            .curId = handlerId,
+            .firstId = ifaceId,
         };
 
         fringe.push(newElem);
@@ -96,7 +96,7 @@ void Switch::initializeNeighbours(priority_queue<routingSearchElem> &fringe,
 // only add neighbours ir switch
 void Switch::addNeighbours(priority_queue<routingSearchElem> &fringe,
         set<int> &explored, routingSearchElem curElem) {
-    Switch *netSwitch = man.getSwitch(curElem.curID);// = dynamic_cast<Switch *>(curElem.handler);
+    Switch *netSwitch = man.getSwitch(curElem.curId);
     if (netSwitch == NULL) {
         return;
     }
@@ -105,18 +105,18 @@ void Switch::addNeighbours(priority_queue<routingSearchElem> &fringe,
     double cost;
     routingSearchElem newElem;
 
-    for (int neighbourID : neighbours) {
-        if (explored.find(neighbourID) != explored.end()) {
+    for (int neighbourId : neighbours) {
+        if (explored.find(neighbourId) != explored.end()) {
             continue;
         }
 
-        cost = Switch::txCost(netSwitch, neighbourID) + curElem.cost;
+        cost = Switch::txCost(netSwitch, neighbourId) + curElem.cost;
 
         // add to
         newElem = {
             .cost = cost,
-            .curID = neighbourID,
-            .firstID = curElem.firstID,
+            .curId = neighbourId,
+            .firstId = curElem.firstId,
         };
 
         fringe.push(newElem);
@@ -139,14 +139,13 @@ bool Switch::setupRoutingTable() {
         fringe.pop();
 
         // continue if not new element
-        if (!explored.insert(curElem.curID).second) {
+        if (!explored.insert(curElem.curId).second) {
             continue;
         }
 
-        //if (dynamic_cast<Endpoint *>(elem.second.handler) != NULL) {
-        if (man.getEndpoint(curElem.curID) != NULL) {
-            routingTable.insert(pair<int, int>(curElem.curID, curElem.firstID));
-        } else if (man.getSwitch(curElem.curID) != NULL) {
+        if (man.getEndpoint(curElem.curId) != NULL) {
+            routingTable.insert(pair<int, int>(curElem.curId, curElem.firstId));
+        } else if (man.getSwitch(curElem.curId) != NULL) {
             Switch::addNeighbours(fringe, explored, curElem);
         } else {
             // TODO: handle error
@@ -247,15 +246,15 @@ int Switch::testRoutingTableSearch() {
 }
 
 int testSwitch() {
-    static const int s1ID = 1,
+    static const int s1Id = 1,
                  s1InternalSpeed = 100;
     json switchJson = {
-        {"id", s1ID},
+        {"id", s1Id},
         {"internal_speed", s1InternalSpeed}
     };
     Switch *s1 = new Switch(switchJson);
 
-    assert(s1->getID() == s1ID);
+    assert(s1->getId() == s1Id);
     assert(s1->getInternalSpeed() == s1InternalSpeed);
 
     delete s1;

@@ -20,7 +20,7 @@ class Switch: public PacketHandler {
 
         bool initSwitch();
 
-        int getInterfaceID(int destID);
+        int getInterfaceId(int destId);
 
         bool validate();
 
@@ -31,18 +31,18 @@ class Switch: public PacketHandler {
     protected:
         struct routingSearchElem {
             double cost;
-            int curID;
-            int firstID;
+            int curId;
+            int firstId;
             friend bool operator<(const routingSearchElem lhs, const routingSearchElem rhs) {
                 return lhs.cost > rhs.cost;
             }
         };
 
-        map<int, int> routingTable; // dest ID to interface ID
+        map<int, int> routingTable; // dest Id to interface Id
 
         int routePacket(Packet *p);
 
-        static double txCost(Switch *source, int destID);
+        static double txCost(Switch *source, int destId);
         static double txCost(Interface *iface);
 
         static void initializeNeighbours(priority_queue<routingSearchElem> &fringe,

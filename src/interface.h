@@ -19,7 +19,7 @@ class Interface: public NetworkObject {
     public:
         Interface(json &interfaceConfig);
         bool setLink(int linkId, vector<int> neighbours);
-        int getLinkID();
+        int getLinkId();
 
         void txLinkEvent();
         void txHandlerEvent();
@@ -30,7 +30,7 @@ class Interface: public NetworkObject {
         int getLinkSpeed();
         second_t getLinkTxTime();
 
-        int getHandlerID();
+        int getHandlerId();
         set<int> getNeighbours();
 
         bool validate();
@@ -45,14 +45,14 @@ class Interface: public NetworkObject {
         bool validateLink();
         bool validateVariables();
 
-        int linkID;
-        int handlerID;
+        int linkId;
+        int handlerId;
 
-        int linkBufSize; // bytes
-        int handlerBufSize; // bytes
+        int outBufSize; // bytes
+        int inBufSize; // bytes
 
-        queue<Packet*> linkBuffer;
-        queue<Packet*> handlerBuffer;
+        queue<Packet*> outBuffer;
+        queue<Packet*> inBuffer;
 };
 
 #ifdef _TEST
