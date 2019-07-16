@@ -57,10 +57,10 @@ bool Interface::setLink(int linkId, vector<int> neighbours) {
     this->linkId = linkId;
 
     // For every neighbouring interface add the neighbour's handler as a neighbour to this interface's handler
-    PacketHandler* packetHandler = man.getHandler(handlerId);
+    PacketHandler *packetHandler = man.getHandler(handlerId);
     for (int i: neighbours) {
         if (i != id) {
-            Interface* neighbour = man.getInterface(i);
+            Interface *neighbour = man.getInterface(i);
             if (neighbour == NULL) {
                 return false;
             }
