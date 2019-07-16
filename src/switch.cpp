@@ -96,7 +96,7 @@ void Switch::initializeNeighbours(priority_queue<routingSearchElem> &fringe,
 // only add neighbours ir switch
 void Switch::addNeighbours(priority_queue<routingSearchElem> &fringe,
         set<int> &explored, routingSearchElem curElem) {
-    Switch *netSwitch = man.getSwitch(curElem.curId);// = dynamic_cast<Switch *>(curElem.handler);
+    Switch *netSwitch = man.getSwitch(curElem.curId);
     if (netSwitch == NULL) {
         return;
     }
@@ -143,7 +143,6 @@ bool Switch::setupRoutingTable() {
             continue;
         }
 
-        //if (dynamic_cast<Endpoint *>(elem.second.handler) != NULL) {
         if (man.getEndpoint(curElem.curId) != NULL) {
             routingTable.insert(pair<int, int>(curElem.curId, curElem.firstId));
         } else if (man.getSwitch(curElem.curId) != NULL) {
