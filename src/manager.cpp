@@ -94,23 +94,23 @@ Interface *Manager::getInterface(int id) {
 }
 
 // link
-bool Manager::addLink(Link *link) {
-    int id = link->getId();
+bool Manager::addLink(Link *netLink) {
+    int id = netLink->getId();
 
-    if (link == NULL) {
+    if (netLink == NULL) {
         return false;
     }
 
-    return links.emplace(id, link).second;
+    return links.emplace(id, netLink).second;
 }
 
 Link *Manager::getLink(int id) {
-    auto link = links.find(id);
-    if (link == links.end()) {
+    auto netLink = links.find(id);
+    if (netLink == links.end()) {
         return NULL;
     }
 
-    return link->second;
+    return netLink->second;
 }
 
 // flow
@@ -162,8 +162,8 @@ void Manager::deleteInterfaces() {
 }
 
 void Manager::deleteLinks() {
-    for (auto [id, link] : links) {
-        delete link;
+    for (auto [id, netLink] : links) {
+        delete netLink;
     }
 
     links.clear();

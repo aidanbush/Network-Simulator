@@ -74,13 +74,13 @@ bool Interface::setLink(int linkId, vector<int> neighbours) {
 }
 
 int Interface::getLinkSpeed() {
-    Link *link = man.getLink(linkId);
-    return link->getSpeed();
+    Link *netLink = man.getLink(linkId);
+    return netLink->getSpeed();
 }
 
 second_t Interface::getLinkTxTime() {
-    Link *link = man.getLink(linkId);
-    return link->getTxTime();
+    Link *netLink = man.getLink(linkId);
+    return netLink->getTxTime();
 }
 
 void Interface::txLinkEvent() {
@@ -91,12 +91,11 @@ void Interface::txLinkEvent() {
 
     outBufSize += p->fullSize();
 
-    Link *link = man.getLink(linkId);
-    link->txPacket(p, id);
+    Link *netLink = man.getLink(linkId);
+    netLink->txPacket(p, id);
 
     if (!outBuffer.empty()) {
-        second_t nextTx = man.time + double(outBuffer.front()->fullSizeBits())
-            / link->getSpeed();
+        second_t nextTx = man.time + double(outBuffer.front()->fullSizeBits()) / netLink->getSpeed();
         EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
         man.pushEvent(e);
     }
@@ -152,9 +151,9 @@ void Interface::rxHandler(Packet *p) {
 
     // if only one element add event
     if (outBuffer.size() == 1) {
-        Link *link = man.getLink(linkId);
+        Link *netLink = man.getLink(linkId);
 
-        second_t nextTx = man.time + double(p->fullSizeBits()) / link->getSpeed();
+        second_t nextTx = man.time + double(p->fullSizeBits()) / netLink->getSpeed();
         EventI *e = new Event<Interface>(nextTx, &Interface::txLinkEvent, this);
         man.pushEvent(e);
     }
@@ -166,9 +165,9 @@ int Interface::getHandlerId() {
 
 set<int> Interface::getNeighbours() {
     set<int> neighbours;
-    Link *link = man.getLink(linkId);
+    Link *netLink = man.getLink(linkId);
 
-    neighbours = link->getNeighbours();
+    neighbours = netLink->getNeighbours();
     neighbours.erase(handlerId);
 
     return neighbours;
@@ -192,8 +191,8 @@ bool Interface::validateHandler() {
 }
 
 bool Interface::validateLink() {
-    Link *link = man.getLink(linkId);
-    if (link == NULL) {
+    Link *netLink = man.getLink(linkId);
+    if (netLink == NULL) {
         fprintf(stderr, "Interface: link %d of interface %d is missing\n",
                 linkId, id);
         return false;
@@ -201,7 +200,7 @@ bool Interface::validateLink() {
 
     bool valid = true;
 
-    if (!link->hasInterface(id)) {
+    if (!netLink->hasInterface(id)) {
         fprintf(stderr, "Interface: link %d does not know of interface %d\n",
                 linkId, id);
         valid = false;
