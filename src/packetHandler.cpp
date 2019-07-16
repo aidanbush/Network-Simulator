@@ -32,31 +32,31 @@ void PacketHandler::removeInterface(int interfaceId) {
     }
 }
 
-bool PacketHandler::addInterface(int destID, int interfaceID) {
-    return interfaces.emplace(destID, interfaceID).second;
+bool PacketHandler::addInterface(int destId, int interfaceId) {
+    return interfaces.emplace(destId, interfaceId).second;
 }
 
-bool PacketHandler::addInterfaceConfig(int ifaceID) {
-    int destID, lowest;
+bool PacketHandler::addInterfaceConfig(int ifaceId) {
+    int destId, lowest;
 
     if (interfaces.empty()) {
-        destID = -1;
+        destId = -1;
     } else {
         lowest = interfaces.begin()->first;
 
         if (lowest >= 0) {
-            destID = -1;
+            destId = -1;
         } else {
-            destID = lowest - 1;
+            destId = lowest - 1;
         }
     }
 
-    return interfaces.emplace(destID, ifaceID).second;
+    return interfaces.emplace(destId, ifaceId).second;
 }
 
-bool PacketHandler::hasInterface(int ifaceID) {
+bool PacketHandler::hasInterface(int ifaceId) {
     for (auto& it : interfaces) {
-        if (it.second == ifaceID) {
+        if (it.second == ifaceId) {
             return true;
         }
     }
@@ -87,25 +87,25 @@ vector<int> PacketHandler::getNeighbours() {
 
 bool PacketHandler::connectNeighbours() {
     // for each interface until past negative neighbour ids
-    set<int> ifaceIDs;
+    set<int> ifaceIds;
 
     auto it = interfaces.begin();
     while (it != interfaces.end()) {
         if (it->first < 0) {
-            ifaceIDs.insert(it->second);
+            ifaceIds.insert(it->second);
             it = interfaces.erase(it);
         } else {
             it++;
         }
     }
 
-    for (int ifaceID : ifaceIDs) {
+    for (int ifaceId : ifaceIds) {
         // add neighbours
-        Interface *iface = man.getInterface(ifaceID);
+        Interface *iface = man.getInterface(ifaceId);
         set<int> neighbours = iface->getNeighbours();
 
-        for (int destID : neighbours) {
-            interfaces.emplace(destID, ifaceID);
+        for (int destId : neighbours) {
+            interfaces.emplace(destId, ifaceId);
         }
     }
 
@@ -140,7 +140,7 @@ bool PacketHandler::validateInterfaces() {
                     it.second, id);
             valid = false;
         } else {
-            if (!(iface->getHandlerID() == id)) {
+            if (!(iface->getHandlerId() == id)) {
                 fprintf(stderr, "Handler: interface %d, does not know of handler %d\n",
                         it.second, id);
                 valid = false;

@@ -46,8 +46,8 @@ class Flow: public NetworkObject {
         int curPId;
 
         map<int, Packet *> packets;
-        int sourceID;
-        int destID;
+        int sourceId;
+        int destId;
 
         virtual second_t nextTxTime() = 0;
 
