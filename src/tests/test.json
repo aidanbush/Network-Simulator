@@ -27,63 +27,63 @@
         {
             "id": 0,
             "handler_id": 0,
-            "link_buf_size": 1,
-            "handler_buf_size": 1
+            "out_buf_size": 1,
+            "in_buf_size": 1
         }, {
             "id": 1,
             "handler_id": 1,
-            "link_buf_size": 1,
-            "handler_buf_size": 1
+            "out_buf_size": 1,
+            "in_buf_size": 1
         }, {
             "id": 2,
             "handler_id": 2,
-            "link_buf_size": 1,
-            "handler_buf_size": 1
+            "out_buf_size": 1,
+            "in_buf_size": 1
         }, {
             "id": 3,
             "handler_id": 3,
-            "link_buf_size": 1,
-            "handler_buf_size": 1
+            "out_buf_size": 1,
+            "in_buf_size": 1
         }, {
             "id": 4,
             "handler_id": 3,
-            "link_buf_size": 1,
-            "handler_buf_size": 1
+            "out_buf_size": 1,
+            "in_buf_size": 1
         }, {
             "id": 5,
             "handler_id": 3,
-            "link_buf_size": 1,
-            "handler_buf_size": 1
+            "out_buf_size": 1,
+            "in_buf_size": 1
         }, {
             "id": 6,
             "handler_id": 4,
-            "link_buf_size": 1,
-            "handler_buf_size": 1
+            "out_buf_size": 1,
+            "in_buf_size": 1
         }, {
             "id": 7,
             "handler_id": 4,
-            "link_buf_size": 1,
-            "handler_buf_size": 1
+            "out_buf_size": 1,
+            "in_buf_size": 1
         }, {
             "id": 8,
             "handler_id": 4,
-            "link_buf_size": 1,
-            "handler_buf_size": 1
+            "out_buf_size": 1,
+            "in_buf_size": 1
         }, {
             "id": 9,
             "handler_id": 5,
-            "link_buf_size": 1,
-            "handler_buf_size": 1
+            "out_buf_size": 1,
+            "in_buf_size": 1
         }, {
             "id": 10,
             "handler_id": 5,
-            "link_buf_size": 1,
-            "handler_buf_size": 1
+            "out_buf_size": 1,
+            "in_buf_size": 1
         }, {
             "id": 11,
             "handler_id": 5,
-            "link_buf_size": 1,
-            "handler_buf_size": 1
+            "out_buf_size": 1,
+            "in_buf_size": 1
         }
     ],
     "links": [

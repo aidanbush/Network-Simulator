@@ -229,8 +229,8 @@ int testLink() {
     json interfaceJson = {
         {"id", i1Id},
         {"handler_id", i1HId},
-        {"link_buf_size", i1LBSize},
-        {"handler_buf_size", i1HBsize}
+        {"out_buf_size", i1LBSize},
+        {"in_buf_size", i1HBsize}
     };
     Interface *i1 = new Interface(interfaceJson);
     assert(man.addInterface(i1));

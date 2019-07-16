@@ -118,14 +118,14 @@ int Endpoint::endpointToEndpoint() {
     json interfaceJson1 = {
         {"id", i1Id},
         {"handler_id", e1Id},
-        {"link_buf_size", i1LBuf},
-        {"handler_buf_size", i1HBuf}
+        {"out_buf_size", i1LBuf},
+        {"in_buf_size", i1HBuf}
     };
     json interfaceJson2 = {
         {"id", i2Id},
         {"handler_id", e2Id},
-        {"link_buf_size", i2LBuf},
-        {"handler_buf_size", i2HBuf}
+        {"out_buf_size", i2LBuf},
+        {"in_buf_size", i2HBuf}
     };
     i1 = new Interface(interfaceJson1);
     i2 = new Interface(interfaceJson2);
