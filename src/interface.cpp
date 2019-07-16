@@ -253,7 +253,7 @@ bool Interface::validate() {
 
 #include "endpoint.h"
 
-int Interface::ifaceToIface() {
+int Interface::interfaceToInterface() {
     const int l1Id = 1,
           l1Speed = 1600000;
     const second_t l1TxTime = 0.01;
@@ -324,7 +324,7 @@ int Interface::ifaceToIface() {
         {"id", l1Id},
         {"speed", l1Speed},
         {"time", l1TxTime},
-        {"ifaces", {i1Id, i2Id}}
+        {"interfaces", {i1Id, i2Id}}
     };
     l1 = new Link(linkJson);
     l1->addToInterfaces();
@@ -427,7 +427,7 @@ int testInterface() {
 
     delete i1;
 
-    return Interface::ifaceToIface();
+    return Interface::interfaceToInterface();
 }
 
 #endif /* _TEST */

@@ -186,67 +186,67 @@
             "id": 1,
             "speed": 57344,
             "time": 0.0001,
-            "ifaces": [1, 5]
+            "interfaces": [1, 5]
         },
         {
             "id": 2,
             "speed": 57344,
             "time": 0.0001,
-            "ifaces": [2, 9]
+            "interfaces": [2, 9]
         },
         {
             "id": 3,
             "speed": 57344,
             "time": 0.0001,
-            "ifaces": [3, 12]
+            "interfaces": [3, 12]
         },
         {
             "id": 4,
             "speed": 57344,
             "time": 0.0001,
-            "ifaces": [4, 18]
+            "interfaces": [4, 18]
         },
         {
             "id": 5,
             "speed": 57344,
             "time": 0.0001,
-            "ifaces": [6, 10]
+            "interfaces": [6, 10]
         },
         {
             "id": 6,
             "speed": 57344,
             "time": 0.0001,
-            "ifaces": [7, 14]
+            "interfaces": [7, 14]
         },
         {
             "id": 7,
             "speed": 57344,
             "time": 0.0001,
-            "ifaces": [8, 20]
+            "interfaces": [8, 20]
         },
         {
             "id": 8,
             "speed": 57344,
             "time": 0.0001,
-            "ifaces": [11, 21]
+            "interfaces": [11, 21]
         },
         {
             "id": 9,
             "speed": 57344,
             "time": 0.0001,
-            "ifaces": [13, 16]
+            "interfaces": [13, 16]
         },
         {
             "id": 10,
             "speed": 57344,
             "time": 0.0001,
-            "ifaces": [15, 19]
+            "interfaces": [15, 19]
         },
         {
             "id": 11,
             "speed": 57344,
             "time": 0.0001,
-            "ifaces": [17, 22]
+            "interfaces": [17, 22]
         }
     ]
 }

@@ -58,7 +58,7 @@ Link::Link(json &linkConfig): NetworkObject(validateLinkConfig(linkConfig)) {
     this->speed = linkConfig["speed"];
     this->txTime = linkConfig["time"];
 
-    for (auto it: linkConfig["ifaces"].items()) {
+    for (auto it: linkConfig["interfaces"].items()) {
         LinkQueue lq = LinkQueue(it.value(), id);
         dests.emplace(it.value(), lq);
     }
@@ -78,10 +78,10 @@ int Link::validateLinkConfig(json &linkConfig) {
         message += "No integer with name 'time'.\n";
     }
 
-    if (!hasMemberOfType(linkConfig, "ifaces", jsonArray)) {
-        message += "No array with name 'ifaces'.\n";
-    } else if (!checkArrayType(linkConfig["ifaces"], jsonInt)) {
-        message += "Array 'ifaces' has non integer entry.\n";
+    if (!hasMemberOfType(linkConfig, "interfaces", jsonArray)) {
+        message += "No array with name 'interfaces'.\n";
+    } else if (!checkArrayType(linkConfig["interfaces"], jsonInt)) {
+        message += "Array 'interfaces' has non integer entry.\n";
     }
 
     if (!message.empty()) {
@@ -136,8 +136,8 @@ void Link::txPacket(Packet *p, int sourceId) {
     }
 }
 
-bool Link::hasInterface(int ifaceId) {
-    return dests.find(ifaceId) != dests.end();
+bool Link::hasInterface(int interfaceId) {
+    return dests.find(interfaceId) != dests.end();
 }
 
 bool Link::removeDest(int interfaceId) {
@@ -146,11 +146,11 @@ bool Link::removeDest(int interfaceId) {
 
 set<int> Link::getNeighbours() {
     set<int> neighbours;
-    Interface *iface;
+    Interface *interface;
 
     for (auto& [id, lQueue] : dests) {
-        iface = man.getInterface(id);
-        neighbours.insert(iface->getHandlerId());
+        interface = man.getInterface(id);
+        neighbours.insert(interface->getHandlerId());
     }
 
     return neighbours;
@@ -159,22 +159,22 @@ set<int> Link::getNeighbours() {
 bool Link::validateLinkQueues() {
     bool valid = true;
 
-    for (auto& [ifaceId, linkQueue] : dests) {
-        if (ifaceId != linkQueue.destId) {
+    for (auto& [interfaceId, linkQueue] : dests) {
+        if (interfaceId != linkQueue.destId) {
             fprintf(stderr, "Link: link dest id %d and linkQueue dest id %d differ\n",
-                    ifaceId, linkQueue.destId);
+                    interfaceId, linkQueue.destId);
             valid = false;
         }
 
-        Interface *iface = man.getInterface(ifaceId);
-        if (iface == NULL) {
+        Interface *interface = man.getInterface(interfaceId);
+        if (interface == NULL) {
             fprintf(stderr, "Link: interface %d of link %d is missing\n",
-                    ifaceId, id);
+                    interfaceId, id);
             valid = false;
         } else {
-            if (!(iface->getLinkId() == id)) {
+            if (!(interface->getLinkId() == id)) {
                 fprintf(stderr, "Link: interface %d does not know of link %d",
-                    ifaceId, id);
+                    interfaceId, id);
                 valid = false;
             }
         }
@@ -238,7 +238,7 @@ int testLink() {
         {"id", l1Id},
         {"speed", l1Speed},
         {"time", l1TxTime},
-        {"ifaces", {i1Id}}
+        {"interfaces", {i1Id}}
     };
     Link *l1 = new Link(linkJson);
     l1->addToInterfaces();
