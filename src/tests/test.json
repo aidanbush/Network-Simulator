@@ -91,32 +91,32 @@
             "id": 0,
             "speed": 1,
             "time": 1,
-            "ifaces": [0, 3]
+            "interfaces": [0, 3]
         }, {
             "id": 1,
             "speed": 1,
             "time": 1,
-            "ifaces": [1, 6]
+            "interfaces": [1, 6]
         }, {
             "id": 2,
             "speed": 1,
             "time": 1,
-            "ifaces": [2, 9]
+            "interfaces": [2, 9]
         }, {
             "id": 3,
             "speed": 1,
             "time": 1,
-            "ifaces": [4, 7]
+            "interfaces": [4, 7]
         }, {
             "id": 4,
             "speed": 1,
             "time": 1,
-            "ifaces": [8, 11]
+            "interfaces": [8, 11]
         }, {
             "id": 5,
             "speed": 1,
             "time": 1,
-            "ifaces": [10, 5]
+            "interfaces": [10, 5]
         }
     ],
     "flows": [

@@ -34,11 +34,11 @@ json &Switch::validateSwitchConfig(json &switchConfig) {
 }
 
 void Switch::rxPacket(Packet *p) {
-    int ifaceId = routePacket(p);
+    int interfaceId = routePacket(p);
 
-    Interface *iface = man.getInterface(ifaceId);
+    Interface *interface = man.getInterface(interfaceId);
 
-    iface->rxHandler(p);
+    interface->rxHandler(p);
 }
 
 int Switch::routePacket(Packet *p) {
@@ -61,32 +61,32 @@ int Switch::getInterfaceId(int destId) {
 
 // time / speed
 double Switch::txCost(Switch *source, int destId) {
-    int ifaceId = source->getInterfaceId(destId);
-    Interface *iface = man.getInterface(ifaceId);
+    int interfaceId = source->getInterfaceId(destId);
+    Interface *interface = man.getInterface(interfaceId);
 
-    return Switch::txCost(iface);
+    return Switch::txCost(interface);
 }
 
-double Switch::txCost(Interface *iface) {
-    return iface->getLinkTxTime() / iface->getLinkSpeed();
+double Switch::txCost(Interface *interface) {
+    return interface->getLinkTxTime() / interface->getLinkSpeed();
 }
 
 void Switch::initializeNeighbours(priority_queue<routingSearchElem> &fringe,
         Switch *netSwitch) {
     double cost;
     routingSearchElem newElem;
-    Interface *iface;
+    Interface *interface;
 
     map<int, int> neighbours = netSwitch->interfaces;
 
-    for (auto const& [handlerId, ifaceId] : neighbours) {
-        iface = man.getInterface(ifaceId);
-        cost = Switch::txCost(iface);
+    for (auto const& [handlerId, interfaceId] : neighbours) {
+        interface = man.getInterface(interfaceId);
+        cost = Switch::txCost(interface);
 
         newElem = {
             .cost = cost,
             .curId = handlerId,
-            .firstId = ifaceId,
+            .firstId = interfaceId,
         };
 
         fringe.push(newElem);

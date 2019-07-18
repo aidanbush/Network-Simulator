@@ -48,7 +48,7 @@ class Link: public NetworkObject {
 
         void txPacket(Packet *p, int sourceId);
 
-        bool hasInterface(int ifaceId);
+        bool hasInterface(int interfaceId);
         bool removeDest(int interfaceId);
 
         int getSpeed();

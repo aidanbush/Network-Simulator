@@ -34,15 +34,15 @@ void Endpoint::rxPacket(Packet *p) {
 }
 
 int Endpoint::txPacket(Packet *p) {
-    auto ifaceIt = interfaces.begin();
-    if (ifaceIt == interfaces.end()) {
+    auto interfaceIt = interfaces.begin();
+    if (interfaceIt == interfaces.end()) {
         fprintf(stderr, "interface not found to transmit packet on\n");
         return 0;
     }
 
-    Interface *iface = man.getInterface(ifaceIt->second);
+    Interface *interface = man.getInterface(interfaceIt->second);
 
-    iface->rxHandler(p);
+    interface->rxHandler(p);
     return 1;
 }
 
@@ -137,7 +137,7 @@ int Endpoint::endpointToEndpoint() {
         {"id", l1Id},
         {"speed", l1Speed},
         {"time", l1TxTime},
-        {"ifaces", {i1Id, i2Id}}
+        {"interfaces", {i1Id, i2Id}}
     };
     l1 = new Link(linkJson);
     l1->addToInterfaces();

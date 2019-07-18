@@ -43,7 +43,7 @@ class Switch: public PacketHandler {
         int routePacket(Packet *p);
 
         static double txCost(Switch *source, int destId);
-        static double txCost(Interface *iface);
+        static double txCost(Interface *interface);
 
         static void initializeNeighbours(priority_queue<routingSearchElem> &fringe,
                 Switch *netSwitch);

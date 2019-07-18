@@ -36,7 +36,7 @@ class Interface: public NetworkObject {
         bool validate();
 
 #ifdef _TEST
-        static int ifaceToIface();
+        static int interfaceToInterface();
 #endif /* _TEST */
     private:
         static int validateInterfaceConfig(json &interfaceConfig);

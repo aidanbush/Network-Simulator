@@ -154,8 +154,8 @@ void Manager::deleteHandlers() {
 }
 
 void Manager::deleteInterfaces() {
-    for (auto [id, iface] : interfaces) {
-        delete iface;
+    for (auto [id, interface] : interfaces) {
+        delete interface;
     }
 
     interfaces.clear();
