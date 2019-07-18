@@ -100,7 +100,7 @@ bool Link::addToInterfaces() {
         neighbours.push_back(it.first);
     }
     for (int i: neighbours) {
-        Interface* interface = man.getInterface(i);
+        Interface *interface = man.getInterface(i);
         if (interface == NULL) {
             return false;
         }

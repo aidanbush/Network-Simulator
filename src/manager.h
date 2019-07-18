@@ -26,8 +26,8 @@ struct EventI {
 
 template <typename T> struct Event: EventI {
     void (T::*fcnPtr)();
-    T* obj;
-    Event(second_t t, void (T::*fp)(), T* o) {
+    T *obj;
+    Event(second_t t, void (T::*fp)(), T *o) {
         this->time = t;
         this->obj = o;
         this->fcnPtr = fp;
@@ -38,7 +38,7 @@ template <typename T> struct Event: EventI {
 };
 
 struct EventQueueComparator {
-    bool operator()(const EventI* lhs, const EventI* rhs) const {
+    bool operator()(const EventI *lhs, const EventI *rhs) const {
         return lhs->time > rhs->time; // Lower time is higher priority
     }
 };

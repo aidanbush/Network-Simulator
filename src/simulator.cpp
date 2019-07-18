@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
     }
 
     while (man.numEvents() > 0 && !exitSim) {
-        EventI* e = man.popEvent();
+        EventI *e = man.popEvent();
         e->call();
         delete e;
 
