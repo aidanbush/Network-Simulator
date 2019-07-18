@@ -63,7 +63,7 @@ class Manager {
         bool addInterface(Interface *interface);
 
         Link *getLink(int id);
-        bool addLink(Link *link);
+        bool addLink(Link *netLink);
 
         Flow *getFlow(int id);
         bool addFlow(Flow *flow);
