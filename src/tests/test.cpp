@@ -1,3 +1,4 @@
+#ifdef _TEST
 #include <stdio.h>
 #include <fstream>
 #include <iostream>
@@ -51,11 +52,16 @@ int main() {
         printf("Switch tests passed\n");
     }
 
-    if (!testConfig()) {
+    try {
+        if (!testConfig()) {
+            printf("Config tests failed\n");
+            errors++;
+        } else {
+            printf("Config tests passed\n");
+        }
+    } catch(...) {
         printf("Config tests failed\n");
         errors++;
-    } else {
-        printf("Config tests passed\n");
     }
 
     if (errors == 0) {
@@ -63,6 +69,7 @@ int main() {
         return 0;
     }
 
-    printf("%d tests failed\n", errors);
+    printf("%d test%s failed\n", errors, errors == 1 ? "" : "s");
     return 1;
 }
+#endif //_TEST

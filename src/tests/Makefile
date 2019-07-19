@@ -17,4 +17,4 @@ test: test_prep test.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEBUG_FLAGS) -o $@ *.o
 
 clean:
-	$(RM) test *.o
+	$(RM) test *.o && $(RM) -r test.dSYM
