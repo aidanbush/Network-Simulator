@@ -1,6 +1,6 @@
 CXX=g++
 CXXFLAGS=-std=c++2a -Wall -Wextra -Wconversion -pedantic
-DEBUG_FLAGS=-g -D_TEST
+DEBUG_FLAGS=-D_TEST
 
 .PHONY: all test_prep clean
 
