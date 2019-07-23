@@ -17,39 +17,64 @@ Manager man;
 int main() {
     int errors = 0;
 
-    if (!testPacket()) {
-        printf("Packet tests failed\n");
-        errors++;
-    } else {
+    try {
+        if (!testPacket()) {
+            printf("Packet tests failed\n");
+            errors++;
+        } else {
+            printf("Packet tests passed\n");
+        }
+    } catch (...) {
         printf("Packet tests passed\n");
+        errors++;
     }
 
-    if (!testLink()) {
+    try {
+        if (!testLink()) {
+            printf("Link tests failed\n");
+            errors++;
+        } else {
+            printf("Link tests passed\n");
+        }
+    } catch (...) {
         printf("Link tests failed\n");
         errors++;
-    } else {
-        printf("Link tests passed\n");
     }
 
-    if (!testInterface()) {
+    try {
+        if (!testInterface()) {
+            printf("Interface tests failed\n");
+            errors++;
+        } else {
+            printf("Interface tests passed\n");
+        }
+    } catch (...) {
         printf("Interface tests failed\n");
         errors++;
-    } else {
-        printf("Interface tests passed\n");
     }
 
-    if (!testEndpoint()) {
+    try {
+        if (!testEndpoint()) {
+            printf("Endpoint tests failed\n");
+            errors++;
+        } else {
+            printf("Endpoint tests passed\n");
+        }
+    } catch (...) {
         printf("Endpoint tests failed\n");
         errors++;
-    } else {
-        printf("Endpoint tests passed\n");
     }
 
-    if (!testSwitch()) {
+    try {
+        if (!testSwitch()) {
+            printf("Switch tests failed\n");
+            errors++;
+        } else {
+            printf("Switch tests passed\n");
+        }
+    } catch (...) {
         printf("Switch tests failed\n");
         errors++;
-    } else {
-        printf("Switch tests passed\n");
     }
 
     try {
@@ -59,7 +84,7 @@ int main() {
         } else {
             printf("Config tests passed\n");
         }
-    } catch(...) {
+    } catch (...) {
         printf("Config tests failed\n");
         errors++;
     }
@@ -72,4 +97,4 @@ int main() {
     printf("%d test%s failed\n", errors, errors == 1 ? "" : "s");
     return 1;
 }
-#endif //_TEST
+#endif /* _TEST */

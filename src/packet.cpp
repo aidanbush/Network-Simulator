@@ -36,7 +36,7 @@ bool Packet::validate() {
 }
 
 #ifdef _TEST
-#include <assert.h>
+#include "tests/throwAssert.h"
 
 bool Packet::fullEqual(Packet *p) {
     return id == p->id &&
@@ -61,21 +61,21 @@ int testPacket() {
     Packet *p1 = new Packet(p1Id, p1SId, p1DId, p1FId, p1TTL, p1HSize, p1BSize);
 
     // test values
-    assert(p1->fullSize() == p1FullSize);
-    assert(p1->getTTL() == p1TTL);
-    assert(p1->getId() == p1Id);
-    assert(p1->getSource() == p1SId);
-    assert(p1->getDest() == p1DId);
+    throwAssert(p1->fullSize() == p1FullSize);
+    throwAssert(p1->getTTL() == p1TTL);
+    throwAssert(p1->getId() == p1Id);
+    throwAssert(p1->getSource() == p1SId);
+    throwAssert(p1->getDest() == p1DId);
 
     // test clone
     Packet *p2 = p1->clone();
 
     // test equal to orignal
-    assert(p1->fullEqual(p2));
+    throwAssert(p1->fullEqual(p2));
 
     // test dec TTL
     p1->decTTL();
-    assert(p1->getTTL() == p1TTL - 1);
+    throwAssert(p1->getTTL() == p1TTL - 1);
 
     delete p1;
     delete p2;

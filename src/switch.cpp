@@ -188,8 +188,8 @@ bool Switch::validate() {
 
 #ifdef _TEST
 
-#include <assert.h>
 #include "config.h"
+#include "tests/throwAssert.h"
 
 int Switch::testRoutingTableSearch() {
     // create network
@@ -199,46 +199,46 @@ int Switch::testRoutingTableSearch() {
 
     // test routes
     Switch *s = man.getSwitch(1);
-    assert(s->routingTable.find(7)->second == 4);
-    assert(s->routingTable.find(8)->second == 1);
-    assert(s->routingTable.find(9)->second == 1);
-    assert(s->routingTable.find(10)->second == 2);
-    assert(s->routingTable.find(11)->second == 3);
+    throwAssert(s->routingTable.find(7)->second == 4);
+    throwAssert(s->routingTable.find(8)->second == 1);
+    throwAssert(s->routingTable.find(9)->second == 1);
+    throwAssert(s->routingTable.find(10)->second == 2);
+    throwAssert(s->routingTable.find(11)->second == 3);
 
     s = man.getSwitch(2);
-    assert(s->routingTable.find(7)->second == 5);
-    assert(s->routingTable.find(8)->second == 7);
-    assert(s->routingTable.find(9)->second == 8);
-    assert(s->routingTable.find(10)->second == 6);
-    assert(s->routingTable.find(11)->second == 5);
+    throwAssert(s->routingTable.find(7)->second == 5);
+    throwAssert(s->routingTable.find(8)->second == 7);
+    throwAssert(s->routingTable.find(9)->second == 8);
+    throwAssert(s->routingTable.find(10)->second == 6);
+    throwAssert(s->routingTable.find(11)->second == 5);
 
     s = man.getSwitch(3);
-    assert(s->routingTable.find(7)->second == 9);
-    assert(s->routingTable.find(8)->second == 10);
-    assert(s->routingTable.find(9)->second == 10);
-    assert(s->routingTable.find(10)->second == 11);
-    assert(s->routingTable.find(11)->second == 9);
+    throwAssert(s->routingTable.find(7)->second == 9);
+    throwAssert(s->routingTable.find(8)->second == 10);
+    throwAssert(s->routingTable.find(9)->second == 10);
+    throwAssert(s->routingTable.find(10)->second == 11);
+    throwAssert(s->routingTable.find(11)->second == 9);
 
     s = man.getSwitch(4);
-    assert(s->routingTable.find(7)->second == 12);
-    assert(s->routingTable.find(8)->second == 12);
-    assert(s->routingTable.find(9)->second == 12);
-    assert(s->routingTable.find(10)->second == 12);
-    assert(s->routingTable.find(11)->second == 13);
+    throwAssert(s->routingTable.find(7)->second == 12);
+    throwAssert(s->routingTable.find(8)->second == 12);
+    throwAssert(s->routingTable.find(9)->second == 12);
+    throwAssert(s->routingTable.find(10)->second == 12);
+    throwAssert(s->routingTable.find(11)->second == 13);
 
     s = man.getSwitch(5);
-    assert(s->routingTable.find(7)->second == 14);
-    assert(s->routingTable.find(8)->second == 15);
-    assert(s->routingTable.find(9)->second == 14);
-    assert(s->routingTable.find(10)->second == 14);
-    assert(s->routingTable.find(11)->second == 14);
+    throwAssert(s->routingTable.find(7)->second == 14);
+    throwAssert(s->routingTable.find(8)->second == 15);
+    throwAssert(s->routingTable.find(9)->second == 14);
+    throwAssert(s->routingTable.find(10)->second == 14);
+    throwAssert(s->routingTable.find(11)->second == 14);
 
     s = man.getSwitch(6);
-    assert(s->routingTable.find(7)->second == 16);
-    assert(s->routingTable.find(8)->second == 16);
-    assert(s->routingTable.find(9)->second == 16);
-    assert(s->routingTable.find(10)->second == 16);
-    assert(s->routingTable.find(11)->second == 17);
+    throwAssert(s->routingTable.find(7)->second == 16);
+    throwAssert(s->routingTable.find(8)->second == 16);
+    throwAssert(s->routingTable.find(9)->second == 16);
+    throwAssert(s->routingTable.find(10)->second == 16);
+    throwAssert(s->routingTable.find(11)->second == 17);
 
     man.deleteNetwork();
 
@@ -254,8 +254,8 @@ int testSwitch() {
     };
     Switch *s1 = new Switch(switchJson);
 
-    assert(s1->getId() == s1Id);
-    assert(s1->getInternalSpeed() == s1InternalSpeed);
+    throwAssert(s1->getId() == s1Id);
+    throwAssert(s1->getInternalSpeed() == s1InternalSpeed);
 
     delete s1;
 

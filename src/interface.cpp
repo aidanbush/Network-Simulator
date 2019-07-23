@@ -248,9 +248,8 @@ bool Interface::validate() {
 }
 
 #ifdef _TEST
-#include <assert.h>
-
 #include "endpoint.h"
+#include "tests/throwAssert.h"
 
 int Interface::interfaceToInterface() {
     const int l1Id = 1,
@@ -337,23 +336,23 @@ int Interface::interfaceToInterface() {
     i1->rxHandler(p1);
 
     // check packet is in buffer
-    assert(i1->outBufSize == i1LBuf - p1->fullSize());
-    assert(i1->outBuffer.size() == 1);
-    assert(i1->outBuffer.front() == p1);
+    throwAssert(i1->outBufSize == i1LBuf - p1->fullSize());
+    throwAssert(i1->outBuffer.size() == 1);
+    throwAssert(i1->outBuffer.front() == p1);
 
     // check event exists and is correct
-    assert(man.numEvents() == 1);
+    throwAssert(man.numEvents() == 1);
 
     // add p2
     i1->rxHandler(p2);
 
     // check packet was added into buffer
-    assert(i1->outBufSize == i1LBuf - (p1->fullSize() + p2->fullSize()));
-    assert(i1->outBuffer.size() == 2);
-    assert(i1->outBuffer.back() == p2);
+    throwAssert(i1->outBufSize == i1LBuf - (p1->fullSize() + p2->fullSize()));
+    throwAssert(i1->outBuffer.size() == 2);
+    throwAssert(i1->outBuffer.back() == p2);
 
     // no new events
-    assert(man.numEvents() == 1);
+    throwAssert(man.numEvents() == 1);
 
     // pop and evaluate event
     e = man.popEvent();
@@ -361,19 +360,19 @@ int Interface::interfaceToInterface() {
     delete e;
 
     // two events one transit other queued
-    assert(man.numEvents() == 2);
+    throwAssert(man.numEvents() == 2);
 
     // check that buffer only holds p2
-    assert(i1->outBufSize == i1LBuf - p2->fullSize());
-    assert(i1->outBuffer.size() == 1);
-    assert(i1->outBuffer.front() == p2);
+    throwAssert(i1->outBufSize == i1LBuf - p2->fullSize());
+    throwAssert(i1->outBuffer.size() == 1);
+    throwAssert(i1->outBuffer.front() == p2);
 
     // move p2 onto link
     e = man.popEvent();
     e->call();
     delete e;
 
-    assert(man.numEvents() == 1);
+    throwAssert(man.numEvents() == 1);
 
     // move p1 from l1 to i2
     e = man.popEvent();
@@ -381,9 +380,9 @@ int Interface::interfaceToInterface() {
     delete e;
 
     // check packet arrived
-    assert(i2->inBufSize == i2HBuf - p1->fullSize());
-    assert(i2->inBuffer.size() == 1);
-    assert(i2->inBuffer.front() == p1);
+    throwAssert(i2->inBufSize == i2HBuf - p1->fullSize());
+    throwAssert(i2->inBuffer.size() == 1);
+    throwAssert(i2->inBuffer.front() == p1);
 
     // move p2 from l1 to i2
     e = man.popEvent();
@@ -391,16 +390,16 @@ int Interface::interfaceToInterface() {
     delete e;
 
     // check packet arrived
-    assert(i2->inBufSize == i2HBuf - (p1->fullSize() + p2->fullSize()));
-    assert(i2->inBuffer.size() == 2);
-    assert(i2->inBuffer.back() == p2);
+    throwAssert(i2->inBufSize == i2HBuf - (p1->fullSize() + p2->fullSize()));
+    throwAssert(i2->inBuffer.size() == 2);
+    throwAssert(i2->inBuffer.back() == p2);
 
-    assert(man.numEvents() == 1);
+    throwAssert(man.numEvents() == 1);
 
     // clean up last event
     delete man.popEvent();
 
-    assert(man.numEvents() == 0);
+    throwAssert(man.numEvents() == 0);
 
     delete p1;
     delete p2;

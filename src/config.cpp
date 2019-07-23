@@ -157,13 +157,14 @@ bool loadConfig(string filename) {
 }
 
 #ifdef _TEST
+#include "tests/throwAssert.h"
 
 int testConfig() {
     json config = readConfig("test.json");
 
-    assert(parseConfig(config));
+    throwAssert(parseConfig(config));
 
-    assert(man.validateNetwork());
+    throwAssert(man.validateNetwork());
 
     man.deleteNetwork();
 

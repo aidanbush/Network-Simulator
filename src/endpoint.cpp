@@ -57,10 +57,10 @@ bool Endpoint::validate() {
 }
 
 #ifdef _TEST
-#include <assert.h>
 #include <stdio.h>
 
 #include "link.h"
+#include "tests/throwAssert.h"
 
 int Endpoint::endpointToEndpoint() {
     const int e1Id = 1,
@@ -112,8 +112,8 @@ int Endpoint::endpointToEndpoint() {
     e1 = new Endpoint(endpointJson1);
     e2 = new Endpoint(endpointJson2);
 
-    assert(man.addEndpoint(e1));
-    assert(man.addEndpoint(e2));
+    throwAssert(man.addEndpoint(e1));
+    throwAssert(man.addEndpoint(e2));
 
     json interfaceJson1 = {
         {"id", i1Id},
@@ -130,8 +130,8 @@ int Endpoint::endpointToEndpoint() {
     i1 = new Interface(interfaceJson1);
     i2 = new Interface(interfaceJson2);
 
-    assert(man.addInterface(i1));
-    assert(man.addInterface(i2));
+    throwAssert(man.addInterface(i1));
+    throwAssert(man.addInterface(i2));
 
     json linkJson = {
         {"id", l1Id},
@@ -142,11 +142,11 @@ int Endpoint::endpointToEndpoint() {
     l1 = new Link(linkJson);
     l1->addToInterfaces();
 
-    assert(man.addLink(l1));
+    throwAssert(man.addLink(l1));
 
     f1 = createFlow(f1C);
 
-    assert(man.addFlow(f1));
+    throwAssert(man.addFlow(f1));
 
     p1 = new Packet(p1Id, p1SId, p1DId, f1Id, p1TTL, p1HSize, p1BSize);
 
@@ -180,8 +180,8 @@ int testEndpoint() {
     };
     Endpoint *e1 = new Endpoint(endpointJson);
 
-    assert(e1->getId() == e1Id);
-    assert(e1->getInternalSpeed() == e1Speed);
+    throwAssert(e1->getId() == e1Id);
+    throwAssert(e1->getInternalSpeed() == e1Speed);
 
     delete e1;
 

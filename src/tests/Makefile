@@ -10,10 +10,13 @@ all: test
 test_prep:
 	make -C ../ BUILD_DIR=tests/ CXXFLAGS="$(CXXFLAGS) $(DEBUG_FLAGS)"
 
-test.o: test.cpp  ../*.h
+throwAssert.o: throwAssert.cpp throwAssert.h
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEBUG_FLAGS) -o $@ -c $<
 
-test: test_prep test.o
+test.o: test.cpp ../*.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEBUG_FLAGS) -o $@ -c $<
+
+test: test_prep test.o throwAssert.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEBUG_FLAGS) -o $@ *.o
 
 clean:
