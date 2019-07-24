@@ -25,7 +25,7 @@ int main() {
             printf("Packet tests passed\n");
         }
     } catch (...) {
-        printf("Packet tests passed\n");
+        printf("Packet tests failed\n");
         errors++;
     }
 
