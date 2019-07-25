@@ -24,8 +24,9 @@ int main() {
         } else {
             printf("Packet tests passed\n");
         }
-    } catch (...) {
+    } catch (const exception &e) {
         printf("Packet tests failed\n");
+        printf(e.what());
         errors++;
     }
 
@@ -36,9 +37,11 @@ int main() {
         } else {
             printf("Link tests passed\n");
         }
-    } catch (...) {
+    } catch (const exception &e) {
         printf("Link tests failed\n");
+        printf(e.what());
         errors++;
+        man.deleteNetwork();
     }
 
     try {
@@ -48,9 +51,11 @@ int main() {
         } else {
             printf("Interface tests passed\n");
         }
-    } catch (...) {
+    } catch (const exception &e) {
         printf("Interface tests failed\n");
+        printf(e.what());
         errors++;
+        man.deleteNetwork();
     }
 
     try {
@@ -60,9 +65,11 @@ int main() {
         } else {
             printf("Endpoint tests passed\n");
         }
-    } catch (...) {
+    } catch (const exception &e) {
         printf("Endpoint tests failed\n");
+        printf(e.what());
         errors++;
+        man.deleteNetwork();
     }
 
     try {
@@ -72,9 +79,11 @@ int main() {
         } else {
             printf("Switch tests passed\n");
         }
-    } catch (...) {
+    } catch (const exception &e) {
         printf("Switch tests failed\n");
+        printf(e.what());
         errors++;
+        man.deleteNetwork();
     }
 
     try {
@@ -84,9 +93,11 @@ int main() {
         } else {
             printf("Config tests passed\n");
         }
-    } catch (...) {
+    } catch (const exception &e) {
         printf("Config tests failed\n");
+        printf(e.what());
         errors++;
+        man.deleteNetwork();
     }
 
     if (errors == 0) {

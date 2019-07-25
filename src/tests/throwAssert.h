@@ -3,9 +3,11 @@
 #define THROW_ASSERT_H
 #include <string>
 
+#define throwAssert(COND) throwAssertInner(COND, __FILE__, __LINE__, #COND)
+
 using namespace std;
 
-void throwAssert(bool cond, string message = "");
+void throwAssertInner(bool cond, string file, int line, string condString);
 
 #endif /* THROW_ASSERT_H */
 #endif /* _TEST */
