@@ -1,3 +1,4 @@
+#ifdef _TEST
 #include <stdio.h>
 #include <fstream>
 #include <iostream>
@@ -16,46 +17,87 @@ Manager man;
 int main() {
     int errors = 0;
 
-    if (!testPacket()) {
+    try {
+        if (!testPacket()) {
+            printf("Packet tests failed\n");
+            errors++;
+        } else {
+            printf("Packet tests passed\n");
+        }
+    } catch (const exception &e) {
         printf("Packet tests failed\n");
+        printf(e.what());
         errors++;
-    } else {
-        printf("Packet tests passed\n");
     }
 
-    if (!testLink()) {
+    try {
+        if (!testLink()) {
+            printf("Link tests failed\n");
+            errors++;
+        } else {
+            printf("Link tests passed\n");
+        }
+    } catch (const exception &e) {
         printf("Link tests failed\n");
+        printf(e.what());
         errors++;
-    } else {
-        printf("Link tests passed\n");
+        man.deleteNetwork();
     }
 
-    if (!testInterface()) {
+    try {
+        if (!testInterface()) {
+            printf("Interface tests failed\n");
+            errors++;
+        } else {
+            printf("Interface tests passed\n");
+        }
+    } catch (const exception &e) {
         printf("Interface tests failed\n");
+        printf(e.what());
         errors++;
-    } else {
-        printf("Interface tests passed\n");
+        man.deleteNetwork();
     }
 
-    if (!testEndpoint()) {
+    try {
+        if (!testEndpoint()) {
+            printf("Endpoint tests failed\n");
+            errors++;
+        } else {
+            printf("Endpoint tests passed\n");
+        }
+    } catch (const exception &e) {
         printf("Endpoint tests failed\n");
+        printf(e.what());
         errors++;
-    } else {
-        printf("Endpoint tests passed\n");
+        man.deleteNetwork();
     }
 
-    if (!testSwitch()) {
+    try {
+        if (!testSwitch()) {
+            printf("Switch tests failed\n");
+            errors++;
+        } else {
+            printf("Switch tests passed\n");
+        }
+    } catch (const exception &e) {
         printf("Switch tests failed\n");
+        printf(e.what());
         errors++;
-    } else {
-        printf("Switch tests passed\n");
+        man.deleteNetwork();
     }
 
-    if (!testConfig()) {
+    try {
+        if (!testConfig()) {
+            printf("Config tests failed\n");
+            errors++;
+        } else {
+            printf("Config tests passed\n");
+        }
+    } catch (const exception &e) {
         printf("Config tests failed\n");
+        printf(e.what());
         errors++;
-    } else {
-        printf("Config tests passed\n");
+        man.deleteNetwork();
     }
 
     if (errors == 0) {
@@ -63,6 +105,7 @@ int main() {
         return 0;
     }
 
-    printf("%d tests failed\n", errors);
+    printf("%d test%s failed\n", errors, errors == 1 ? "" : "s");
     return 1;
 }
+#endif /* _TEST */

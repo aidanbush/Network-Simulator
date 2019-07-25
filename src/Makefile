@@ -23,21 +23,21 @@ $(BUILD_DIR)%.o: %.cpp
 
 $(BUILD_DIR)simulator.o: simulator.cpp manager.h
 
-$(BUILD_DIR)config.o: config.cpp config.h manager.h endpoint.h switch.h interface.h link.h
+$(BUILD_DIR)config.o: config.cpp config.h manager.h endpoint.h switch.h interface.h link.h tests/throwAssert.h
 
 $(BUILD_DIR)networkObject.o: networkObject.cpp networkObject.h
 
 $(BUILD_DIR)packetHandler.o: packetHandler.cpp packetHandler.h networkObject.h interface.h packet.h manager.h
 
-$(BUILD_DIR)switch.o: switch.cpp switch.h packetHandler.h manager.h interface.h packet.h endpoint.h
+$(BUILD_DIR)switch.o: switch.cpp switch.h packetHandler.h manager.h interface.h packet.h endpoint.h tests/throwAssert.h
 
-$(BUILD_DIR)endpoint.o: endpoint.cpp endpoint.h packetHandler.h packet.h interface.h
+$(BUILD_DIR)endpoint.o: endpoint.cpp endpoint.h packetHandler.h packet.h interface.h tests/throwAssert.h
 
-$(BUILD_DIR)interface.o: interface.cpp interface.h networkObject.h packetHandler.h manager.h packet.h link.h
+$(BUILD_DIR)interface.o: interface.cpp interface.h networkObject.h packetHandler.h manager.h packet.h link.h tests/throwAssert.h
 
-$(BUILD_DIR)flow.o: flow.cpp flow.h networkObject.h manager.h packet.h endpoint.h
+$(BUILD_DIR)flow.o: flow.cpp flow.h networkObject.h manager.h packet.h endpoint.h tests/throwAssert.h
 
-$(BUILD_DIR)link.o: link.cpp link.h networkObject.h manager.h packet.h interface.h
+$(BUILD_DIR)link.o: link.cpp link.h networkObject.h manager.h packet.h interface.h tests/throwAssert.h
 
 $(BUILD_DIR)packet.o: packet.cpp packet.h networkObject.h flow.h
 

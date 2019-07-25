@@ -214,7 +214,7 @@ bool Link::validate() {
 }
 
 #ifdef _TEST
-#include <assert.h>
+#include "tests/throwAssert.h"
 
 int testLink() {
     const int i1Id = 1,
@@ -232,7 +232,7 @@ int testLink() {
         {"in_buf_size", i1HBsize}
     };
     Interface *i1 = new Interface(interfaceJson);
-    assert(man.addInterface(i1));
+    throwAssert(man.addInterface(i1));
 
     json linkJson = {
         {"id", l1Id},
@@ -242,13 +242,13 @@ int testLink() {
     };
     Link *l1 = new Link(linkJson);
     l1->addToInterfaces();
-    assert(man.addLink(l1));
+    throwAssert(man.addLink(l1));
 
-    assert(l1->getId() == l1Id);
-    assert(l1->getSpeed() == l1Speed);
+    throwAssert(l1->getId() == l1Id);
+    throwAssert(l1->getSpeed() == l1Speed);
 
-    assert(l1->removeDest(i1Id));
-    assert(!l1->removeDest(i1Id));
+    throwAssert(l1->removeDest(i1Id));
+    throwAssert(!l1->removeDest(i1Id));
 
     man.deleteNetwork();
 
