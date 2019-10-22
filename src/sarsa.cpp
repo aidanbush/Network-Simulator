@@ -1,5 +1,6 @@
 #include <vector>
 #include <stdlib.h>
+#include <iostream>
 
 #include "sarsa.h"
 #include "tilecoder.h"
@@ -38,12 +39,14 @@ pair<int, double> Sarsa::selectAction(vector<int> tiles) {
     if ((double)random()/RAND_MAX < EPSILON) {
         int ind = random()%NUM_ACTIONS;
         double val = sumIndices(weights, tiles, ind*Tilecoder::getNumTiles());
+        cout << "Exploring:\nAction: " << ind << " Value: " << val << endl;
         return pair<int, double>(ind, val);
     } else {
         double best;
         int bestInd;
         for (int i = 0; i < NUM_ACTIONS; i++) {
             double val = sumIndices(weights, tiles, i*Tilecoder::getNumTiles());
+            cout << "Action: " << i << " Value: " << val << endl;
             if (val > best || i == 0) {
                 best = val;
                 bestInd = i;
@@ -57,6 +60,10 @@ pair<int, double> Sarsa::selectAction(vector<int> tiles) {
 int Sarsa::step(double state, double reward) {
     // Tilecode
     vector<int> tiles = Tilecoder::tilecode(state);
+    for (auto t: tiles) {
+        cout << t << " ";
+    }
+    cout << endl;
     
     // Select action
     pair<int, double> actionValue = selectAction(tiles);
@@ -64,15 +71,26 @@ int Sarsa::step(double state, double reward) {
     double value = actionValue.second;
     
     // Update values
-    double newOldValue = selectAction(oldTiles).second;
+    double newOldValue = sumIndices(weights, oldTiles, oldAction*Tilecoder::getNumTiles());
     double delta = reward + GAMMA*value - newOldValue;
+    cout << "Q: " << newOldValue << " Q\': " << value << " Q_old: " << oldValue << endl;
+    cout << "Alpha: " << alpha << " Delta: " << delta << endl;
+    if (value > 100 || newOldValue > 100 || oldValue > 100) {
+        exit(0);
+    }
+    // Update trace
     for (int i = 0; i < Tilecoder::getNumTiles() * NUM_ACTIONS; i++) {
-        (*weights)[i] += ALPHA*(delta + value - oldValue)*trace[i];
         trace[i] *= GAMMA*LAMBDA;
     }
     for (auto tile: tiles) {
-        (*weights)[action*Tilecoder::getNumTiles() + tile] -= ALPHA*(value - oldValue);
-        trace[action*Tilecoder::getNumTiles() + tile] += (1 - ALPHA);
+        trace[action*Tilecoder::getNumTiles() + tile] += (1 - alpha);
+    }
+    // Update Weights
+    for (int i = 0; i < Tilecoder::getNumTiles() * NUM_ACTIONS; i++) {
+        (*weights)[i] += alpha*(delta + newOldValue - oldValue)*trace[i];
+    }
+    for (auto tile: tiles) {
+        (*weights)[action*Tilecoder::getNumTiles() + tile] -= alpha*(newOldValue - oldValue);
     }
     
     oldAction = action;

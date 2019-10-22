@@ -17,7 +17,10 @@ class Sarsa {
         //Tilecoder tilecoder;
         double oldValue = 0;
         double oldState;
-        int oldAction;
+        /*TODO: this sets what the agent considers to be its previous action at the start of the episode
+                it should be changed to choose the first action during setup (outside of the loop over time steps)
+        */
+        int oldAction = 1;
         vector<int> oldTiles;
 };
 

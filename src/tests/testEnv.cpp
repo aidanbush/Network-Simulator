@@ -38,11 +38,14 @@ int main() {
                 state = max(state - 1.0, -10.0);
             }
             reward = getReward(state);
-            if (done || state == -10.0) {
+            if (done) {
                 break;
             }
             numSteps++;
-            cout << state << endl;//'\r' << flush;
+            cout << endl << "Step: " << numSteps << " State: " << state << endl;//'\r' << flush;
+            // if (numSteps >= 50) {
+            //     break;
+            // }
         }
         cout << endl << numSteps << endl;
     }

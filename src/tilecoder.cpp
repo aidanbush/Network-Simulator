@@ -17,7 +17,7 @@ namespace Tilecoder {
     vector<int> tilecode(double state) {
         vector<int> indices = vector<int>(NUM_TILINGS);
         for (int i = 0; i < NUM_TILINGS; i++) {
-            indices[i] = i*NUM_TILES_PER_TILING + (int)((state + i*offset)/tileWidth);
+            indices[i] = i*NUM_TILES_PER_TILING + (int)((state - STATE_MIN + i*offset)/tileWidth);
         }
         return indices;
     }
