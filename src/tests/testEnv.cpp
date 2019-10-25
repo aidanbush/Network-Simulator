@@ -4,9 +4,13 @@
 
 #include "../sarsa.h"
 
-#define NUM_EPISODES 1
+#define NUM_EPISODES 100
 
 using namespace std;
+
+/*
+NOTE: To run this, set STATE_MIN to -10.0 and STATE_MAX to 10.0 in tilecoder.cpp, and NUM_ACTIONS to 2 in sarsa.cpp
+*/
 
 double getReward(double state) {
     if (state > 9.9) {
@@ -20,6 +24,7 @@ double getReward(double state) {
 
 int main() {
     vector<double> weights = Sarsa::initializeWeights();
+    cout << NUM_EPISODES << endl;
     for (int i = 0; i < NUM_EPISODES; i++) {
         Sarsa agent = Sarsa(&weights, 0);
         double state = 0.0;
@@ -42,12 +47,12 @@ int main() {
                 break;
             }
             numSteps++;
-            cout << endl << "Step: " << numSteps << " State: " << state << endl;//'\r' << flush;
+            //cout << endl << "Step: " << numSteps << " State: " << state << endl;//'\r' << flush;
             // if (numSteps >= 50) {
             //     break;
             // }
         }
-        cout << endl << numSteps << endl;
+        cout << i << " " << numSteps << endl;
     }
     return 0;
 }
