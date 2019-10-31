@@ -211,8 +211,31 @@ second_t BasicFlow::nextTxTime() {
 
 void BasicFlow::startFlow() {
     second_t nextTx = nextTxTime();
-    EventI *e = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
-    man.pushEvent(e);
+    EventI *e1 = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
+    man.pushEvent(e1);
+
+    EventI *e2 = new Event<BasicFlow>(man.time + miTime, &BasicFlow::stepAgent, this);
+    man.pushEvent(e2);
+}
+
+void BasicFlow::stepAgent() {
+    //TODO: get state and reward, use transmissionSpeed
+    double state = 0;
+    double reward = 0;
+    switch (agent.step(state, reward)) {
+        case 0:
+            transmissionSpeed *= 2;
+            break;
+        case 1:
+            transmissionSpeed /= 2;
+            break;
+        case 2:
+            transmissionSpeed++;
+            break;
+        case 3:
+            transmissionSpeed--;
+            break;
+    }
 }
 
 void BasicFlow::txPacketEvent() {
@@ -262,8 +285,31 @@ second_t TestFlow::nextTxTime() {
 
 void TestFlow::startFlow() {
     second_t nextTx = nextTxTime();
-    EventI *e = new Event<TestFlow>(nextTx, &TestFlow::txPacketEvent, this);
-    man.pushEvent(e);
+    EventI *e1 = new Event<TestFlow>(nextTx, &TestFlow::txPacketEvent, this);
+    man.pushEvent(e1);
+
+    EventI *e2 = new Event<TestFlow>(man.time + miTime, &TestFlow::stepAgent, this);
+    man.pushEvent(e2);
+}
+
+void TestFlow::stepAgent() {
+    //TODO: get state and reward, use transmissionSpeed
+    double state = 0;
+    double reward = 0;
+    switch (agent.step(state, reward)) {
+        case 0:
+            transmissionSpeed *= 2;
+            break;
+        case 1:
+            transmissionSpeed /= 2;
+            break;
+        case 2:
+            transmissionSpeed++;
+            break;
+        case 3:
+            transmissionSpeed--;
+            break;
+    }
 }
 
 void TestFlow::txPacketEvent() {

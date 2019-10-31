@@ -19,6 +19,7 @@ class Flow: public NetworkObject {
         ~Flow();
 
         virtual void startFlow() = 0;
+        virtual void stepAgent() = 0;
         virtual void txPacketEvent() = 0;
 
         void packetArrived(Packet *p);
@@ -59,6 +60,8 @@ class Flow: public NetworkObject {
         int packetsErrored;
 
         Sarsa agent;
+        int miTime = 10;
+        double transmissionSpeed;
 };
 
 class BasicFlow: public Flow {
@@ -66,6 +69,7 @@ class BasicFlow: public Flow {
     public:
 
         void startFlow();
+        void stepAgent();
         void txPacketEvent();
 
     private:
@@ -90,6 +94,7 @@ class TestFlow: public Flow {
         TestFlow(json &flowConfig);
 
         void startFlow();
+        void stepAgent();
         void txPacketEvent();
 
     private:
