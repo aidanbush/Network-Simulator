@@ -6,6 +6,7 @@
 
 #include "networkObject.h"
 #include "manager.h"
+#include "sarsa.h"
 
 using namespace std;
 using json = nlohmann::json;
@@ -56,6 +57,8 @@ class Flow: public NetworkObject {
         int packetsArrived;
         int packetsDropped;
         int packetsErrored;
+
+        Sarsa agent;
 };
 
 class BasicFlow: public Flow {

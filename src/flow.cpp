@@ -10,6 +10,7 @@
 #include "endpoint.h"
 #include "networkObject.h"
 #include "config.h"
+#include "sarsa.h"
 
 #define FLOW_STR        "Flow"
 #define TX_PACKET_EVENT "flow create packet event"
@@ -63,7 +64,10 @@ Flow *createFlow(json &flowConfig) {
 }
 
 //flowConfig already validated
-Flow::Flow(json &flowConfig): NetworkObject(flowConfig["id"]) {
+Flow::Flow(json &flowConfig):
+    NetworkObject(flowConfig["id"]),
+    //TODO: Second parameter is initial state, should it be something other than 0?
+    agent(Sarsa(man.getEndpoint(flowConfig["source_id"])->getWeights(), 0)) {
     this->sourceId = flowConfig["source_id"];
     this->destId = flowConfig["dest"];
 

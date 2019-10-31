@@ -6,11 +6,14 @@
 #include "packet.h"
 #include "packetHandler.h"
 #include "config.h"
+#include "sarsa.h"
 
 using namespace std;
 using json = nlohmann::json;
 
-Endpoint::Endpoint(json &endpointConfig): PacketHandler(validateEndpointConfig(endpointConfig)) {}
+Endpoint::Endpoint(json &endpointConfig): PacketHandler(validateEndpointConfig(endpointConfig)) {
+    weights = Sarsa::initializeWeights();
+}
 
 json &Endpoint::validateEndpointConfig(json &endpointConfig) {
     string message = "";
@@ -54,6 +57,10 @@ bool Endpoint::validate() {
     }
 
     return valid;
+}
+
+vector<double> *Endpoint::getWeights() {
+    return &weights;
 }
 
 #ifdef _TEST

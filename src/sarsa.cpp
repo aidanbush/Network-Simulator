@@ -36,7 +36,7 @@ double sumIndices(vector<double> *vec, vector<int> indices, int offset = 0) {
 
 pair<int, double> Sarsa::selectAction(vector<int> tiles) {
     if ((double)random()/RAND_MAX < EPSILON) {
-        int ind = random()%NUM_ACTIONS;
+        int ind = (int)(random()%NUM_ACTIONS);
         double val = sumIndices(weights, tiles, ind*Tilecoder::getNumTiles());
         //cout << "Exploring:\nAction: " << ind << " Value: " << val << endl;
         return pair<int, double>(ind, val);
