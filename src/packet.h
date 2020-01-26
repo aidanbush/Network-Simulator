@@ -44,6 +44,19 @@ class Packet: public NetworkObject {
         int flowId;
 };
 
+class ECNPacket: public Packet {
+    public:
+        ECNPacket(int id, int sourceId, int destId, int flowId, int ttl,
+                int headerSize, int bodySize); // TODO add ack data
+        ~ECNPacket() = default;
+
+        void setECN();
+        bool ECNSet();
+
+    private:
+        bool ECNBit;
+};
+
 #ifdef _TEST
 int testPacket();
 #endif /* _TEST */
