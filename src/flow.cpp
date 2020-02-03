@@ -226,6 +226,75 @@ void BasicFlow::txPacketEvent() {
     man.pushEvent(e);
 }
 
+/* Explicit congestion notification flow */
+
+ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {}
+
+json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
+    string message = "";
+    if (!hasMemberOfType(flowConfig, "id", jsonInt)) {
+        message += "No integer with name 'id'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "source_id", jsonInt)) {
+        message += "No integer with name 'source_id'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "dest", jsonInt)) {
+        message += "No integer with name 'dest'.\n";
+    }
+
+    if (!message.empty()) {
+        message = "Basic Flow:\n" + message + flowConfig.dump(4);
+        throw runtime_error(message);
+    }
+    return flowConfig;
+}
+
+ECNPacket *ECNFlow::createPacket(int ttl, int headSize, int bodySize) {
+    int pId = newPacketId();
+
+    ECNPacket *p = new ECNPacket(pId, sourceId, destId, id, ttl, headSize, bodySize);
+
+    if (!addPacket(p)) {
+        delete p;
+        return NULL;
+    }
+    packetsCreated++;
+
+    return p;
+}
+
+second_t ECNFlow::nextTxTime() {
+    return man.time + ((headSize + bodySize) / rate);
+}
+
+void ECNFlow::startFlow() {
+    // create txPacket event
+    second_t nextTx = nextTxTime();
+    EventI *e = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
+    man.pushEvent(e);
+}
+
+void ECNFlow::txPacketEvent() {
+    Endpoint *endpoint = man.getEndpoint(sourceId);
+
+    // create packet
+    ECNPacket *p = createPacket(ttl, headSize, bodySize);
+
+    endpoint->txPacket(p);
+
+    second_t nextTx = nextTxTime();
+    EventI *e = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
+    man.pushEvent(e);
+}
+
+void ECNFlow::packetArrived(Packet *p) {
+    // TODO update data on ECN data
+    Flow::packetArrived(p);
+}
+
+/* tests */
 #ifdef _TEST
 TestFlow::TestFlow(json &flowConfig): Flow(validateTestFlowConfig(flowConfig)) {}
 

@@ -11,6 +11,7 @@ using namespace std;
 using json = nlohmann::json;
 
 class Packet;
+class ECNPacket;
 class Endpoint;
 
 class Flow: public NetworkObject {
@@ -76,6 +77,32 @@ class BasicFlow: public Flow {
         int bodySize;
 
         int ttl;
+
+        second_t nextTxTime();
+};
+
+class ECNFlow: public Flow {
+    friend Flow *createFlow(json &flowConfig);
+    public:
+
+        void startFlow();
+        void txPacketEvent();
+
+    private:
+        ECNFlow(json &flowConfig);
+
+        ECNPacket *createPacket(int ttl, int headSize, int bodySize);
+
+        void packetArrived(Packet *p);
+
+        static json &validateECNFlowConfig(json &flowConfig);
+
+        int rate; // bps
+        int headSize;
+        int bodySize;
+        int ttl;
+
+        ECNPacket *createPacket();
 
         second_t nextTxTime();
 };

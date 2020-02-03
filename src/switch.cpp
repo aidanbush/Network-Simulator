@@ -33,7 +33,17 @@ json &Switch::validateSwitchConfig(json &switchConfig) {
     return switchConfig;
 }
 
+void rxHandlePacket(Packet *p) {
+    ecnP = dynamic_cast<ECNPacket*>(p);
+    if (ecnP != NULL) {
+        // TODO set bit if required
+    }
+}
+
 void Switch::rxPacket(Packet *p) {
+    // handle packets
+    rxHandlePacket(p);
+
     int interfaceId = routePacket(p);
 
     Interface *interface = man.getInterface(interfaceId);
