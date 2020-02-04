@@ -236,6 +236,8 @@ void BasicFlow::stepAgent() {
             transmissionSpeed--;
             break;
     }
+    EventI *e = new Event<BasicFlow>(man.time + miTime, &BasicFlow::stepAgent, this);
+    man.pushEvent(e);
 }
 
 void BasicFlow::txPacketEvent() {
@@ -299,7 +301,32 @@ second_t ECNFlow::nextTxTime() {
 void ECNFlow::startFlow() {
     // create txPacket event
     second_t nextTx = nextTxTime();
-    EventI *e = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
+    EventI *e1 = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
+    man.pushEvent(e1);
+
+    EventI *e2 = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
+    man.pushEvent(e2);
+}
+
+void ECNFlow::stepAgent() {
+    //TODO: get state and reward, use transmissionSpeed
+    double state = 0;
+    double reward = 0;
+    switch (agent.step(state, reward)) {
+        case 0:
+            transmissionSpeed *= 2;
+            break;
+        case 1:
+            transmissionSpeed /= 2;
+            break;
+        case 2:
+            transmissionSpeed++;
+            break;
+        case 3:
+            transmissionSpeed--;
+            break;
+    }
+    EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
     man.pushEvent(e);
 }
 
