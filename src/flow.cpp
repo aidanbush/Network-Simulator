@@ -219,21 +219,21 @@ void BasicFlow::startFlow() {
 }
 
 void BasicFlow::stepAgent() {
-    //TODO: get state and reward, use transmissionSpeed
+    //TODO: get state and reward
     double state = 0;
     double reward = 0;
     switch (agent.step(state, reward)) {
         case 0:
-            transmissionSpeed *= 2;
+            rate *= 2;
             break;
         case 1:
-            transmissionSpeed /= 2;
+            rate /= 2;
             break;
         case 2:
-            transmissionSpeed++;
+            rate++;
             break;
         case 3:
-            transmissionSpeed--;
+            rate--;
             break;
     }
     EventI *e = new Event<BasicFlow>(man.time + miTime, &BasicFlow::stepAgent, this);
@@ -309,21 +309,21 @@ void ECNFlow::startFlow() {
 }
 
 void ECNFlow::stepAgent() {
-    //TODO: get state and reward, use transmissionSpeed
+    //TODO: get state and reward
     double state = 0;
     double reward = 0;
     switch (agent.step(state, reward)) {
         case 0:
-            transmissionSpeed *= 2;
+            rate *= 2;
             break;
         case 1:
-            transmissionSpeed /= 2;
+            rate /= 2;
             break;
         case 2:
-            transmissionSpeed++;
+            rate++;
             break;
         case 3:
-            transmissionSpeed--;
+            rate--;
             break;
     }
     EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
@@ -389,21 +389,21 @@ void TestFlow::startFlow() {
 }
 
 void TestFlow::stepAgent() {
-    //TODO: get state and reward, use transmissionSpeed
+    //TODO: get state and reward
     double state = 0;
     double reward = 0;
     switch (agent.step(state, reward)) {
         case 0:
-            transmissionSpeed *= 2;
+            rate *= 2;
             break;
         case 1:
-            transmissionSpeed /= 2;
+            rate /= 2;
             break;
         case 2:
-            transmissionSpeed++;
+            rate++;
             break;
         case 3:
-            transmissionSpeed--;
+            rate--;
             break;
     }
 }

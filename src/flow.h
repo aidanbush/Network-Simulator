@@ -62,7 +62,7 @@ class Flow: public NetworkObject {
 
         Sarsa agent;
         int miTime = 10;
-        double transmissionSpeed;
+        double rate;
 };
 
 class BasicFlow: public Flow {
@@ -104,7 +104,6 @@ class ECNFlow: public Flow {
 
         static json &validateECNFlowConfig(json &flowConfig);
 
-        int rate; // bps
         int headSize;
         int bodySize;
         int ttl;
