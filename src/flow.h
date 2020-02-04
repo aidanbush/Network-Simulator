@@ -93,6 +93,7 @@ class ECNFlow: public Flow {
     public:
 
         void startFlow();
+        void stepAgent();
         void txPacketEvent();
 
     private:

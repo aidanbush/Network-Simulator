@@ -34,7 +34,7 @@ json &Switch::validateSwitchConfig(json &switchConfig) {
 }
 
 void rxHandlePacket(Packet *p) {
-    ecnP = dynamic_cast<ECNPacket*>(p);
+    ECNPacket *ecnP = dynamic_cast<ECNPacket*>(p);
     if (ecnP != NULL) {
         // TODO set bit if required
     }
