@@ -213,31 +213,9 @@ void BasicFlow::startFlow() {
     second_t nextTx = nextTxTime();
     EventI *e1 = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
     man.pushEvent(e1);
-
-    EventI *e2 = new Event<BasicFlow>(man.time + miTime, &BasicFlow::stepAgent, this);
-    man.pushEvent(e2);
 }
 
 void BasicFlow::stepAgent() {
-    //TODO: get state and reward
-    double state = 0;
-    double reward = 0;
-    switch (agent.step(state, reward)) {
-        case 0:
-            rate *= 2;
-            break;
-        case 1:
-            rate /= 2;
-            break;
-        case 2:
-            rate++;
-            break;
-        case 3:
-            rate--;
-            break;
-    }
-    EventI *e = new Event<BasicFlow>(man.time + miTime, &BasicFlow::stepAgent, this);
-    man.pushEvent(e);
 }
 
 void BasicFlow::txPacketEvent() {
