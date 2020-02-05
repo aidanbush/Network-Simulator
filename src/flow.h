@@ -109,6 +109,13 @@ class ECNFlow: public Flow {
         int bodySize;
         int ttl;
 
+        int packetsUntagged;
+        int packetsTotal;
+
+        double getState();
+        double getReward();
+        void resetState();
+
         ECNPacket *createPacket();
 
         second_t nextTxTime();

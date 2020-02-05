@@ -51,7 +51,7 @@ class ECNPacket: public Packet {
         ~ECNPacket() = default;
 
         void setECN();
-        bool ECNSet();
+        bool getECN();
 
     private:
         bool ECNBit;

@@ -47,7 +47,7 @@ void ECNPacket::setECN() {
     ECNBit = true;
 }
 
-bool ECNPacket::ECNSet() {
+bool ECNPacket::getECN() {
     return ECNBit;
 }
 

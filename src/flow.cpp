@@ -257,7 +257,10 @@ void BasicFlow::txPacketEvent() {
 
 /* Explicit congestion notification flow */
 
-ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {}
+ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
+    packetsUntagged = 0;
+    packetsTotal = 0;
+}
 
 json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
     string message = "";
@@ -308,10 +311,25 @@ void ECNFlow::startFlow() {
     man.pushEvent(e2);
 }
 
+double ECNFlow::getState() {
+    return (packetsTotal - packetsUntagged) / packetsTotal;
+}
+
+double ECNFlow::getReward() {
+    return packetsUntagged;
+}
+
+void ECNFlow::resetState() {
+    packetsUntagged = 0;
+    packetsTotal = 0;
+}
+
 void ECNFlow::stepAgent() {
     //TODO: get state and reward
-    double state = 0;
-    double reward = 0;
+    double state = getState();
+    double reward = getReward();
+    resetState();
+
     switch (agent.step(state, reward)) {
         case 0:
             rate *= 2;
@@ -344,7 +362,16 @@ void ECNFlow::txPacketEvent() {
 }
 
 void ECNFlow::packetArrived(Packet *p) {
-    // TODO update data on ECN data
+    ECNPacket *ecnP = dynamic_cast<ECNPacket *>(p);
+    if (ecnP != NULL) {
+        if (!ecnP->getECN()) {
+            packetsUntagged++;
+        }
+        packetsTotal++;
+    } else {
+        // TODO oh no this is bad, really bad!
+    }
+
     Flow::packetArrived(p);
 }
 
