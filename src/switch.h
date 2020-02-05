@@ -54,6 +54,11 @@ class Switch: public PacketHandler {
 
         void printRoutingTable();
 
+        void rxHandlePacket(Packet *p, Interface *outBoundInterface);
+
+        /* packet specific data */
+        double ECNThreshold;
+
     private:
         static json &validateSwitchConfig(json &switchConfig);
 };

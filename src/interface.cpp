@@ -19,6 +19,8 @@ using namespace std;
 using json = nlohmann::json;
 
 Interface::Interface(json &interfaceConfig): NetworkObject(validateInterfaceConfig(interfaceConfig)) {
+    this->outBufTotalSize = interfaceConfig["out_buf_size"];
+    this->inBufTotalSize = interfaceConfig["in_buf_size"];
     this->outBufSize = interfaceConfig["out_buf_size"];
     this->inBufSize = interfaceConfig["in_buf_size"];
     this->handlerId = interfaceConfig["handler_id"];
@@ -171,6 +173,21 @@ set<int> Interface::getNeighbours() {
     neighbours.erase(handlerId);
 
     return neighbours;
+}
+
+int Interface::getInBufferTotalSize() {
+    return inBufTotalSize;
+}
+int Interface::getOutBufferTotalSize() {
+    return outBufTotalSize;
+}
+
+int Interface::getInBufferCurrentSize() {
+    return inBufTotalSize - inBufSize;
+}
+
+int Interface::getOutBufferCurrentSize() {
+    return outBufTotalSize - outBufSize;
 }
 
 bool Interface::validateHandler() {

@@ -33,6 +33,12 @@ class Interface: public NetworkObject {
         int getHandlerId();
         set<int> getNeighbours();
 
+        int getInBufferTotalSize();
+        int getOutBufferTotalSize();
+
+        int getInBufferCurrentSize();
+        int getOutBufferCurrentSize();
+
         bool validate();
 
 #ifdef _TEST
@@ -47,6 +53,10 @@ class Interface: public NetworkObject {
 
         int linkId;
         int handlerId;
+
+
+        int outBufTotalSize; // bytes
+        int inBufTotalSize; // bytes
 
         int outBufSize; // bytes
         int inBufSize; // bytes
