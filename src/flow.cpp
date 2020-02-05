@@ -19,6 +19,7 @@ using namespace std;
 
 enum FlowType {
     BasicFlowType,
+    ECNFlowType,
 #ifdef _TEST
     TestFlowType,
 #endif /* _TEST */
@@ -27,6 +28,7 @@ enum FlowType {
 Flow *createFlow(json &flowConfig) {
     static map<string, FlowType> flowTypeMap = {
         {"basic", BasicFlowType},
+        {"ecn", ECNFlowType},
 #ifdef _TEST
         {"test", TestFlowType},
 #endif /* _TEST */
@@ -50,6 +52,9 @@ Flow *createFlow(json &flowConfig) {
     switch (flowType) {
         case BasicFlowType:
             flow = new BasicFlow(flowConfig);
+            break;
+        case ECNFlowType:
+            flow = new ECNFlow(flowConfig);
             break;
 #ifdef _TEST
         case TestFlowType:
