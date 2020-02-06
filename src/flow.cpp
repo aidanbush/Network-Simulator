@@ -295,7 +295,7 @@ void ECNFlow::startFlow() {
 }
 
 double ECNFlow::getState() {
-    return (packetsTotal - packetsUntagged) / packetsTotal;
+    return packetsTotal == 0 ? 0 : (packetsTotal - packetsUntagged) / packetsTotal;
 }
 
 double ECNFlow::getReward() {
