@@ -241,8 +241,12 @@ void BasicFlow::txPacketEvent() {
 /* Explicit congestion notification flow */
 
 ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
-    packetsUntagged = 0;
-    packetsTotal = 0;
+    this->packetsUntagged = 0;
+    this->packetsTotal = 0;
+    this->rate = flowConfig["start_rate"];
+    this->headSize = 20;
+    this->bodySize = 256;
+    this->ttl = 15;
 }
 
 json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
@@ -257,6 +261,10 @@ json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
 
     if (!hasMemberOfType(flowConfig, "dest", jsonInt)) {
         message += "No integer with name 'dest'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "start_rate", jsonDouble)) {
+        message += "No double with name 'start_rate'.\n";
     }
 
     if (!message.empty()) {
@@ -281,7 +289,7 @@ ECNPacket *ECNFlow::createPacket(int ttl, int headSize, int bodySize) {
 }
 
 second_t ECNFlow::nextTxTime() {
-    return man.time + ((headSize + bodySize) / rate);
+    return man.time + ((headSize + bodySize) * BITS_PER_BYTE / rate);
 }
 
 void ECNFlow::startFlow() {
@@ -308,7 +316,6 @@ void ECNFlow::resetState() {
 }
 
 void ECNFlow::stepAgent() {
-    //TODO: get state and reward
     double state = getState();
     double reward = getReward();
     resetState();

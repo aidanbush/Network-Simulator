@@ -61,7 +61,7 @@ class Flow: public NetworkObject {
         int packetsErrored;
 
         Sarsa agent;
-        int miTime = 10;
+        second_t miTime = 0.01; // 10 ms
         double rate;
 };
 
