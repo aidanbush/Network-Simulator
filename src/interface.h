@@ -63,6 +63,15 @@ class Interface: public NetworkObject {
 
         queue<Packet*> outBuffer;
         queue<Packet*> inBuffer;
+
+        void tagPacket(Packet *p, int bufferCurrentSize, int bufferFullSize);
+
+        void tagPacketIn(Packet *p);
+
+        void tagPacketOut(Packet *p);
+
+        /* packet specific data */
+        double ECNThreshold;
 };
 
 #ifdef _TEST

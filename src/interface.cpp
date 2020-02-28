@@ -14,6 +14,8 @@
 #define RX_LINK_EVENT_STR       "interface link rx"
 #define RX_HANDLER_EVENT_STR    "interface handler rx"
 
+#define DEFAULT_ECN_THRESHOLD 0.1
+
 using namespace std;
 
 using json = nlohmann::json;
@@ -24,6 +26,7 @@ Interface::Interface(json &interfaceConfig): NetworkObject(validateInterfaceConf
     this->outBufSize = interfaceConfig["out_buf_size"];
     this->inBufSize = interfaceConfig["in_buf_size"];
     this->handlerId = interfaceConfig["handler_id"];
+    this->ECNThreshold = DEFAULT_ECN_THRESHOLD;
 }
 
 int Interface::validateInterfaceConfig(json &interfaceConfig) {
@@ -122,17 +125,35 @@ void Interface::txHandlerEvent() {
     }
 }
 
+void Interface::tagPacket(Packet *p, int bufferCurrentSize, int bufferFullSize) {
+    ECNPacket *ecnP = dynamic_cast<ECNPacket*>(p);
+    if (ecnP != NULL) {
+        if ((double)bufferCurrentSize / bufferFullSize > ECNThreshold) {
+            ecnP->setECN();
+        }
+    }
+}
+
+void Interface::tagPacketIn(Packet *p) {
+    tagPacket(p, inBufTotalSize - inBufSize, inBufTotalSize);
+}
+
+void Interface::tagPacketOut(Packet *p) {
+    tagPacket(p, outBufTotalSize - outBufSize, outBufTotalSize);
+}
+
 void Interface::rxLink(Packet *p) {
     if (inBufSize - p->fullSize() < 0) {
         p->drop();
         man.logEvent(IFACE_STR, id, RX_LINK_EVENT_STR, "Packet dropped");
         return;
     }
-
+    
     inBufSize -= p->fullSize();
     inBuffer.push(p);
+    tagPacketIn(p);
 
-    if (inBuffer.size() == 1) {
+    if (inBuffer.size() == 1) { //TODO: what if buffer size is larger than 1
         PacketHandler *handler = man.getHandler(handlerId);
 
         second_t nextTx = man.time + double(p->fullSizeBits()) / handler->getInternalSpeed();
@@ -150,6 +171,7 @@ void Interface::rxHandler(Packet *p) {
 
     outBufSize -= p->fullSize();
     outBuffer.push(p);
+    tagPacketOut(p);
 
     // if only one element add event
     if (outBuffer.size() == 1) {

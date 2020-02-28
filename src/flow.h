@@ -23,7 +23,7 @@ class Flow: public NetworkObject {
         virtual void stepAgent() = 0;
         virtual void txPacketEvent() = 0;
 
-        void packetArrived(Packet *p);
+        virtual void packetArrived(Packet *p);
         void packetDropped(Packet *p);
         void packetError(Packet *p);
 

@@ -245,8 +245,9 @@ ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
     this->packetsTotal = 0;
     this->rate = flowConfig["start_rate"];
     this->headSize = 20;
-    this->bodySize = 256;
+    this->bodySize = 236;
     this->ttl = 15;
+    this->miTime = 10;
 }
 
 json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
@@ -303,7 +304,7 @@ void ECNFlow::startFlow() {
 }
 
 double ECNFlow::getState() {
-    return packetsTotal == 0 ? 0 : (packetsTotal - packetsUntagged) / packetsTotal;
+    return packetsTotal == 0 ? 0 : (double)(packetsTotal - packetsUntagged) / packetsTotal;
 }
 
 double ECNFlow::getReward() {
@@ -320,7 +321,8 @@ void ECNFlow::stepAgent() {
     double reward = getReward();
     resetState();
 
-    switch (agent.step(state, reward)) {
+    int action = agent.step(state, reward);
+    switch (action) {
         case 0:
             rate *= 2;
             break;
@@ -334,8 +336,12 @@ void ECNFlow::stepAgent() {
             rate--;
             break;
     }
+    rate = max(0.0, rate);
     EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
     man.pushEvent(e);
+    man.logEvent("ECNFlow", this->id, "Agent Step", "Agent called with state " + to_string(state) + " and reward "
+                    + to_string(reward) + " and took action " + to_string(action)
+                        + ", setting rate to " +to_string(rate));
 }
 
 void ECNFlow::txPacketEvent() {
@@ -349,6 +355,8 @@ void ECNFlow::txPacketEvent() {
     second_t nextTx = nextTxTime();
     EventI *e = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
     man.pushEvent(e);
+    man.logEvent("ECNFlow", this->id, "Flow Packet Tx", "Sent packet " + to_string(p->getId()) + 
+                    " from flow " + to_string(this->id));
 }
 
 void ECNFlow::packetArrived(Packet *p) {
@@ -358,7 +366,10 @@ void ECNFlow::packetArrived(Packet *p) {
             packetsUntagged++;
         }
         packetsTotal++;
+        man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet " + to_string(p->getId()) + 
+                        " arrived at destination.");
     } else {
+        man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet arrived but was null");
         // TODO oh no this is bad, really bad!
     }
 

@@ -10,15 +10,11 @@
 #include "endpoint.h"
 #include "config.h"
 
-#define DEFAULT_ECN_THRESHOLD 0.1
-
 using namespace std;
 
 using json = nlohmann::json;
 
-Switch::Switch(json &switchConfig): PacketHandler(validateSwitchConfig(switchConfig)) {
-    this->ECNThreshold = DEFAULT_ECN_THRESHOLD;
-}
+Switch::Switch(json &switchConfig): PacketHandler(validateSwitchConfig(switchConfig)) {}
 
 json &Switch::validateSwitchConfig(json &switchConfig) {
     string message = "";
@@ -37,23 +33,13 @@ json &Switch::validateSwitchConfig(json &switchConfig) {
     return switchConfig;
 }
 
-void Switch::rxHandlePacket(Packet *p, Interface *outBoundInterface) {
-    ECNPacket *ecnP = dynamic_cast<ECNPacket*>(p);
-    if (ecnP != NULL) {
-        if ((outBoundInterface->getOutBufferCurrentSize() / outBoundInterface->getOutBufferTotalSize())
-                > ECNThreshold) {
-            ecnP->setECN();
-        }
-    }
-}
-
 void Switch::rxPacket(Packet *p) {
     int interfaceId = routePacket(p);
 
     Interface *interface = man.getInterface(interfaceId);
 
     // handle packets
-    rxHandlePacket(p, interface);
+    //tagPacketOut(p, interface);
 
     interface->rxHandler(p);
 }
