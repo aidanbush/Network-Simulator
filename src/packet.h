@@ -50,11 +50,14 @@ class ECNPacket: public Packet {
                 int headerSize, int bodySize); // TODO add ack data
         ~ECNPacket() = default;
 
-        void setECN();
-        bool getECN();
+        void setECNBit();
+        bool getECNBit();
+        void setECNScale(double scale);
+        double getECNScale();
 
     private:
         bool ECNBit;
+        double ECNScale;
 };
 
 #ifdef _TEST

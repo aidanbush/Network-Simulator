@@ -25,3 +25,4 @@ clean:
 	make -C src clean
 	make -C src test_clean
 	$(RM) simulator
+	$(RM) simulator.dSYM

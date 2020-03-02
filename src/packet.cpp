@@ -43,12 +43,20 @@ ECNPacket::ECNPacket(int id, int sourceId, int destId, int flowId, int ttl,
     ECNBit = false;
 }
 
-void ECNPacket::setECN() {
+void ECNPacket::setECNBit() {
     ECNBit = true;
 }
 
-bool ECNPacket::getECN() {
+bool ECNPacket::getECNBit() {
     return ECNBit;
+}
+
+void ECNPacket::setECNScale(double scale) {
+    ECNScale = max(ECNScale, scale);
+}
+
+double ECNPacket::getECNScale() {
+    return ECNScale;
 }
 
 #ifdef _TEST

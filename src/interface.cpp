@@ -129,8 +129,9 @@ void Interface::tagPacket(Packet *p, int bufferCurrentSize, int bufferFullSize) 
     ECNPacket *ecnP = dynamic_cast<ECNPacket*>(p);
     if (ecnP != NULL) {
         if ((double)bufferCurrentSize / bufferFullSize > ECNThreshold) {
-            ecnP->setECN();
+            ecnP->setECNBit();
         }
+        ecnP->setECNScale((double)bufferCurrentSize / bufferFullSize);
     }
 }
 

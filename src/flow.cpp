@@ -243,6 +243,7 @@ void BasicFlow::txPacketEvent() {
 ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
     this->packetsUntagged = 0;
     this->packetsTotal = 0;
+    this->averageECN = 0;
     this->rate = flowConfig["start_rate"];
     this->headSize = 20;
     this->bodySize = 236;
@@ -304,7 +305,8 @@ void ECNFlow::startFlow() {
 }
 
 double ECNFlow::getState() {
-    return packetsTotal == 0 ? 0 : (double)(packetsTotal - packetsUntagged) / packetsTotal;
+    //return packetsTotal == 0 ? 0 : (double)(packetsTotal - packetsUntagged) / packetsTotal;
+    return averageECN;
 }
 
 double ECNFlow::getReward() {
@@ -314,6 +316,7 @@ double ECNFlow::getReward() {
 void ECNFlow::resetState() {
     packetsUntagged = 0;
     packetsTotal = 0;
+    averageECN = 0;
 }
 
 void ECNFlow::stepAgent() {
@@ -362,10 +365,13 @@ void ECNFlow::txPacketEvent() {
 void ECNFlow::packetArrived(Packet *p) {
     ECNPacket *ecnP = dynamic_cast<ECNPacket *>(p);
     if (ecnP != NULL) {
-        if (!ecnP->getECN()) {
+        if (!ecnP->getECNBit()) {
             packetsUntagged++;
         }
+        averageECN *= packetsTotal;
         packetsTotal++;
+        averageECN += ecnP->getECNScale();
+        averageECN /= packetsTotal;
         man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet " + to_string(p->getId()) + 
                         " arrived at destination.");
     } else {

@@ -111,6 +111,7 @@ class ECNFlow: public Flow {
 
         int packetsUntagged;
         int packetsTotal;
+        double averageECN;
 
         double getState();
         double getReward();
