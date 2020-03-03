@@ -368,10 +368,13 @@ void ECNFlow::packetArrived(Packet *p) {
         if (!ecnP->getECNBit()) {
             packetsUntagged++;
         }
-        averageECN *= packetsTotal;
+        if (packetsTotal > 0) {
+            averageECN += ecnP->getECNScale()/packetsTotal;
+            averageECN *= (double)packetsTotal/(packetsTotal + 1);
+        } else {
+            averageECN = ecnP->getECNScale();
+        }
         packetsTotal++;
-        averageECN += ecnP->getECNScale();
-        averageECN /= packetsTotal;
         man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet " + to_string(p->getId()) + 
                         " arrived at destination.");
     } else {

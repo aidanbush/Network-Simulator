@@ -1,6 +1,5 @@
 #include <vector>
 #include <stdlib.h>
-#include <iostream>
 
 #include "sarsa.h"
 #include "tilecoder.h"
@@ -29,7 +28,7 @@ Sarsa::Sarsa(vector<double> *weights, double initialState) {
 double sumIndices(vector<double> *vec, vector<int> indices, int offset = 0) {
     double s = 0;
     for (auto i: indices) {
-        s += (*vec)[i + offset];
+        s += vec->at(i + offset);
     }
     return s;
 }

@@ -41,6 +41,7 @@ ECNPacket::ECNPacket(int id, int sourceId, int destId, int flowId, int ttl,
         int headerSize, int bodySize): Packet(id, sourceId, destId, flowId, ttl,
             headerSize, bodySize) {
     ECNBit = false;
+    ECNScale = 0;
 }
 
 void ECNPacket::setECNBit() {
