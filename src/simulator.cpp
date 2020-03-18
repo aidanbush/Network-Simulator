@@ -47,6 +47,7 @@ void printUsage(char *pName) {
             "Options\n"
             "  -l [filename] sets the log file, if not set uses stdout\n"
             "  -s step through event by event\n"
+            "  -q supress all output except final results\n"
             "  -h this usage message\n", basename(pName));
 }
 
@@ -59,8 +60,11 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    while ((c = getopt(argc, argv, "hsl:")) != -1) {
+    while ((c = getopt(argc, argv, "qhsl:")) != -1) {
         switch (c) {
+            case 'q':
+                man.setSuppressOutput();
+                break;
             case 's':
                 step = true;
                 break;
@@ -81,16 +85,16 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (optind != argc - 1) {
+    if (optind == argc - 1) {
+        configFile = argv[optind];
+    } else if (optind == argc - 2) {
+        configFile = argv[optind];
+        loadParams(argv[optind + 1]);
+    } else {
         fprintf(stderr, "Incorrect number of arguments\n");
         printUsage(argv[0]);
         return 1;
     }
-
-    if (optind == argc -1) {
-        configFile = argv[optind];
-    }
-
 
     if (!loadConfig(configFile)) {
         return 1;

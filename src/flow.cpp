@@ -15,6 +15,8 @@
 #define FLOW_STR        "Flow"
 #define TX_PACKET_EVENT "flow create packet event"
 
+#define MAX_RATE 256000.0
+
 using namespace std;
 
 enum FlowType {
@@ -339,7 +341,7 @@ void ECNFlow::stepAgent() {
             rate--;
             break;
     }
-    rate = max(0.0, rate);
+    rate = min(MAX_RATE, max(0.0, rate));
     EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
     man.pushEvent(e);
     man.logEvent("ECNFlow", this->id, "Agent Step", "Agent called with state " + to_string(state) + " and reward "

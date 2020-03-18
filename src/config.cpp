@@ -140,6 +140,13 @@ static bool parseConfig(json& config) {
     return success;
 }
 
+void loadParams(string filename) {
+    ifstream ifs = ifstream(filename, ifstream::in);
+    double alpha, lambda, gamma, epsilon, initialWeights;
+    ifs >> alpha >> lambda >> gamma >> epsilon >> initialWeights;
+    man.setParameters(alpha, lambda, gamma, epsilon, initialWeights);
+}
+
 bool loadConfig(string filename) {
     json config = readConfig(filename);
 

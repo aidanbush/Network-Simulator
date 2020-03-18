@@ -256,6 +256,40 @@ bool Manager::startSimulator() {
     return true;
 }
 
+void Manager::setParameters(double alpha, double lambda, double gamma, double epsilon, double initialWeights) {
+    parametersSet = true;
+    this->alpha = alpha;
+    this->lambda = lambda;
+    this->gamma = gamma;
+    this->epsilon = epsilon;
+    this->initialWeights = initialWeights;
+}
+
+bool Manager::getParameters(double *alpha, double *lambda, double *gamma, double *epsilon) {
+    if (parametersSet) {
+        *alpha = this->alpha;
+        *lambda = this->lambda;
+        *gamma = this->gamma;
+        *epsilon = this->epsilon;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool Manager::getInitialWeights(double *initialWeights) {
+    if (parametersSet) {
+        *initialWeights = this->initialWeights;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void Manager::setSuppressOutput() {
+    suppressOutput = true;
+}
+
 bool Manager::setLogFile(string filename) {
     FILE *newLog = fopen(filename.c_str(), (char *)"w");
 
@@ -275,6 +309,8 @@ void Manager::logTxEvent(string objName, int objId, string eventName, int destId
 }
 
 void Manager::logEvent(string objName, int objId, string eventName, string message) {
-    fprintf(logFile, "time: %f %s: %d event: %s message: %s\n", time,
+    if (!suppressOutput) {
+        fprintf(logFile, "time: %f %s: %d event: %s message: %s\n", time,
             objName.c_str(), objId, eventName.c_str(), message.c_str());
+    }
 }

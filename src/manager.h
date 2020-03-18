@@ -79,6 +79,12 @@ class Manager {
 
         bool setLogFile(string filename);
 
+        void setParameters(double alpha, double lambda, double gamma, double epsilon, double initialWeights);
+        bool getParameters(double *alpha, double *lambda, double *gamma, double *epsilon);
+        bool getInitialWeights(double *initialWeights);
+
+        void setSuppressOutput();
+
         void logTxEvent(string objName, int objId, string eventName, int destId, Packet *p);
         void logEvent(string objName, int objId, string eventName, string message);
 
@@ -93,6 +99,15 @@ class Manager {
         void deleteFlows();
 
         void deleteEvents();
+
+        bool parametersSet = false;
+        double alpha;
+        double lambda;
+        double gamma;
+        double epsilon;
+        double initialWeights;
+
+        bool suppressOutput = false;
 
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator> pq;
         map<int, PacketHandler*> packetHandlers;
