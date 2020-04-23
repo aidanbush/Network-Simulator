@@ -142,9 +142,17 @@ static bool parseConfig(json& config) {
 
 void loadParams(string filename) {
     ifstream ifs = ifstream(filename, ifstream::in);
-    double alpha, lambda, gamma, epsilon, initialWeights;
-    ifs >> alpha >> lambda >> gamma >> epsilon >> initialWeights;
-    man.setParameters(alpha, lambda, gamma, epsilon, initialWeights);
+    int numParams;
+    vector<double> params;
+    double nextParam;
+
+    ifs >> numParams;
+    for (int i = 0; i < numParams - 1; i++) {
+        ifs >> nextParam;
+        params.push_back(nextParam);
+    }
+    ifs >> nextParam; // Last parameter is always initialWeights
+    man.setParameters(params, nextParam);
 }
 
 bool loadConfig(string filename) {

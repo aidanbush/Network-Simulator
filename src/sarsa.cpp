@@ -1,49 +1,63 @@
 #include <vector>
 #include <stdlib.h>
+#include <iostream>
 
+#include "agent.h"
 #include "sarsa.h"
 #include "tilecoder.h"
+#include "manager.h"
 
 using namespace std;
 
-#define ALPHA 0.2
-#define LAMBDA 0.9
-#define GAMMA 0.9
-#define EPSILON 0.1
-#define INITIAL_WEIGHTS 0.1
+#define DEFAULT_ALPHA 0.9
+#define DEFAULT_LAMBDA 0.975
+#define DEFAULT_GAMMA 0.9
+#define DEFAULT_EPSILON 0.01
+#define DEFAULT_INITIAL_WEIGHTS 0.1
+#define NUM_PARAMS 4
 #define NUM_ACTIONS 4
 
 vector<double> Sarsa::initializeWeights() {
-    return vector<double>(Tilecoder::getNumTiles() * NUM_ACTIONS, INITIAL_WEIGHTS);
+    double initialWeights;
+    if (!man.getInitialWeights(&initialWeights)) {
+        initialWeights = DEFAULT_INITIAL_WEIGHTS;
+    }
+    return vector<double>(Tilecoder::getNumTiles() * NUM_ACTIONS, initialWeights);
 }
 
-Sarsa::Sarsa(vector<double> *weights, double initialState) {
+Sarsa::Sarsa(vector<double> *weights, double initialState, int flowId) {
+    this->flowId = flowId;
+    
+    vector<double> params;
+    if (!man.getParameters(&params, NUM_PARAMS)) {
+        initialAlpha = DEFAULT_ALPHA;
+        lambda = DEFAULT_LAMBDA;
+        gamma = DEFAULT_GAMMA;
+        epsilon = DEFAULT_EPSILON;
+    } else {
+        initialAlpha = params[0];
+        lambda = params[1];
+        gamma = params[2];
+        epsilon = params[3];
+    }
     this->weights = weights;
-    alpha = (double)ALPHA/Tilecoder::getNumTilings();
+    alpha = (double)initialAlpha/Tilecoder::getNumTilings();
     trace = vector<double>(Tilecoder::getNumTiles() * NUM_ACTIONS, 0);
     oldState = initialState;
     oldTiles = Tilecoder::tilecode(initialState);
 }
 
-double sumIndices(vector<double> *vec, vector<int> indices, int offset = 0) {
-    double s = 0;
-    for (auto i: indices) {
-        s += vec->at(i + offset);
-    }
-    return s;
-}
-
-pair<int, double> Sarsa::selectAction(vector<int> tiles) {
-    if ((double)random()/RAND_MAX < EPSILON) {
+pair<int, double> Sarsa::selectAction() {
+    if ((double)random()/RAND_MAX < epsilon) {
         int ind = (int)(random()%NUM_ACTIONS);
-        double val = sumIndices(weights, tiles, ind*Tilecoder::getNumTiles());
+        double val = sumIndices(weights, &tiles, ind*Tilecoder::getNumTiles());
         //cout << "Exploring:\nAction: " << ind << " Value: " << val << endl;
         return pair<int, double>(ind, val);
     } else {
         double best;
         int bestInd;
         for (int i = 0; i < NUM_ACTIONS; i++) {
-            double val = sumIndices(weights, tiles, i*Tilecoder::getNumTiles());
+            double val = sumIndices(weights, &tiles, i*Tilecoder::getNumTiles());
             //cout << "Action: " << i << " Value: " << val << endl;
             if (val > best || i == 0) {
                 best = val;
@@ -54,22 +68,23 @@ pair<int, double> Sarsa::selectAction(vector<int> tiles) {
     }
 }
 
-int Sarsa::step(double state, double reward) {
+void Sarsa::step(double state, double reward, double &rate) {
+    totalReward += reward;
     // Tilecode
-    vector<int> tiles = Tilecoder::tilecode(state);
+    tiles = Tilecoder::tilecode(state);
     //for (auto t: tiles) {
         //cout << t << " ";
     //}
     //cout << endl;
     
     // Select action
-    pair<int, double> actionValue = selectAction(tiles);
+    pair<int, double> actionValue = selectAction();
     int action = actionValue.first;
     double value = actionValue.second;
     
     // Update values
-    double newOldValue = sumIndices(weights, oldTiles, oldAction*Tilecoder::getNumTiles());
-    double delta = reward + GAMMA*value - newOldValue;
+    double newOldValue = sumIndices(weights, &oldTiles, oldAction*Tilecoder::getNumTiles());
+    double delta = reward + gamma*value - newOldValue;
     //cout << "Q: " << newOldValue << " Q\': " << value << " Q_old: " << oldValue << endl;
     //cout << "Alpha: " << alpha << " Delta: " << delta << endl;
     // if (value > 100 || newOldValue > 100 || oldValue > 100) {
@@ -77,7 +92,7 @@ int Sarsa::step(double state, double reward) {
     // }
     // Update trace
     for (int i = 0; i < Tilecoder::getNumTiles() * NUM_ACTIONS; i++) {
-        trace[i] *= GAMMA*LAMBDA;
+        trace[i] *= gamma*lambda;
     }
     for (auto tile: tiles) {
         trace[action*Tilecoder::getNumTiles() + tile] += (1 - alpha);
@@ -96,5 +111,19 @@ int Sarsa::step(double state, double reward) {
     oldValue = value;
     oldTiles = tiles;
     
-    return action;
+    //update rate
+    switch (action) {
+        case 0:
+            rate *= 2;
+            break;
+        case 1:
+            rate /= 2;
+            break;
+        case 2:
+            rate++;
+            break;
+        case 3:
+            rate--;
+            break;
+    }
 }

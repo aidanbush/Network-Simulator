@@ -5,7 +5,7 @@ if [ ! -d results ]
 then
     mkdir results
 fi
-rm -f results/sweepOutput.csv
+rm -f results/sweepSarsaOutput.csv
 rm -f results/failedParams
 COUNT=0
 TOTAL=$(( 10*8*10*8*1 ))
@@ -21,8 +21,9 @@ do
                 do
                     let COUNT++
                     echo "Running for input" $ALPHA $LAMBDA $GAMMA $EPSILON $INITIAL_WEIGHTS "("$COUNT of $TOTAL")"
-                    echo $ALPHA $LAMBDA $GAMMA $EPSILON $INITIAL_WEIGHTS > params
-                    gtimeout 2s ./simulator -q local.json params >> results/sweepOutput.csv
+                    echo 5 > params
+                    echo $ALPHA $LAMBDA $GAMMA $EPSILON $INITIAL_WEIGHTS >> params
+                    gtimeout 2s ./simulator -q local.json params >> results/sweepSarsaOutput.csv
                     if [ $? -ne 0 ]
                     then
                         echo $ALPHA $LAMBDA $GAMMA $EPSILON $INITIAL_WEIGHTS >> results/failedParams

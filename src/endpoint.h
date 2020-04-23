@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "packetHandler.h"
+#include "agent.h"
 
 using namespace std;
 
@@ -19,6 +20,7 @@ class Endpoint: public PacketHandler {
         int txPacket(Packet *p);
         bool validate();
         vector<double> *getWeights();
+        AgentType getAgentType();
 #ifdef _TEST
         static int endpointToEndpoint();
 #endif /* _TEST */
@@ -26,6 +28,7 @@ class Endpoint: public PacketHandler {
     private:
         vector<double> weights;
         static json &validateEndpointConfig(json &endpointConfig);
+        AgentType agentType;
 };
 
 #ifdef _TEST

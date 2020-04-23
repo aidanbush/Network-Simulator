@@ -6,13 +6,25 @@
 #include "packet.h"
 #include "packetHandler.h"
 #include "config.h"
+#include "agent.h"
+#include "actorCritic.h"
 #include "sarsa.h"
+
+#define AGENT_TYPE ActorCriticAgent // SarsaAgent or ActorCriticAgent
 
 using namespace std;
 using json = nlohmann::json;
 
 Endpoint::Endpoint(json &endpointConfig): PacketHandler(validateEndpointConfig(endpointConfig)) {
-    weights = Sarsa::initializeWeights();
+    agentType = AGENT_TYPE;
+    switch (agentType) {
+        case ActorCriticAgent:
+            weights = ActorCritic::initializeWeights();
+            break;
+        case SarsaAgent:
+            weights = Sarsa::initializeWeights();
+            break;
+    }
 }
 
 json &Endpoint::validateEndpointConfig(json &endpointConfig) {
@@ -57,6 +69,10 @@ bool Endpoint::validate() {
     }
 
     return valid;
+}
+
+AgentType Endpoint::getAgentType() {
+    return agentType;
 }
 
 vector<double> *Endpoint::getWeights() {

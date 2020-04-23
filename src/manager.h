@@ -3,6 +3,7 @@
 
 #include <queue>
 #include <map>
+#include <vector>
 
 //TODO: why not include the headers?
 class PacketHandler;
@@ -67,6 +68,7 @@ class Manager {
 
         Flow *getFlow(int id);
         bool addFlow(Flow *flow);
+        void removeFlow(int id);
 
         void pushEvent(EventI *e) {pq.push(e); }
         EventI *popEvent();
@@ -79,8 +81,8 @@ class Manager {
 
         bool setLogFile(string filename);
 
-        void setParameters(double alpha, double lambda, double gamma, double epsilon, double initialWeights);
-        bool getParameters(double *alpha, double *lambda, double *gamma, double *epsilon);
+        void setParameters(vector<double> params, double initialWeights);
+        bool getParameters(vector<double> *params, int numParams);
         bool getInitialWeights(double *initialWeights);
 
         void setSuppressOutput();
@@ -101,10 +103,7 @@ class Manager {
         void deleteEvents();
 
         bool parametersSet = false;
-        double alpha;
-        double lambda;
-        double gamma;
-        double epsilon;
+        vector<double> params;
         double initialWeights;
 
         bool suppressOutput = false;

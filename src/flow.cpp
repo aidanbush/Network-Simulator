@@ -10,12 +10,15 @@
 #include "endpoint.h"
 #include "networkObject.h"
 #include "config.h"
+#include "agent.h"
+#include "actorCritic.h"
 #include "sarsa.h"
 
 #define FLOW_STR        "Flow"
 #define TX_PACKET_EVENT "flow create packet event"
 
 #define MAX_RATE 256000.0
+#define NUM_AGENT_STEPS 100
 
 using namespace std;
 
@@ -72,9 +75,19 @@ Flow *createFlow(json &flowConfig) {
 
 //flowConfig already validated
 Flow::Flow(json &flowConfig):
-    NetworkObject(flowConfig["id"]),
+    NetworkObject(flowConfig["id"])
     //TODO: Second parameter is initial state, should it be something other than 0?
-    agent(Sarsa(man.getEndpoint(flowConfig["source_id"])->getWeights(), 0)) {
+    //,agent(new AGENT_TYPE(man.getEndpoint(flowConfig["source_id"])->getWeights(), 0))
+    {
+    Endpoint *end = man.getEndpoint(flowConfig["source_id"]);
+    switch (end->getAgentType()) {
+        case ActorCriticAgent:
+            agent = new ActorCritic(end->getWeights(), 0, flowConfig["id"]);
+            break;
+        case SarsaAgent:
+            agent = new Sarsa(end->getWeights(), 0, flowConfig["id"]);
+            break;
+    }
     this->sourceId = flowConfig["source_id"];
     this->destId = flowConfig["dest"];
 
@@ -83,12 +96,14 @@ Flow::Flow(json &flowConfig):
     this->packetsDropped = 0;
     this->packetsErrored = 0;
     this->curPId = 0;
+    this->maxTime = NUM_AGENT_STEPS*miTime;
 }
 
 Flow::~Flow() {
     for (auto it : packets) {
         delete it.second;
     }
+    delete agent;
 }
 
 void Flow::removePacket(Packet *p) {
@@ -326,27 +341,20 @@ void ECNFlow::stepAgent() {
     double reward = getReward();
     resetState();
 
-    int action = agent.step(state, reward);
-    switch (action) {
-        case 0:
-            rate *= 2;
-            break;
-        case 1:
-            rate /= 2;
-            break;
-        case 2:
-            rate++;
-            break;
-        case 3:
-            rate--;
-            break;
-    }
+    agent->step(state, reward, rate);
     rate = min(MAX_RATE, max(0.0, rate));
-    EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
-    man.pushEvent(e);
-    man.logEvent("ECNFlow", this->id, "Agent Step", "Agent called with state " + to_string(state) + " and reward "
-                    + to_string(reward) + " and took action " + to_string(action)
-                        + ", setting rate to " +to_string(rate));
+    if (man.time + miTime <= maxTime) {
+        EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
+        man.pushEvent(e);
+    } else {
+        man.logEvent("ECNFlow", this->id, "End of program", "Acheived reward " + to_string(reward) +\
+                                                             " with rate of " + to_string(rate));
+        man.removeFlow(id);
+        delete this;
+    }
+    // man.logEvent("ECNFlow", this->id, "Agent Step", "Agent called with state " + to_string(state) + " and reward "
+    //                 + to_string(reward) + " and took action " + to_string(action)
+    //                     + ", setting rate to " +to_string(rate));
 }
 
 void ECNFlow::txPacketEvent() {
@@ -358,8 +366,10 @@ void ECNFlow::txPacketEvent() {
     endpoint->txPacket(p);
 
     second_t nextTx = nextTxTime();
-    EventI *e = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
-    man.pushEvent(e);
+    if (nextTx < maxTime) {
+        EventI *e = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
+        man.pushEvent(e);
+    }
     man.logEvent("ECNFlow", this->id, "Flow Packet Tx", "Sent packet " + to_string(p->getId()) + 
                     " from flow " + to_string(this->id));
 }
@@ -431,20 +441,7 @@ void TestFlow::stepAgent() {
     //TODO: get state and reward
     double state = 0;
     double reward = 0;
-    switch (agent.step(state, reward)) {
-        case 0:
-            rate *= 2;
-            break;
-        case 1:
-            rate /= 2;
-            break;
-        case 2:
-            rate++;
-            break;
-        case 3:
-            rate--;
-            break;
-    }
+    agent->step(state, reward,rate);
 }
 
 void TestFlow::txPacketEvent() {

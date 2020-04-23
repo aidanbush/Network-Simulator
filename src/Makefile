@@ -6,7 +6,7 @@ CXXFLAGS=-std=c++2a -Wall -Wextra -Wconversion -pedantic -g
 BUILD_DIR=../build/
 TARGETS=$(addprefix $(BUILD_DIR), simulator.o networkObject.o packetHandler.o\
 	switch.o endpoint.o interface.o flow.o link.o packet.o manager.o config.o\
-	sarsa.o tilecoder.o)
+	agent.o sarsa.o actorCritic.o tilecoder.o)
 
 .PHONY: all clean test test_clean
 
@@ -34,11 +34,11 @@ $(BUILD_DIR)packetHandler.o: packetHandler.cpp packetHandler.h networkObject.h i
 
 $(BUILD_DIR)switch.o: switch.cpp switch.h packetHandler.h manager.h interface.h packet.h endpoint.h tests/throwAssert.h
 
-$(BUILD_DIR)endpoint.o: endpoint.cpp endpoint.h packetHandler.h packet.h interface.h sarsa.h tests/throwAssert.h
+$(BUILD_DIR)endpoint.o: endpoint.cpp endpoint.h packetHandler.h packet.h interface.h agent.h actorCritic.h sarsa.h tests/throwAssert.h
 
 $(BUILD_DIR)interface.o: interface.cpp interface.h networkObject.h packetHandler.h manager.h packet.h link.h tests/throwAssert.h
 
-$(BUILD_DIR)flow.o: flow.cpp flow.h networkObject.h manager.h packet.h endpoint.h sarsa.h tests/throwAssert.h
+$(BUILD_DIR)flow.o: flow.cpp flow.h networkObject.h manager.h packet.h endpoint.h agent.h actorCritic.h sarsa.h tests/throwAssert.h
 
 $(BUILD_DIR)link.o: link.cpp link.h networkObject.h manager.h packet.h interface.h tests/throwAssert.h
 
@@ -46,9 +46,13 @@ $(BUILD_DIR)packet.o: packet.cpp packet.h networkObject.h flow.h
 
 $(BUILD_DIR)manager.o: manager.cpp manager.h packetHandler.h switch.h endpoint.h
 
-$(BUILD_DIR)sarsa.o: sarsa.cpp tilecoder.h
+$(BUILD_DIR)agent.o: agent.cpp agent.h
 
-$(BUILD_DIR)tilecoder.o: tilecoder.cpp
+$(BUILD_DIR)sarsa.o: sarsa.cpp sarsa.h agent.h tilecoder.h
+
+$(BUILD_DIR)actorCritic.o: actorCritic.cpp actorCritic.h agent.h tilecoder.h
+
+$(BUILD_DIR)tilecoder.o: tilecoder.cpp tilecoder.h
 
 clean:
 	$(RM) $(TARGETS)

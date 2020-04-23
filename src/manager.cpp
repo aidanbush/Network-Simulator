@@ -1,4 +1,5 @@
 #include <map>
+#include <vector>
 
 #include "manager.h"
 #include "packetHandler.h"
@@ -122,6 +123,14 @@ bool Manager::addFlow(Flow *flow) {
     }
 
     return flows.emplace(id, flow).second;
+}
+
+void Manager::removeFlow(int id) {
+    flows.erase(id);
+    if (flows.size() == 0) {
+        // All flows finished, end simulation
+        exit(0);
+    }
 }
 
 Flow *Manager::getFlow(int id) {
@@ -256,21 +265,16 @@ bool Manager::startSimulator() {
     return true;
 }
 
-void Manager::setParameters(double alpha, double lambda, double gamma, double epsilon, double initialWeights) {
+void Manager::setParameters(vector<double> params, double initialWeights) {
     parametersSet = true;
-    this->alpha = alpha;
-    this->lambda = lambda;
-    this->gamma = gamma;
-    this->epsilon = epsilon;
+    this->params = params;
     this->initialWeights = initialWeights;
 }
 
-bool Manager::getParameters(double *alpha, double *lambda, double *gamma, double *epsilon) {
-    if (parametersSet) {
-        *alpha = this->alpha;
-        *lambda = this->lambda;
-        *gamma = this->gamma;
-        *epsilon = this->epsilon;
+bool Manager::getParameters(vector<double> *params, int numParams) {
+    if (parametersSet && numParams == (int)this->params.size()) {
+        // TODO: print warning if incorrect number of parameters
+        *params = this->params;
         return true;
     } else {
         return false;
