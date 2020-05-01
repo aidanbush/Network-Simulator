@@ -2,6 +2,8 @@
 #include <typeinfo>
 #include <typeindex>
 #include <map>
+#include <ctime>
+#include <fstream>
 #include <nlohmann/json.hpp>
 
 #include "flow.h"
@@ -19,6 +21,8 @@
 
 #define MAX_RATE 256000.0
 #define NUM_AGENT_STEPS 100
+#define MI_TIME 10
+#define STAT_FILE_DIRECTORY "results"
 
 using namespace std;
 
@@ -96,6 +100,7 @@ Flow::Flow(json &flowConfig):
     this->packetsDropped = 0;
     this->packetsErrored = 0;
     this->curPId = 0;
+    this->miTime = MI_TIME;
     this->maxTime = NUM_AGENT_STEPS*miTime;
 }
 
@@ -259,13 +264,12 @@ void BasicFlow::txPacketEvent() {
 
 ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
     this->packetsUntagged = 0;
-    this->packetsTotal = 0;
+    this->packetsSent = 0;
     this->averageECN = 0;
     this->rate = flowConfig["start_rate"];
     this->headSize = 20;
     this->bodySize = 236;
     this->ttl = 15;
-    this->miTime = 10;
 }
 
 json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
@@ -322,7 +326,7 @@ void ECNFlow::startFlow() {
 }
 
 double ECNFlow::getState() {
-    //return packetsTotal == 0 ? 0 : (double)(packetsTotal - packetsUntagged) / packetsTotal;
+    //return packetsSent == 0 ? 0 : (double)(packetsSent - packetsUntagged) / packetsSent;
     return averageECN;
 }
 
@@ -332,13 +336,35 @@ double ECNFlow::getReward() {
 
 void ECNFlow::resetState() {
     packetsUntagged = 0;
-    packetsTotal = 0;
+    packetsSent = 0;
     averageECN = 0;
+}
+
+void ECNFlow::updateStats() {
+    totalPacketsUntagged += packetsUntagged;
+    totalPacketsSent += packetsSent;
+    rewardList.push_back(packetsUntagged);
+    rateList.push_back(rate);
+    averageECNList.push_back(averageECN);
+}
+
+void ECNFlow::printCSV(string filename, vector<double> vec) {
+    ofstream ofs;
+    ofs.open(string(STAT_FILE_DIRECTORY) + "/" + filename, ofstream::trunc);
+    if (vec.size() >= 1) {
+        ofs << vec[0];
+        for (int i = 1; i < (int)vec.size(); i++) {
+            ofs << "," << vec[i];
+        }
+    }
+    ofs.close();
 }
 
 void ECNFlow::stepAgent() {
     double state = getState();
     double reward = getReward();
+    totalReward += reward;
+    updateStats();
     resetState();
 
     agent->step(state, reward, rate);
@@ -347,8 +373,17 @@ void ECNFlow::stepAgent() {
         EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
         man.pushEvent(e);
     } else {
-        man.logEvent("ECNFlow", this->id, "End of program", "Acheived reward " + to_string(reward) +\
-                                                             " with rate of " + to_string(rate));
+        man.logEvent("ECNFlow", this->id, "End of program", "Acheived reward " + to_string(totalReward) +\
+                        " with final rate of " + to_string(rate) + " and " + to_string(totalPacketsUntagged) +\
+                        " out of " + to_string(totalPacketsSent) + " packets untagged.");
+        time_t currentTime;
+        time(&currentTime);
+        tm *currentTm = localtime(&currentTime);
+        char date[13];
+        strftime(date, 13, "%Y%m%d%H%M", currentTm);
+        printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_Rewards.csv", rewardList);
+        printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_Rates.csv", rateList);
+        printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_ECNAverages.csv", averageECNList);
         man.removeFlow(id);
         delete this;
     }
@@ -380,13 +415,13 @@ void ECNFlow::packetArrived(Packet *p) {
         if (!ecnP->getECNBit()) {
             packetsUntagged++;
         }
-        if (packetsTotal > 0) {
-            averageECN += ecnP->getECNScale()/packetsTotal;
-            averageECN *= (double)packetsTotal/(packetsTotal + 1);
+        if (packetsSent > 0) {
+            averageECN += ecnP->getECNScale()/packetsSent;
+            averageECN *= (double)packetsSent/(packetsSent + 1);
         } else {
             averageECN = ecnP->getECNScale();
         }
-        packetsTotal++;
+        packetsSent++;
         man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet " + to_string(p->getId()) + 
                         " arrived at destination.");
     } else {

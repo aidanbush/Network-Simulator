@@ -79,6 +79,21 @@ ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowI
     actionPair = selectAction();
 }
 
+string ActorCritic::getName() {
+    switch (mode) {
+        case Add:
+            return "ACAdd";
+        case Mult:
+            return "ACMult";
+        case Both:
+            return "ACBoth";
+        case Choose:
+            return "ACChoose";
+        default:
+            return "AC";
+    }
+}
+
 double ActorCritic::selectActionMult() {
     k = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_ORDER));
     phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_ORDER));

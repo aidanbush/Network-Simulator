@@ -63,6 +63,9 @@ class Flow: public NetworkObject {
         Agent *agent;
         second_t miTime = 0.01; // 10 ms
         double rate;
+        double totalReward = 0;
+        vector<double> rateList;
+        vector<double> rewardList;
         
         second_t maxTime;
 };
@@ -112,12 +115,17 @@ class ECNFlow: public Flow {
         int ttl;
 
         int packetsUntagged;
-        int packetsTotal;
+        int packetsSent;
         double averageECN;
+        int totalPacketsUntagged;
+        int totalPacketsSent;
+        vector<double> averageECNList;
 
         double getState();
         double getReward();
         void resetState();
+        void updateStats();
+        void printCSV(string filename, vector<double> vec);
 
         ECNPacket *createPacket();
 

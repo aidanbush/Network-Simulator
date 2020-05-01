@@ -47,6 +47,10 @@ Sarsa::Sarsa(vector<double> *weights, double initialState, int flowId) {
     oldTiles = Tilecoder::tilecode(initialState);
 }
 
+string Sarsa::getName() {
+    return "Sarsa";
+}
+
 pair<int, double> Sarsa::selectAction() {
     if ((double)random()/RAND_MAX < epsilon) {
         int ind = (int)(random()%NUM_ACTIONS);

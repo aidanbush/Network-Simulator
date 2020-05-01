@@ -9,6 +9,7 @@ class ActorCritic: public Agent {
         ActorCritic(vector<double> *weights, double initialState, int flowId);
         void step(double state, double reward, double &rate);
         static vector<double> initializeWeights();
+        string getName();
     
     private:
         enum Mode {
