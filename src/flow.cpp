@@ -4,7 +4,9 @@
 #include <map>
 #include <ctime>
 #include <fstream>
+#include <iostream>
 #include <nlohmann/json.hpp>
+#include <filesystem>
 
 #include "flow.h"
 #include "manager.h"
@@ -349,6 +351,10 @@ void ECNFlow::updateStats() {
 }
 
 void ECNFlow::printCSV(string filename, vector<double> vec) {
+    //if (boost::filesystem::create_directory(STAT_FILE_DIRECTORY)) {
+    if (!filesystem::exists(STAT_FILE_DIRECTORY)) {
+        filesystem::create_directory(STAT_FILE_DIRECTORY);
+    }
     ofstream ofs;
     ofs.open(string(STAT_FILE_DIRECTORY) + "/" + filename, ofstream::trunc);
     if (vec.size() >= 1) {
