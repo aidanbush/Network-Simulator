@@ -44,6 +44,22 @@ class Packet: public NetworkObject {
         int flowId;
 };
 
+class ECNPacket: public Packet {
+    public:
+        ECNPacket(int id, int sourceId, int destId, int flowId, int ttl,
+                int headerSize, int bodySize); // TODO add ack data
+        ~ECNPacket() = default;
+
+        void setECNBit();
+        bool getECNBit();
+        void setECNScale(double scale);
+        double getECNScale();
+
+    private:
+        bool ECNBit;
+        double ECNScale;
+};
+
 #ifdef _TEST
 int testPacket();
 #endif /* _TEST */

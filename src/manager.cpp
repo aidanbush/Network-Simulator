@@ -1,4 +1,5 @@
 #include <map>
+#include <vector>
 
 #include "manager.h"
 #include "packetHandler.h"
@@ -122,6 +123,14 @@ bool Manager::addFlow(Flow *flow) {
     }
 
     return flows.emplace(id, flow).second;
+}
+
+void Manager::removeFlow(int id) {
+    flows.erase(id);
+    if (flows.size() == 0) {
+        // All flows finished, end simulation
+        exit(0);
+    }
 }
 
 Flow *Manager::getFlow(int id) {
@@ -256,6 +265,35 @@ bool Manager::startSimulator() {
     return true;
 }
 
+void Manager::setParameters(vector<double> params, double initialWeights) {
+    parametersSet = true;
+    this->params = params;
+    this->initialWeights = initialWeights;
+}
+
+bool Manager::getParameters(vector<double> *params, int numParams) {
+    if (parametersSet && numParams == (int)this->params.size()) {
+        // TODO: print warning if incorrect number of parameters
+        *params = this->params;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool Manager::getInitialWeights(double *initialWeights) {
+    if (parametersSet) {
+        *initialWeights = this->initialWeights;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void Manager::setSuppressOutput() {
+    suppressOutput = true;
+}
+
 bool Manager::setLogFile(string filename) {
     FILE *newLog = fopen(filename.c_str(), (char *)"w");
 
@@ -275,6 +313,8 @@ void Manager::logTxEvent(string objName, int objId, string eventName, int destId
 }
 
 void Manager::logEvent(string objName, int objId, string eventName, string message) {
-    fprintf(logFile, "time: %f %s: %d event: %s message: %s\n", time,
+    if (!suppressOutput) {
+        fprintf(logFile, "time: %f %s: %d event: %s message: %s\n", time,
             objName.c_str(), objId, eventName.c_str(), message.c_str());
+    }
 }

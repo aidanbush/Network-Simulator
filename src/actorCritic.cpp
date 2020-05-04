@@ -1,0 +1,235 @@
+#include <vector>
+#include <stdlib.h>
+#include <iostream>
+#include <cmath>
+#include <random>
+#include <stdexcept>
+#include <boost/math/special_functions/digamma.hpp>
+
+#include "agent.h"
+#include "actorCritic.h"
+#include "tilecoder.h"
+#include "manager.h"
+
+using namespace std;
+
+#define DEFAULT_ALPHA_U 0.005 //Add: 0.05, Mult: 0.005, Both: 0.005
+#define DEFAULT_ALPHA_V 0.01 //Add: 1, Mult: 0.1, Both: 0.01
+#define DEFAULT_GAMMA 0.4 //Add: 0.1, Mult: 0.2, Both: 0.4
+#define DEFAULT_TAU 32 //Add: 4, Mult: 2, Both: 32
+#define DEFAULT_INAC false //Add: true, Mult: false, Both: false
+#define DEFAULT_S false //Add: true, Mult: false, Both: false
+#define DEFAULT_INITIAL_WEIGHTS 0.1
+#define ALPHA_R 0 //Always 0 for the starting state setting, but kept in so the algorithm is complete
+#define NUM_PARAMS 6
+
+#define TILE_MULTIPLE 4
+//TODO: better names for these constants
+#define K_ORDER 0
+#define PHI_ORDER 1
+#define MU_ORDER 2
+#define SIGMA_ORDER 3
+#define MODE Both //Add, Mult, Both, or Choose
+
+vector<double> ActorCritic::initializeWeights() {
+    double initialWeights;
+    if (!man.getInitialWeights(&initialWeights)) {
+        initialWeights = DEFAULT_INITIAL_WEIGHTS;
+    }
+    return vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, initialWeights);
+}
+
+ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowId) {
+    this->flowId = flowId;
+    
+    vector<double> params;
+    if (!man.getParameters(&params, NUM_PARAMS)) {
+        initialAlphaU = DEFAULT_ALPHA_U;
+        initialAlphaV = DEFAULT_ALPHA_V;
+        gamma = DEFAULT_GAMMA;
+        tau = DEFAULT_TAU;
+        inac = DEFAULT_INAC;
+        s = DEFAULT_S;
+    } else {
+        initialAlphaU = params[0];
+        initialAlphaV = params[1];
+        gamma = params[2];
+        tau = params[3];
+        //TODO: ensure this cast works
+        inac = params[4];
+        s = params[5];
+    }
+    alphaU = (double)initialAlphaU/Tilecoder::getNumTilings();
+    alphaV = (double)initialAlphaV/Tilecoder::getNumTilings();
+    lambda = 1 - 1.0/tau;
+    parameters = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
+    criticWeights = weights;
+    actorWeights = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
+    weightTrace = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
+    parameterTrace = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
+    oldState = initialState;
+    oldTiles = Tilecoder::tilecode(initialState);
+    mode = MODE;
+    generator = default_random_engine();
+    if (mode != Add && s) {
+        //TODO: add support for this, see Williams, R. 1992. Simple Statistical Gradient-Following
+        //                                  Algorithms for Connectionist Reinforcement Learning
+        throw runtime_error("S parameter can only be set to true in Add mode");
+    }
+    actionPair = selectAction();
+}
+
+string ActorCritic::getName() {
+    switch (mode) {
+        case Add:
+            return "ACAdd";
+        case Mult:
+            return "ACMult";
+        case Both:
+            return "ACBoth";
+        case Choose:
+            return "ACChoose";
+        default:
+            return "AC";
+    }
+}
+
+double ActorCritic::selectActionMult() {
+    k = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_ORDER));
+    phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_ORDER));
+    gamma_distribution distribution(k, phi);
+    //TODO: Consider clipping the value to a pre defined range
+    return distribution(generator);
+}
+
+double ActorCritic::selectActionAdd() {
+    mu = sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*MU_ORDER);
+    sigma = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*SIGMA_ORDER));
+    normal_distribution distribution(mu, sigma);
+    //TODO: Consider clipping the value to a pre defined range
+    return distribution(generator);
+}
+
+pair<double, double> ActorCritic::selectAction() {
+    pair<double, double> actionPair;
+    switch (mode) {
+        case Mult:
+            actionPair = pair<double, double>(selectActionMult(), 0.0);
+            break;
+        case Add:
+            actionPair = pair<double, double>(0.0, selectActionAdd());
+            break;
+        case Both:
+            actionPair = pair<double, double>(selectActionMult(), selectActionAdd());
+            break;
+        case Choose:
+            //TODO
+            actionPair = pair<double, double>(0.0, 0.0);
+            break;
+    }
+    return actionPair;
+}
+
+void ActorCritic::step(double state, double reward, double &rate) {
+    totalReward += reward;
+    // Tilecode
+    tiles = Tilecoder::tilecode(state);//, TILE_MULTIPLE);
+
+    // Update weights
+    double diffSum = 0;
+    for (int i = 0; i < (int)tiles.size(); i++) {
+        for (int j = 0; j < TILE_MULTIPLE; j++) {
+            diffSum += criticWeights->at(tiles[i] + j*Tilecoder::getNumTiles()) -
+                        criticWeights->at(oldTiles[i] + j*Tilecoder::getNumTiles());
+        }
+    }
+    double delta = reward - rBar + gamma*diffSum;
+    rBar += ALPHA_R*delta;
+
+    for (int i = 0; i < (int)weightTrace.size(); i++) {
+        weightTrace[i] *= gamma*lambda;
+    }
+
+    for (auto i: oldTiles) {
+        weightTrace[i]++;
+    }
+
+    for (int i = 0; i < (int)criticWeights->size(); i++) {
+        (*criticWeights)[i] += weightTrace[i]*alphaV*delta;
+    }
+    
+    // Update parameters
+    vector<double> gradLog = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
+    // Compute gradLog
+    if (mode == Mult || mode == Both) {
+        for (int i = 0; i < (int)oldTiles.size(); i++) {
+            //grad log for k
+            gradLog[oldTiles[i] + Tilecoder::getNumTiles()*K_ORDER] =\
+                                                            k*(log(actionPair.first/phi) - boost::math::digamma(k));
+            // grad log for phi
+            gradLog[oldTiles[i] + Tilecoder::getNumTiles()*PHI_ORDER] = actionPair.first/phi - k;
+        }
+    }
+    if (mode == Add || mode == Both) {
+        for (int i = 0; i < (int)oldTiles.size(); i++) {
+            //grad log for mu
+            gradLog[oldTiles[i] + Tilecoder::getNumTiles()*MU_ORDER] = (actionPair.second - mu)/(sigma*sigma);
+            // grad log for sigma
+            gradLog[oldTiles[i] + Tilecoder::getNumTiles()*SIGMA_ORDER] =\
+                                                (actionPair.second - mu)*(actionPair.second - mu)/(sigma*sigma) - 1;
+        }
+    }
+    if (mode == Choose) {
+        //TODO
+    }
+    // End Compute gradLog
+
+    for (int i = 0; i < (int)parameterTrace.size(); i++) {
+        parameterTrace[i] = gamma*lambda*parameterTrace[i] + gradLog[i];
+    }
+
+    if (inac) {
+        double gradLogDot = 0;
+        //Get gradlog dot gradlog
+        for (int i = 0; i < (int)gradLog.size(); i++) {
+            gradLogDot += gradLog[i]*gradLog[i];
+        }
+        //Update actor weights (w)
+        for (int i = 0; i < (int)actorWeights.size(); i++) {
+            actorWeights[i] += alphaV*(delta*parameterTrace[i] - gradLogDot*actorWeights[i]);
+        }
+        //Update parameters (u)
+        for (int i = 0; i < (int)parameters.size(); i++) {
+            parameters[i] += alphaU*actorWeights[i]*(s ? sigma*sigma : 1);
+        }
+    } else {
+        //Update parameters (u)
+        for (int i = 0; i < (int)parameters.size(); i++) {
+            parameters[i] += alphaU*delta*parameterTrace[i]*(s ? sigma*sigma : 1);
+        }
+    }
+
+    // set oldTiles to current tiles
+    oldTiles = tiles;
+
+    // select action
+    actionPair = selectAction();
+
+    // TODO: should this be if statement, it would remove duplicated code in case Both, but it might be better
+    //          to keep it as a switch since it is going over the values of an enum
+    switch (mode) {
+        case Mult:
+            rate *= actionPair.first;
+            break;
+        case Add:
+            rate += actionPair.second;
+            break;
+        case Both:
+            rate *= actionPair.first;
+            rate += actionPair.second;
+            break;
+        case Choose:
+            //TODO
+            break;
+    }
+}

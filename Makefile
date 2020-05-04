@@ -1,4 +1,6 @@
+ifeq ($(strip $(CXX)),)
 CXX=g++
+endif
 CXXFLAGS=-std=c++2a -Wall -Wextra -Wconversion -pedantic -g
 
 BUILD_DIR=build/
@@ -23,3 +25,4 @@ clean:
 	make -C src clean
 	make -C src test_clean
 	$(RM) simulator
+	$(RM) simulator.dSYM

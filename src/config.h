@@ -15,6 +15,8 @@ enum JsonType {
 
 bool loadConfig(string filename);
 
+void loadParams(string filename);
+
 bool hasMemberOfType(json &parent, string key, JsonType type);
 
 bool checkArrayType(json &config, JsonType type);

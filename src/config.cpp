@@ -140,6 +140,21 @@ static bool parseConfig(json& config) {
     return success;
 }
 
+void loadParams(string filename) {
+    ifstream ifs = ifstream(filename, ifstream::in);
+    int numParams;
+    vector<double> params;
+    double nextParam;
+
+    ifs >> numParams;
+    for (int i = 0; i < numParams - 1; i++) {
+        ifs >> nextParam;
+        params.push_back(nextParam);
+    }
+    ifs >> nextParam; // Last parameter is always initialWeights
+    man.setParameters(params, nextParam);
+}
+
 bool loadConfig(string filename) {
     json config = readConfig(filename);
 

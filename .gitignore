@@ -39,3 +39,7 @@ simulator
 
 # Config
 src/tests/local.json
+local.json
+
+# Results
+results/

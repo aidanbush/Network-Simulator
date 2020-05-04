@@ -6,11 +6,13 @@
 
 #include "networkObject.h"
 #include "manager.h"
+#include "agent.h"
 
 using namespace std;
 using json = nlohmann::json;
 
 class Packet;
+class ECNPacket;
 class Endpoint;
 
 class Flow: public NetworkObject {
@@ -18,9 +20,10 @@ class Flow: public NetworkObject {
         ~Flow();
 
         virtual void startFlow() = 0;
+        virtual void stepAgent() = 0;
         virtual void txPacketEvent() = 0;
 
-        void packetArrived(Packet *p);
+        virtual void packetArrived(Packet *p);
         void packetDropped(Packet *p);
         void packetError(Packet *p);
 
@@ -56,6 +59,15 @@ class Flow: public NetworkObject {
         int packetsArrived;
         int packetsDropped;
         int packetsErrored;
+
+        Agent *agent;
+        second_t miTime = 0.01; // 10 ms
+        double rate;
+        double totalReward = 0;
+        vector<double> rateList;
+        vector<double> rewardList;
+        
+        second_t maxTime;
 };
 
 class BasicFlow: public Flow {
@@ -63,6 +75,7 @@ class BasicFlow: public Flow {
     public:
 
         void startFlow();
+        void stepAgent();
         void txPacketEvent();
 
     private:
@@ -80,6 +93,45 @@ class BasicFlow: public Flow {
         second_t nextTxTime();
 };
 
+class ECNFlow: public Flow {
+    friend Flow *createFlow(json &flowConfig);
+    public:
+
+        void startFlow();
+        void stepAgent();
+        void txPacketEvent();
+
+    private:
+        ECNFlow(json &flowConfig);
+
+        ECNPacket *createPacket(int ttl, int headSize, int bodySize);
+
+        void packetArrived(Packet *p);
+
+        static json &validateECNFlowConfig(json &flowConfig);
+
+        int headSize;
+        int bodySize;
+        int ttl;
+
+        int packetsUntagged;
+        int packetsSent;
+        double averageECN;
+        int totalPacketsUntagged;
+        int totalPacketsSent;
+        vector<double> averageECNList;
+
+        double getState();
+        double getReward();
+        void resetState();
+        void updateStats();
+        void printCSV(string filename, vector<double> vec);
+
+        ECNPacket *createPacket();
+
+        second_t nextTxTime();
+};
+
 #ifdef _TEST
 class TestFlow: public Flow {
     friend Flow *createFlow(json &flowConfig);
@@ -87,6 +139,7 @@ class TestFlow: public Flow {
         TestFlow(json &flowConfig);
 
         void startFlow();
+        void stepAgent();
         void txPacketEvent();
 
     private:

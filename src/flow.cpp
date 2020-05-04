@@ -2,7 +2,11 @@
 #include <typeinfo>
 #include <typeindex>
 #include <map>
+#include <ctime>
+#include <fstream>
+#include <iostream>
 #include <nlohmann/json.hpp>
+#include <filesystem>
 
 #include "flow.h"
 #include "manager.h"
@@ -10,14 +14,23 @@
 #include "endpoint.h"
 #include "networkObject.h"
 #include "config.h"
+#include "agent.h"
+#include "actorCritic.h"
+#include "sarsa.h"
 
 #define FLOW_STR        "Flow"
 #define TX_PACKET_EVENT "flow create packet event"
+
+#define MAX_RATE 256000.0
+#define NUM_AGENT_STEPS 100
+#define MI_TIME 10
+#define STAT_FILE_DIRECTORY "results"
 
 using namespace std;
 
 enum FlowType {
     BasicFlowType,
+    ECNFlowType,
 #ifdef _TEST
     TestFlowType,
 #endif /* _TEST */
@@ -26,6 +39,7 @@ enum FlowType {
 Flow *createFlow(json &flowConfig) {
     static map<string, FlowType> flowTypeMap = {
         {"basic", BasicFlowType},
+        {"ecn", ECNFlowType},
 #ifdef _TEST
         {"test", TestFlowType},
 #endif /* _TEST */
@@ -50,6 +64,9 @@ Flow *createFlow(json &flowConfig) {
         case BasicFlowType:
             flow = new BasicFlow(flowConfig);
             break;
+        case ECNFlowType:
+            flow = new ECNFlow(flowConfig);
+            break;
 #ifdef _TEST
         case TestFlowType:
             flow = new TestFlow(flowConfig);
@@ -63,7 +80,20 @@ Flow *createFlow(json &flowConfig) {
 }
 
 //flowConfig already validated
-Flow::Flow(json &flowConfig): NetworkObject(flowConfig["id"]) {
+Flow::Flow(json &flowConfig):
+    NetworkObject(flowConfig["id"])
+    //TODO: Second parameter is initial state, should it be something other than 0?
+    //,agent(new AGENT_TYPE(man.getEndpoint(flowConfig["source_id"])->getWeights(), 0))
+    {
+    Endpoint *end = man.getEndpoint(flowConfig["source_id"]);
+    switch (end->getAgentType()) {
+        case ActorCriticAgent:
+            agent = new ActorCritic(end->getWeights(), 0, flowConfig["id"]);
+            break;
+        case SarsaAgent:
+            agent = new Sarsa(end->getWeights(), 0, flowConfig["id"]);
+            break;
+    }
     this->sourceId = flowConfig["source_id"];
     this->destId = flowConfig["dest"];
 
@@ -72,12 +102,15 @@ Flow::Flow(json &flowConfig): NetworkObject(flowConfig["id"]) {
     this->packetsDropped = 0;
     this->packetsErrored = 0;
     this->curPId = 0;
+    this->miTime = MI_TIME;
+    this->maxTime = NUM_AGENT_STEPS*miTime;
 }
 
 Flow::~Flow() {
     for (auto it : packets) {
         delete it.second;
     }
+    delete agent;
 }
 
 void Flow::removePacket(Packet *p) {
@@ -207,8 +240,11 @@ second_t BasicFlow::nextTxTime() {
 
 void BasicFlow::startFlow() {
     second_t nextTx = nextTxTime();
-    EventI *e = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
-    man.pushEvent(e);
+    EventI *e1 = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
+    man.pushEvent(e1);
+}
+
+void BasicFlow::stepAgent() {
 }
 
 void BasicFlow::txPacketEvent() {
@@ -226,6 +262,183 @@ void BasicFlow::txPacketEvent() {
     man.pushEvent(e);
 }
 
+/* Explicit congestion notification flow */
+
+ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
+    this->packetsUntagged = 0;
+    this->packetsSent = 0;
+    this->averageECN = 0;
+    this->rate = flowConfig["start_rate"];
+    this->headSize = 20;
+    this->bodySize = 236;
+    this->ttl = 15;
+}
+
+json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
+    string message = "";
+    if (!hasMemberOfType(flowConfig, "id", jsonInt)) {
+        message += "No integer with name 'id'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "source_id", jsonInt)) {
+        message += "No integer with name 'source_id'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "dest", jsonInt)) {
+        message += "No integer with name 'dest'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "start_rate", jsonDouble)) {
+        message += "No double with name 'start_rate'.\n";
+    }
+
+    if (!message.empty()) {
+        message = "Basic Flow:\n" + message + flowConfig.dump(4);
+        throw runtime_error(message);
+    }
+    return flowConfig;
+}
+
+ECNPacket *ECNFlow::createPacket(int ttl, int headSize, int bodySize) {
+    int pId = newPacketId();
+
+    ECNPacket *p = new ECNPacket(pId, sourceId, destId, id, ttl, headSize, bodySize);
+
+    if (!addPacket(p)) {
+        delete p;
+        return NULL;
+    }
+    packetsCreated++;
+
+    return p;
+}
+
+second_t ECNFlow::nextTxTime() {
+    return man.time + ((headSize + bodySize) * BITS_PER_BYTE / rate);
+}
+
+void ECNFlow::startFlow() {
+    // create txPacket event
+    second_t nextTx = nextTxTime();
+    EventI *e1 = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
+    man.pushEvent(e1);
+
+    EventI *e2 = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
+    man.pushEvent(e2);
+}
+
+double ECNFlow::getState() {
+    //return packetsSent == 0 ? 0 : (double)(packetsSent - packetsUntagged) / packetsSent;
+    return averageECN;
+}
+
+double ECNFlow::getReward() {
+    return packetsUntagged;
+}
+
+void ECNFlow::resetState() {
+    packetsUntagged = 0;
+    packetsSent = 0;
+    averageECN = 0;
+}
+
+void ECNFlow::updateStats() {
+    totalPacketsUntagged += packetsUntagged;
+    totalPacketsSent += packetsSent;
+    rewardList.push_back(packetsUntagged);
+    rateList.push_back(rate);
+    averageECNList.push_back(averageECN);
+}
+
+void ECNFlow::printCSV(string filename, vector<double> vec) {
+    //if (boost::filesystem::create_directory(STAT_FILE_DIRECTORY)) {
+    if (!filesystem::exists(STAT_FILE_DIRECTORY)) {
+        filesystem::create_directory(STAT_FILE_DIRECTORY);
+    }
+    ofstream ofs;
+    ofs.open(string(STAT_FILE_DIRECTORY) + "/" + filename, ofstream::trunc);
+    if (vec.size() >= 1) {
+        ofs << vec[0];
+        for (int i = 1; i < (int)vec.size(); i++) {
+            ofs << "," << vec[i];
+        }
+    }
+    ofs.close();
+}
+
+void ECNFlow::stepAgent() {
+    double state = getState();
+    double reward = getReward();
+    totalReward += reward;
+    updateStats();
+    resetState();
+
+    agent->step(state, reward, rate);
+    rate = min(MAX_RATE, max(0.0, rate));
+    if (man.time + miTime <= maxTime) {
+        EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
+        man.pushEvent(e);
+    } else {
+        man.logEvent("ECNFlow", this->id, "End of program", "Acheived reward " + to_string(totalReward) +\
+                        " with final rate of " + to_string(rate) + " and " + to_string(totalPacketsUntagged) +\
+                        " out of " + to_string(totalPacketsSent) + " packets untagged.");
+        time_t currentTime;
+        time(&currentTime);
+        tm *currentTm = localtime(&currentTime);
+        char date[13];
+        strftime(date, 13, "%Y%m%d%H%M", currentTm);
+        printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_Rewards.csv", rewardList);
+        printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_Rates.csv", rateList);
+        printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_ECNAverages.csv", averageECNList);
+        man.removeFlow(id);
+        delete this;
+    }
+    // man.logEvent("ECNFlow", this->id, "Agent Step", "Agent called with state " + to_string(state) + " and reward "
+    //                 + to_string(reward) + " and took action " + to_string(action)
+    //                     + ", setting rate to " +to_string(rate));
+}
+
+void ECNFlow::txPacketEvent() {
+    Endpoint *endpoint = man.getEndpoint(sourceId);
+
+    // create packet
+    ECNPacket *p = createPacket(ttl, headSize, bodySize);
+
+    endpoint->txPacket(p);
+
+    second_t nextTx = nextTxTime();
+    if (nextTx < maxTime) {
+        EventI *e = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
+        man.pushEvent(e);
+    }
+    man.logEvent("ECNFlow", this->id, "Flow Packet Tx", "Sent packet " + to_string(p->getId()) + 
+                    " from flow " + to_string(this->id));
+}
+
+void ECNFlow::packetArrived(Packet *p) {
+    ECNPacket *ecnP = dynamic_cast<ECNPacket *>(p);
+    if (ecnP != NULL) {
+        if (!ecnP->getECNBit()) {
+            packetsUntagged++;
+        }
+        if (packetsSent > 0) {
+            averageECN += ecnP->getECNScale()/packetsSent;
+            averageECN *= (double)packetsSent/(packetsSent + 1);
+        } else {
+            averageECN = ecnP->getECNScale();
+        }
+        packetsSent++;
+        man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet " + to_string(p->getId()) + 
+                        " arrived at destination.");
+    } else {
+        man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet arrived but was null");
+        // TODO oh no this is bad, really bad!
+    }
+
+    Flow::packetArrived(p);
+}
+
+/* tests */
 #ifdef _TEST
 TestFlow::TestFlow(json &flowConfig): Flow(validateTestFlowConfig(flowConfig)) {}
 
@@ -258,8 +471,18 @@ second_t TestFlow::nextTxTime() {
 
 void TestFlow::startFlow() {
     second_t nextTx = nextTxTime();
-    EventI *e = new Event<TestFlow>(nextTx, &TestFlow::txPacketEvent, this);
-    man.pushEvent(e);
+    EventI *e1 = new Event<TestFlow>(nextTx, &TestFlow::txPacketEvent, this);
+    man.pushEvent(e1);
+
+    EventI *e2 = new Event<TestFlow>(man.time + miTime, &TestFlow::stepAgent, this);
+    man.pushEvent(e2);
+}
+
+void TestFlow::stepAgent() {
+    //TODO: get state and reward
+    double state = 0;
+    double reward = 0;
+    agent->step(state, reward,rate);
 }
 
 void TestFlow::txPacketEvent() {

@@ -38,6 +38,9 @@ void Switch::rxPacket(Packet *p) {
 
     Interface *interface = man.getInterface(interfaceId);
 
+    // handle packets
+    //tagPacketOut(p, interface);
+
     interface->rxHandler(p);
 }
 

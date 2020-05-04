@@ -35,6 +35,31 @@ bool Packet::validate() {
     return true;
 }
 
+/* explicit congestion notification packet */
+
+ECNPacket::ECNPacket(int id, int sourceId, int destId, int flowId, int ttl,
+        int headerSize, int bodySize): Packet(id, sourceId, destId, flowId, ttl,
+            headerSize, bodySize) {
+    ECNBit = false;
+    ECNScale = 0;
+}
+
+void ECNPacket::setECNBit() {
+    ECNBit = true;
+}
+
+bool ECNPacket::getECNBit() {
+    return ECNBit;
+}
+
+void ECNPacket::setECNScale(double scale) {
+    ECNScale = max(ECNScale, scale);
+}
+
+double ECNPacket::getECNScale() {
+    return ECNScale;
+}
+
 #ifdef _TEST
 #include "tests/throwAssert.h"
 
