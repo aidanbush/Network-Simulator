@@ -56,11 +56,13 @@ int main(int argc, char **argv) {
     bool step = false;
     char const *configFile = DEFAULT_CONFIG;
 
+    srand((int)time(0));
+
     if (!createSigintHandler()) {
         return 1;
     }
 
-    while ((c = getopt(argc, argv, "qhsl:")) != -1) {
+    while ((c = getopt(argc, argv, "qhsl:r:")) != -1) {
         switch (c) {
             case 'q':
                 man.setSuppressOutput();
@@ -77,6 +79,9 @@ int main(int argc, char **argv) {
                     printUsage(argv[0]);
                     return 1;
                 }
+                break;
+            case 'r':
+                srand(atoi(optarg));
                 break;
             default:
                 fprintf(stderr, "Unkown option\n");

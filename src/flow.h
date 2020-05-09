@@ -34,6 +34,8 @@ class Flow: public NetworkObject {
 
         bool validate();
 
+        void seed(int seed);
+
     protected:
         Flow(json &flowConfig);
         bool validateSource();

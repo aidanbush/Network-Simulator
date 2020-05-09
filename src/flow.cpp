@@ -106,6 +106,10 @@ Flow::Flow(json &flowConfig):
     this->maxTime = NUM_AGENT_STEPS*miTime;
 }
 
+void Flow::seed(int seed) {
+    agent->seed(seed);
+}
+
 Flow::~Flow() {
     for (auto it : packets) {
         delete it.second;

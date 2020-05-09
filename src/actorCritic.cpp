@@ -71,6 +71,7 @@ ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowI
     oldTiles = Tilecoder::tilecode(initialState);
     mode = MODE;
     generator = default_random_engine();
+
     if (mode != Add && s) {
         //TODO: add support for this, see Williams, R. 1992. Simple Statistical Gradient-Following
         //                                  Algorithms for Connectionist Reinforcement Learning
@@ -92,6 +93,10 @@ string ActorCritic::getName() {
         default:
             return "AC";
     }
+}
+
+void ActorCritic::seed(int seed) {
+    generator.seed(seed);
 }
 
 double ActorCritic::selectActionMult() {
