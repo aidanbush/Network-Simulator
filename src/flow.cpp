@@ -22,6 +22,7 @@
 #define TX_PACKET_EVENT "flow create packet event"
 
 #define MAX_RATE 256000.0
+#define MIN_RATE 500.0
 #define NUM_AGENT_STEPS 100
 #define MI_TIME 10
 #define STAT_FILE_DIRECTORY "results"
@@ -378,7 +379,7 @@ void ECNFlow::stepAgent() {
     resetState();
 
     agent->step(state, reward, rate);
-    rate = min(MAX_RATE, max(0.0, rate));
+    rate = min(MAX_RATE, max(MIN_RATE, rate));
     if (man.time + miTime <= maxTime) {
         EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
         man.pushEvent(e);
