@@ -154,7 +154,7 @@ bool PacketHandler::validateInterfaces() {
 bool PacketHandler::validateVariables() {
     bool valid = true;
 
-    if (internalSpeed <= 0) {
+    if (internalSpeed < 0) {
         fprintf(stderr, "Handler: %d has invalid internal speed %d\n", id,
                 internalSpeed);
         valid = false;
