@@ -15,7 +15,7 @@ using namespace std;
 
 #define DEFAULT_ALPHA_U 0.005 //Add: 0.05, Mult: 0.005, Both: 0.005
 #define DEFAULT_ALPHA_V 0.01 //Add: 1, Mult: 0.1, Both: 0.01
-#define DEFAULT_GAMMA 1 //Always 1 for continuing case
+#define GAMMA 1 //Always 1 for continuing case
 #define DEFAULT_TAU 32 //Add: 4, Mult: 2, Both: 32
 #define DEFAULT_INAC false //Add: true, Mult: false, Both: false
 #define DEFAULT_S false //Add: true, Mult: false, Both: false

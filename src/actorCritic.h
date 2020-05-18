@@ -48,6 +48,7 @@ class ActorCritic: public Agent {
         double initialAlphaV;
         double alphaU;
         double alphaV;
+        double alphaR;
         double tau;
         double lambda;
         double gamma;
