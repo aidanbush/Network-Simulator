@@ -390,7 +390,7 @@ void ECNFlow::stepAgent() {
         printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_Rewards.csv", rewardList);
         printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_Rates.csv", rateList);
         printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_ECNAverages.csv", averageECNList);
-        man.removeFlow(id);
+        man.removeFlow(id, totalReward);
         delete this;
     }
     // man.logEvent("ECNFlow", this->id, "Agent Step", "Agent called with state " + to_string(state) + " and reward "

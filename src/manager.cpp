@@ -1,5 +1,6 @@
 #include <map>
 #include <vector>
+#include <iostream>
 
 #include "manager.h"
 #include "packetHandler.h"
@@ -125,10 +126,15 @@ bool Manager::addFlow(Flow *flow) {
     return flows.emplace(id, flow).second;
 }
 
-void Manager::removeFlow(int id) {
+void Manager::removeFlow(int id, double reward) {
     flows.erase(id);
+    totalReward += reward;
     if (flows.size() == 0) {
         // All flows finished, end simulation
+        for (auto p: params) {
+            cout << p << ",";
+        }
+        cout << initialWeights << "," << totalReward << endl;
         exit(0);
     }
 }

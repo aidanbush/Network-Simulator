@@ -68,7 +68,7 @@ class Manager {
 
         Flow *getFlow(int id);
         bool addFlow(Flow *flow);
-        void removeFlow(int id);
+        void removeFlow(int id, double reward);
 
         void pushEvent(EventI *e) {pq.push(e); }
         EventI *popEvent();
@@ -105,6 +105,8 @@ class Manager {
         bool parametersSet = false;
         vector<double> params;
         double initialWeights;
+
+        double totalReward = 0;
 
         bool suppressOutput = false;
 
