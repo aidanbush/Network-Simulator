@@ -48,6 +48,7 @@ void printUsage(char *pName) {
             "  -l [filename] sets the log file, if not set uses stdout\n"
             "  -s step through event by event\n"
             "  -q supress all output except final results\n"
+            "  -r [seed] sets the random seed for the run\n"
             "  -h this usage message\n", basename(pName));
 }
 
