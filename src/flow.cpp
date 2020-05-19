@@ -351,6 +351,10 @@ void ECNFlow::updateStats() {
 }
 
 void ECNFlow::printCSV(string filename, vector<double> vec) {
+    if (man.getSuppressOutput()) {
+        //Don't create CSV files if in q mode
+        return;
+    }
     //if (boost::filesystem::create_directory(STAT_FILE_DIRECTORY)) {
     if (!filesystem::exists(STAT_FILE_DIRECTORY)) {
         filesystem::create_directory(STAT_FILE_DIRECTORY);

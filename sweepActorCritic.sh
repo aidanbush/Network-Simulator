@@ -19,7 +19,7 @@ do
             do
                 for INAC in 0 1
                 do
-                    for S in 0 1 #Only include 1 if Mode is set to Add or Mult (in actorCritic.cpp)
+                    for S in 0 #1 #Only include 1 if Mode is set to Add or Mult (in actorCritic.cpp)
                     do
                         for INITIAL_WEIGHTS in 0.1
                         do

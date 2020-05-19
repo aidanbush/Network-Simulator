@@ -300,6 +300,10 @@ void Manager::setSuppressOutput() {
     suppressOutput = true;
 }
 
+bool Manager::getSuppressOutput() {
+    return suppressOutput;
+}
+
 bool Manager::setLogFile(string filename) {
     FILE *newLog = fopen(filename.c_str(), (char *)"w");
 
