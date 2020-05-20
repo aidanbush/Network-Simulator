@@ -13,14 +13,14 @@
 
 using namespace std;
 
-#define DEFAULT_ALPHA_U 0.005 //Add: 0.05, Mult: 0.005, Both: 0.005
-#define DEFAULT_ALPHA_V 0.01 //Add: 1, Mult: 0.1, Both: 0.01
-#define GAMMA 1 //Always 1 for continuing case
-#define DEFAULT_TAU 32 //Add: 4, Mult: 2, Both: 32
-#define DEFAULT_INAC false //Add: true, Mult: false, Both: false
+#define DEFAULT_ALPHA_U 0.005 //Add: 1, Mult: 0.005, Both: 0.005
+#define DEFAULT_ALPHA_V 0.01 //Add: 0.5, Mult: 0.005, Both: 0.001
+#define DEFAULT_ALPHA_R 0.1 //Add: 0.005, Mult: 0.0001, Both: 0.01
+#define DEFAULT_TAU 32 //Add: 32, Mult: 1, Both: 2
+#define DEFAULT_INAC false //Add: false, Mult: false, Both: false
 #define DEFAULT_S false //Add: true, Mult: false, Both: false
 #define DEFAULT_INITIAL_WEIGHTS 0.1
-#define DEFAULT_ALPHA_R 0.1 //
+#define GAMMA 1 //Always 1 for continuing case
 #define NUM_PARAMS 6
 
 #define TILE_MULTIPLE 4
