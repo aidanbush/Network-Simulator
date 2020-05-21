@@ -20,7 +20,6 @@ using namespace std;
 #define DEFAULT_INAC false //Add: true, Mult: false, Both: false
 #define DEFAULT_S false //Add: true, Mult: false, Both: false
 #define DEFAULT_INITIAL_WEIGHTS 0.1
-#define DEFAULT_INITIAL_PARAMETERS 0.1
 #define DEFAULT_INITIAL_K_PARAMETERS 0.1
 #define DEFAULT_INITIAL_PHI_PARAMETERS -0.1
 #define DEFAULT_INITIAL_MU_PARAMETERS 0
@@ -69,7 +68,7 @@ ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowI
     alphaV = (double)initialAlphaV/Tilecoder::getNumTilings();
     lambda = 1 - 1.0/tau;
 
-    parameters = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, DEFAULT_INITIAL_PARAMETERS);
+    parameters = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
     for (int i = 0; i < parameters.size(); i++) {
         switch (i / Tilecoder::getNumTiles()) {
             case K_ORDER:
