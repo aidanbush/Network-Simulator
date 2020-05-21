@@ -21,6 +21,10 @@ using namespace std;
 #define DEFAULT_S false //Add: true, Mult: false, Both: false
 #define DEFAULT_INITIAL_WEIGHTS 0.1
 #define DEFAULT_INITIAL_PARAMETERS 0.1
+#define DEFAULT_INITIAL_K_PARAMETERS 0.1
+#define DEFAULT_INITIAL_PHI_PARAMETERS -0.1
+#define DEFAULT_INITIAL_MU_PARAMETERS 0
+#define DEFAULT_INITIAL_SIGMA_PARAMETERS 1
 #define ALPHA_R 0.01 // 0 //Always 0 for the starting state setting, but kept in so the algorithm is complete
 #define NUM_PARAMS 6
 
@@ -66,6 +70,23 @@ ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowI
     lambda = 1 - 1.0/tau;
 
     parameters = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, DEFAULT_INITIAL_PARAMETERS);
+    for (int i = 0; i < parameters.size(); i++) {
+        switch (i / Tilecoder::getNumTiles()) {
+            case K_ORDER:
+                parameters[i] = DEFAULT_INITIAL_K_PARAMETERS;
+                break;
+            case PHI_ORDER:
+                parameters[i] = DEFAULT_INITIAL_PHI_PARAMETERS;
+                break;
+            case MU_ORDER:
+                parameters[i] = DEFAULT_INITIAL_MU_PARAMETERS;
+                break;
+            case SIGMA_ORDER:
+                parameters[i] = DEFAULT_INITIAL_SIGMA_PARAMETERS;
+                break;
+        }
+    }
+
     criticWeights = weights;
     actorWeights = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
 
