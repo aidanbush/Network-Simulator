@@ -32,6 +32,8 @@ class PacketHandler: public NetworkObject {
 
         bool connectNeighbours();
 
+        double getMaxOutputRate();
+
         virtual void rxPacket(Packet *p) = 0;
 
     protected:
