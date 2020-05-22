@@ -23,7 +23,7 @@ using namespace std;
 #define DEFAULT_INITIAL_K_PARAMETERS 0.1
 #define DEFAULT_INITIAL_PHI_PARAMETERS -0.1
 #define DEFAULT_INITIAL_MU_PARAMETERS 0
-#define DEFAULT_INITIAL_SIGMA_PARAMETERS 1
+#define DEFAULT_INITIAL_SIGMA_PARAMETERS 0
 #define ALPHA_R 0.01 // 0 //Always 0 for the starting state setting, but kept in so the algorithm is complete
 #define NUM_PARAMS 6
 
