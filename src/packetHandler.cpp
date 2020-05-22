@@ -23,6 +23,17 @@ int PacketHandler::getInternalSpeed() {
     return internalSpeed;
 }
 
+double PacketHandler::getMaxOutputRate() {
+    double maxRate = 0;
+
+    for (auto it = interfaces.rbegin(); it != interfaces.rend(); ++it) {
+        Interface *interface = man.getInterface(it->second);
+        maxRate = max(maxRate, (double)interface->getLinkSpeed());
+    }
+
+    return maxRate;
+}
+
 void PacketHandler::removeInterface(int interfaceId) {
     for (auto it = interfaces.rbegin(); it != interfaces.rend(); ++it) {
         if (it->second == interfaceId) {
@@ -154,7 +165,7 @@ bool PacketHandler::validateInterfaces() {
 bool PacketHandler::validateVariables() {
     bool valid = true;
 
-    if (internalSpeed <= 0) {
+    if (internalSpeed < 0) {
         fprintf(stderr, "Handler: %d has invalid internal speed %d\n", id,
                 internalSpeed);
         valid = false;

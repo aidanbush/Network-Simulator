@@ -32,7 +32,11 @@ class Flow: public NetworkObject {
         int getPacketsDropped();
         int getPacketsErrored();
 
+        double getMaxRate();
+
         bool validate();
+
+        void seed(int seed);
 
     protected:
         Flow(json &flowConfig);
@@ -63,6 +67,8 @@ class Flow: public NetworkObject {
         Agent *agent;
         second_t miTime = 0.01; // 10 ms
         double rate;
+        double maxRate;
+
         double totalReward = 0;
         vector<double> rateList;
         vector<double> rewardList;

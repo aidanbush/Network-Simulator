@@ -51,6 +51,10 @@ string Sarsa::getName() {
     return "Sarsa";
 }
 
+void Sarsa::seed(int seed) {
+    // TODO implement separate generator per SARSA flow
+}
+
 pair<int, double> Sarsa::selectAction() {
     if ((double)random()/RAND_MAX < epsilon) {
         int ind = (int)(random()%NUM_ACTIONS);

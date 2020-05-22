@@ -118,8 +118,10 @@ void Interface::txHandlerEvent() {
     handler->rxPacket(p);
 
     if (!inBuffer.empty()) {
-        second_t nextTx = man.time + double(inBuffer.front()->fullSizeBits())
-            / handler->getInternalSpeed();
+        second_t nextTx = man.time;
+        if (handler->getInternalSpeed() != 0) {
+            nextTx += double(inBuffer.front()->fullSizeBits()) / handler->getInternalSpeed();
+        }
         EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
         man.pushEvent(e);
     }
@@ -157,7 +159,10 @@ void Interface::rxLink(Packet *p) {
     if (inBuffer.size() == 1) { //TODO: what if buffer size is larger than 1
         PacketHandler *handler = man.getHandler(handlerId);
 
-        second_t nextTx = man.time + double(p->fullSizeBits()) / handler->getInternalSpeed();
+        second_t nextTx = man.time;
+        if (handler->getInternalSpeed() != 0) {
+            nextTx += double(p->fullSizeBits()) / handler->getInternalSpeed();
+        }
         EventI *e = new Event<Interface>(nextTx, &Interface::txHandlerEvent, this);
         man.pushEvent(e);
     }

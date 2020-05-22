@@ -17,6 +17,8 @@ class Agent {
         virtual ~Agent() = default;
         virtual void step(double state, double reward, double &rate) = 0;
         virtual string getName() = 0;
+        virtual void seed(int seed) = 0;
+
     protected:
         int flowId;
         static double sumIndices(vector<double> *vec, vector<int> *indices, int offset = 0);

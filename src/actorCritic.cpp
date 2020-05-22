@@ -15,12 +15,16 @@ using namespace std;
 
 #define DEFAULT_ALPHA_U 0.005 //Add: 0.05, Mult: 0.005, Both: 0.005
 #define DEFAULT_ALPHA_V 0.01 //Add: 1, Mult: 0.1, Both: 0.01
-#define DEFAULT_GAMMA 0.4 //Add: 0.1, Mult: 0.2, Both: 0.4
+#define DEFAULT_GAMMA 1 // Continuous problem
 #define DEFAULT_TAU 32 //Add: 4, Mult: 2, Both: 32
 #define DEFAULT_INAC false //Add: true, Mult: false, Both: false
 #define DEFAULT_S false //Add: true, Mult: false, Both: false
 #define DEFAULT_INITIAL_WEIGHTS 0.1
-#define ALPHA_R 0 //Always 0 for the starting state setting, but kept in so the algorithm is complete
+#define DEFAULT_INITIAL_K_PARAMETERS 0.1
+#define DEFAULT_INITIAL_PHI_PARAMETERS -0.1
+#define DEFAULT_INITIAL_MU_PARAMETERS 0
+#define DEFAULT_INITIAL_SIGMA_PARAMETERS 0
+#define ALPHA_R 0.01 // 0 //Always 0 for the starting state setting, but kept in so the algorithm is complete
 #define NUM_PARAMS 6
 
 #define TILE_MULTIPLE 4
@@ -36,6 +40,7 @@ vector<double> ActorCritic::initializeWeights() {
     if (!man.getInitialWeights(&initialWeights)) {
         initialWeights = DEFAULT_INITIAL_WEIGHTS;
     }
+
     return vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, initialWeights);
 }
 
@@ -62,20 +67,45 @@ ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowI
     alphaU = (double)initialAlphaU/Tilecoder::getNumTilings();
     alphaV = (double)initialAlphaV/Tilecoder::getNumTilings();
     lambda = 1 - 1.0/tau;
+
     parameters = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
+    for (int i = 0; i < parameters.size(); i++) {
+        switch (i / Tilecoder::getNumTiles()) {
+            case K_ORDER:
+                parameters[i] = DEFAULT_INITIAL_K_PARAMETERS;
+                break;
+            case PHI_ORDER:
+                parameters[i] = DEFAULT_INITIAL_PHI_PARAMETERS;
+                break;
+            case MU_ORDER:
+                parameters[i] = DEFAULT_INITIAL_MU_PARAMETERS;
+                break;
+            case SIGMA_ORDER:
+                parameters[i] = DEFAULT_INITIAL_SIGMA_PARAMETERS;
+                break;
+        }
+    }
+
     criticWeights = weights;
     actorWeights = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
+
     weightTrace = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
     parameterTrace = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
+
     oldState = initialState;
     oldTiles = Tilecoder::tilecode(initialState);
+
+    tiles = oldTiles; // TODO does this cause a bug, should we copy over?
+
     mode = MODE;
     generator = default_random_engine();
+
     if (mode != Add && s) {
         //TODO: add support for this, see Williams, R. 1992. Simple Statistical Gradient-Following
         //                                  Algorithms for Connectionist Reinforcement Learning
         throw runtime_error("S parameter can only be set to true in Add mode");
     }
+
     actionPair = selectAction();
 }
 
@@ -94,9 +124,14 @@ string ActorCritic::getName() {
     }
 }
 
+void ActorCritic::seed(int seed) {
+    generator.seed(seed);
+}
+
 double ActorCritic::selectActionMult() {
-    k = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_ORDER));
+    k = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_ORDER)) + 1;
     phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_ORDER));
+
     gamma_distribution distribution(k, phi);
     //TODO: Consider clipping the value to a pre defined range
     return distribution(generator);
@@ -157,7 +192,7 @@ void ActorCritic::step(double state, double reward, double &rate) {
     for (int i = 0; i < (int)criticWeights->size(); i++) {
         (*criticWeights)[i] += weightTrace[i]*alphaV*delta;
     }
-    
+
     // Update parameters
     vector<double> gradLog = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
     // Compute gradLog
@@ -165,7 +200,7 @@ void ActorCritic::step(double state, double reward, double &rate) {
         for (int i = 0; i < (int)oldTiles.size(); i++) {
             //grad log for k
             gradLog[oldTiles[i] + Tilecoder::getNumTiles()*K_ORDER] =\
-                                                            k*(log(actionPair.first/phi) - boost::math::digamma(k));
+                                                (k - 1)*(log(actionPair.first/phi) - boost::math::digamma(k));
             // grad log for phi
             gradLog[oldTiles[i] + Tilecoder::getNumTiles()*PHI_ORDER] = actionPair.first/phi - k;
         }

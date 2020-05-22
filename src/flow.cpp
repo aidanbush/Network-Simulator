@@ -21,7 +21,7 @@
 #define FLOW_STR        "Flow"
 #define TX_PACKET_EVENT "flow create packet event"
 
-#define MAX_RATE 256000.0
+#define MIN_RATE 500.0
 #define NUM_AGENT_STEPS 100
 #define MI_TIME 10
 #define STAT_FILE_DIRECTORY "results"
@@ -104,6 +104,10 @@ Flow::Flow(json &flowConfig):
     this->curPId = 0;
     this->miTime = MI_TIME;
     this->maxTime = NUM_AGENT_STEPS*miTime;
+}
+
+void Flow::seed(int seed) {
+    agent->seed(seed);
 }
 
 Flow::~Flow() {
@@ -206,6 +210,11 @@ Packet *Flow::createPacket(int ttl, int headSize, int bodySize) {
     return p;
 }
 
+double Flow::getMaxRate() {
+    Endpoint *e = man.getEndpoint(sourceId);
+    return e->getMaxOutputRate();
+}
+
 BasicFlow::BasicFlow(json &flowConfig): Flow(validateBasicFlowConfig(flowConfig)) {
     this->time = 0.001;
     this->headSize = 20;
@@ -272,6 +281,7 @@ ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
     this->headSize = 20;
     this->bodySize = 236;
     this->ttl = 15;
+    this->maxRate = getMaxRate();
 }
 
 json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
@@ -374,7 +384,7 @@ void ECNFlow::stepAgent() {
     resetState();
 
     agent->step(state, reward, rate);
-    rate = min(MAX_RATE, max(0.0, rate));
+    rate = min(maxRate, max(MIN_RATE, rate));
     if (man.time + miTime <= maxTime) {
         EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
         man.pushEvent(e);
