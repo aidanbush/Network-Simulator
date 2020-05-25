@@ -131,10 +131,13 @@ void Manager::removeFlow(int id, double reward) {
     totalReward += reward;
     if (flows.size() == 0) {
         // All flows finished, end simulation
-        for (auto p: params) {
-            cout << p << ",";
+        if (!suppressOutput) {
+            for (auto p: params) {
+                cout << p << ",";
+            }
+            cout << initialWeights << ",";
         }
-        cout << initialWeights << "," << totalReward << endl;
+        cout << totalReward << endl;
         exit(0);
     }
 }

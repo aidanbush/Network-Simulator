@@ -70,7 +70,7 @@ ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowI
     lambda = 1 - 1.0/tau;
 
     parameters = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
-    for (int i = 0; i < parameters.size(); i++) {
+    for (int i = 0; i < (int)parameters.size(); i++) {
         switch (i / Tilecoder::getNumTiles()) {
             case K_ORDER:
                 parameters[i] = DEFAULT_INITIAL_K_PARAMETERS;

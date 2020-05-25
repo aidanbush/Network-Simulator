@@ -1,23 +1,42 @@
 #!/usr/local/bin/bash
 shopt -s expand_aliases
 source ~/.bashrc
-if [ ! -d results ]
+
+RESULTS_DIR=results
+
+if [ ! -d $RESULTS_DIR ]
 then
-    mkdir results
+    mkdir $RESULTS_DIR
 fi
-rm -f results/sweepOutputRetry.csv
-rm -f results/failedParamsRetry
+
+rm -f $RESULTS_DIR/sweepOutputRetry.csv
+rm -f $RESULTS_DIR/failedParamsRetry
+rm -f $RESULTS_DIR/tempOutput
 COUNT=0
-TOTAL=`wc -l < failedParams`
+FAILEd=0
+TOTAL=$(( `wc -l < failedParams`*100 ))
 cat failedParams | while read line || [[ -n $line ]]
 do
-    let COUNT++
     echo $line > params
-    echo "Running for input" $line "("$COUNT of $TOTAL")"
-    gtimeout 10s ./simulator -q local.json params >> results/sweepOutputRetry.csv
-    if [ $? -ne 0 ]
+    for SEED in {1..100}
+    do
+        let COUNT++
+        echo "Running for input" $line "with seed" $SEED "("$COUNT of $TOTAL")"
+        gtimeout 10s ./simulator -r $SEED -q local.json params >> $RESULTS_DIR/tempOutput
+        if [ $? -ne 0 ]
+        then
+            echo $line >> $RESULTS_DIR/failedParamsRetry
+            FAILED=1
+            break
+        fi
+    done
+    if [ $FAILED -eq 0 ]
     then
-        echo $line >> results/failedParamsRetry
+        echo $line,$(awk '{ total += $1; count++ } END { print total/count }' $RESULTS_DIR/tempOutput) >> \
+            $RESULTS_DIR/sweepOutputRetry.csv
+    else
+        FAILED=0
     fi
+    rm -f $RESULTS_DIR/tempOutput
 done
 rm params

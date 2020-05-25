@@ -52,12 +52,12 @@ string Sarsa::getName() {
 }
 
 void Sarsa::seed(int seed) {
-    // TODO implement separate generator per SARSA flow
+    generator.seed(seed);
 }
 
 pair<int, double> Sarsa::selectAction() {
-    if ((double)random()/RAND_MAX < epsilon) {
-        int ind = (int)(random()%NUM_ACTIONS);
+    if ((double)generator()/(generator.max() - generator.min()) < epsilon) {
+        int ind = (int)(generator()%NUM_ACTIONS);
         double val = sumIndices(weights, &tiles, ind*Tilecoder::getNumTiles());
         //cout << "Exploring:\nAction: " << ind << " Value: " << val << endl;
         return pair<int, double>(ind, val);
