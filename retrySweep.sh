@@ -13,7 +13,7 @@ rm -f $RESULTS_DIR/sweepOutputRetry.csv
 rm -f $RESULTS_DIR/failedParamsRetry
 rm -f $RESULTS_DIR/tempOutput
 COUNT=0
-FAILEd=0
+FAILED=0
 TOTAL=$(( `wc -l < failedParams`*100 ))
 cat failedParams | while read line || [[ -n $line ]]
 do
