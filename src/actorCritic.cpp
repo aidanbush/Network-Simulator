@@ -13,18 +13,19 @@
 
 using namespace std;
 
-#define DEFAULT_ALPHA_U 0.005 //Add: 0.05, Mult: 0.005, Both: 0.005
-#define DEFAULT_ALPHA_V 0.01 //Add: 1, Mult: 0.1, Both: 0.01
-#define DEFAULT_GAMMA 1 // Continuous problem
-#define DEFAULT_TAU 32 //Add: 4, Mult: 2, Both: 32
-#define DEFAULT_INAC false //Add: true, Mult: false, Both: false
+#define DEFAULT_ALPHA_U 0.005 //Add: 1, Mult: 0.005, Both: 0.005
+#define DEFAULT_ALPHA_V 0.01 //Add: 0.5, Mult: 0.005, Both: 0.001
+#define DEFAULT_ALPHA_R 0.1 //Add: 0.005, Mult: 0.0001, Both: 0.01
+#define DEFAULT_TAU 32 //Add: 32, Mult: 1, Both: 2
+#define DEFAULT_INAC false //Add: false, Mult: false, Both: false
 #define DEFAULT_S false //Add: true, Mult: false, Both: false
+#define DEFAULT_INITIAL_WEIGHTS 0.1
+#define GAMMA 1 //Always 1 for continuing case
 #define DEFAULT_INITIAL_WEIGHTS 0.1
 #define DEFAULT_INITIAL_K_PARAMETERS 0.1
 #define DEFAULT_INITIAL_PHI_PARAMETERS -0.1
 #define DEFAULT_INITIAL_MU_PARAMETERS 0
 #define DEFAULT_INITIAL_SIGMA_PARAMETERS 0
-#define ALPHA_R 0.01 // 0 //Always 0 for the starting state setting, but kept in so the algorithm is complete
 #define NUM_PARAMS 6
 
 #define TILE_MULTIPLE 4
@@ -51,14 +52,14 @@ ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowI
     if (!man.getParameters(&params, NUM_PARAMS)) {
         initialAlphaU = DEFAULT_ALPHA_U;
         initialAlphaV = DEFAULT_ALPHA_V;
-        gamma = DEFAULT_GAMMA;
+        alphaR = DEFAULT_ALPHA_R;
         tau = DEFAULT_TAU;
         inac = DEFAULT_INAC;
         s = DEFAULT_S;
     } else {
         initialAlphaU = params[0];
         initialAlphaV = params[1];
-        gamma = params[2];
+        alphaR = params[2];
         tau = params[3];
         //TODO: ensure this cast works
         inac = params[4];
@@ -69,7 +70,7 @@ ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowI
     lambda = 1 - 1.0/tau;
 
     parameters = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
-    for (int i = 0; i < parameters.size(); i++) {
+    for (int i = 0; i < (int)parameters.size(); i++) {
         switch (i / Tilecoder::getNumTiles()) {
             case K_ORDER:
                 parameters[i] = DEFAULT_INITIAL_K_PARAMETERS;
@@ -99,11 +100,12 @@ ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowI
 
     mode = MODE;
     generator = default_random_engine();
-
-    if (mode != Add && s) {
+    if ((mode == Both || mode ==Choose) && s) {
         //TODO: add support for this, see Williams, R. 1992. Simple Statistical Gradient-Following
         //                                  Algorithms for Connectionist Reinforcement Learning
-        throw runtime_error("S parameter can only be set to true in Add mode");
+        // According to Wolfram, for gamma, sigma^2 = alpha*theta^2 which is k*phi^2 in the variable used here
+        // If using this, it will mean having a different step size for different parts of the parameters
+        throw runtime_error("S parameter can only be set to true in Add or Mult modes");
     }
 
     actionPair = selectAction();
@@ -165,6 +167,17 @@ pair<double, double> ActorCritic::selectAction() {
     return actionPair;
 }
 
+double ActorCritic::getVariance() {
+    switch (mode) {
+        case Mult:
+            return k*phi*phi;
+        case Add:
+            return sigma*sigma;
+        default:
+            throw runtime_error("Getting variance only supported in Add and Mult modes");
+    }
+}
+
 void ActorCritic::step(double state, double reward, double &rate) {
     totalReward += reward;
     // Tilecode
@@ -178,11 +191,11 @@ void ActorCritic::step(double state, double reward, double &rate) {
                         criticWeights->at(oldTiles[i] + j*Tilecoder::getNumTiles());
         }
     }
-    double delta = reward - rBar + gamma*diffSum;
-    rBar += ALPHA_R*delta;
+    double delta = reward - rBar + GAMMA*diffSum;
+    rBar += alphaR*delta;
 
     for (int i = 0; i < (int)weightTrace.size(); i++) {
-        weightTrace[i] *= gamma*lambda;
+        weightTrace[i] *= GAMMA*lambda;
     }
 
     for (auto i: oldTiles) {
@@ -220,7 +233,7 @@ void ActorCritic::step(double state, double reward, double &rate) {
     // End Compute gradLog
 
     for (int i = 0; i < (int)parameterTrace.size(); i++) {
-        parameterTrace[i] = gamma*lambda*parameterTrace[i] + gradLog[i];
+        parameterTrace[i] = GAMMA*lambda*parameterTrace[i] + gradLog[i];
     }
 
     if (inac) {
@@ -235,12 +248,12 @@ void ActorCritic::step(double state, double reward, double &rate) {
         }
         //Update parameters (u)
         for (int i = 0; i < (int)parameters.size(); i++) {
-            parameters[i] += alphaU*actorWeights[i]*(s ? sigma*sigma : 1);
+            parameters[i] += alphaU*actorWeights[i]*(s ? getVariance() : 1);
         }
     } else {
         //Update parameters (u)
         for (int i = 0; i < (int)parameters.size(); i++) {
-            parameters[i] += alphaU*delta*parameterTrace[i]*(s ? sigma*sigma : 1);
+            parameters[i] += alphaU*delta*parameterTrace[i]*(s ? getVariance() : 1);
         }
     }
 

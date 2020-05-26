@@ -87,6 +87,8 @@ class Manager {
 
         void setSuppressOutput();
 
+        bool getSuppressOutput();
+
         void logTxEvent(string objName, int objId, string eventName, int destId, Packet *p);
         void logEvent(string objName, int objId, string eventName, string message);
 
@@ -105,6 +107,8 @@ class Manager {
         bool parametersSet = false;
         vector<double> params;
         double initialWeights;
+
+        double totalReward = 0;
 
         bool suppressOutput = false;
 

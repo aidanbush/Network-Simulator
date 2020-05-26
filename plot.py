@@ -46,3 +46,15 @@ for alg in toGraph:
             plt.ylabel(dataType[:-1])
             plt.legend()
             plt.savefig(str(dataDir/("_".join([alg, date, dataType]) + ".png")))
+            if len(data) > 100:
+                plt.figure()
+                for flow in toGraph[alg][date][dataType]:
+                    f = open(dataDir/toGraph[alg][date][dataType][flow])
+                    data = [float(d) for d in f.readline().split(",")]
+                    f.close()
+                    plt.plot(range(1, 101), data[-100:], label="Flow " + flow)
+                plt.title(" ".join([alg, dataType, "End"]))
+                plt.xlabel("Steps")
+                plt.ylabel(dataType[:-1])
+                plt.legend()
+                plt.savefig(str(dataDir/("_".join([alg, date, dataType, "End"]) + ".png")))

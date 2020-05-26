@@ -1,5 +1,6 @@
 #include <map>
 #include <vector>
+#include <iostream>
 
 #include "manager.h"
 #include "packetHandler.h"
@@ -126,9 +127,18 @@ bool Manager::addFlow(Flow *flow) {
 }
 
 void Manager::removeFlow(int id) {
+    Flow *f = getFlow(id);
+    totalReward += f->getTotalReward();
     flows.erase(id);
     if (flows.size() == 0) {
         // All flows finished, end simulation
+        if (!suppressOutput) {
+            for (auto p: params) {
+                cout << p << ",";
+            }
+            cout << initialWeights << ",";
+        }
+        cout << totalReward << endl;
         exit(0);
     }
 }
@@ -292,6 +302,10 @@ bool Manager::getInitialWeights(double *initialWeights) {
 
 void Manager::setSuppressOutput() {
     suppressOutput = true;
+}
+
+bool Manager::getSuppressOutput() {
+    return suppressOutput;
 }
 
 bool Manager::setLogFile(string filename) {
