@@ -35,6 +35,9 @@ using namespace std;
 #define SIGMA_ORDER 3
 #define MODE Both //Add, Mult, Both, or Choose
 
+#define REPORT_FLOW 1
+#define REPORT_ALL false
+
 vector<double> ActorCritic::initializeWeights() {
     double initialWeights;
     if (!man.getInitialWeights(&initialWeights)) {
@@ -46,7 +49,9 @@ vector<double> ActorCritic::initializeWeights() {
 
 ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowId) {
     this->flowId = flowId;
-    
+
+    stepnum = 0;
+
     vector<double> params;
     if (!man.getParameters(&params, NUM_PARAMS)) {
         initialAlphaU = DEFAULT_ALPHA_U;
@@ -181,6 +186,13 @@ void ActorCritic::step(double state, double reward, double &rate) {
     double delta = reward - rBar + gamma*diffSum;
     rBar += ALPHA_R*delta;
 
+    if (flowId == REPORT_FLOW || REPORT_ALL) {
+        printf("\nflowId %d step %d\n", flowId, stepnum++);
+        printf(" reward %f\n", reward);
+        printf(" rBar %f\n", rBar);
+        printf(" delta %f\n", delta);
+    }
+
     for (int i = 0; i < (int)weightTrace.size(); i++) {
         weightTrace[i] *= gamma*lambda;
     }
@@ -244,11 +256,55 @@ void ActorCritic::step(double state, double reward, double &rate) {
         }
     }
 
+    if (flowId == REPORT_FLOW || REPORT_ALL) {
+        // tiles
+        printf(" tiles:\n");
+        for (auto it: tiles) {
+            printf(" %d", it);
+        }
+
+        // gradient
+        printf("\ngradLog\n");
+        for (auto it: gradLog) {
+            printf(" %e", it);
+        }
+        // actor trace
+        printf("\nparameterTrace\n");
+        for (auto it: parameterTrace) {
+            printf(" %e", it);
+        }
+        // parameters
+        printf("\nparameters\n");
+        for (auto it: parameters) {
+            printf(" %e", it);
+        }
+        // critic trace
+        printf("\nweightTrace\n");
+        for (auto it: weightTrace) {
+            printf(" %e", it);
+        }
+        // weights
+        printf("\ncriticWeights\n");
+        for (auto it: *criticWeights) {
+            printf(" %e", it);
+        }
+        printf("\n");
+    }
+
     // set oldTiles to current tiles
     oldTiles = tiles;
 
     // select action
     actionPair = selectAction();
+
+    if (flowId == REPORT_FLOW || REPORT_ALL) {
+        printf("action:\n");
+        printf(" k %e\n", k);
+        printf(" phi %e\n", phi);
+        printf(" mu %e\n", mu);
+        printf(" sigma %e\n", sigma);
+        printf(" action: multi: %f add: %f\n", actionPair.first, actionPair.second);// action
+    }
 
     // TODO: should this be if statement, it would remove duplicated code in case Both, but it might be better
     //          to keep it as a switch since it is going over the values of an enum

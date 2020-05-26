@@ -41,7 +41,8 @@ class ActorCritic: public Agent {
         vector<double> parameterTrace; // eu
         double rBar = 0;
         double k, phi, mu, sigma;
-        
+
+        int stepnum = 0;
 
         double initialAlphaU;
         double initialAlphaV;
