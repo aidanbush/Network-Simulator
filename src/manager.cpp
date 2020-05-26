@@ -126,9 +126,10 @@ bool Manager::addFlow(Flow *flow) {
     return flows.emplace(id, flow).second;
 }
 
-void Manager::removeFlow(int id, double reward) {
+void Manager::removeFlow(int id) {
+    Flow *f = getFlow(id);
+    totalReward += f->getTotalReward();
     flows.erase(id);
-    totalReward += reward;
     if (flows.size() == 0) {
         // All flows finished, end simulation
         if (!suppressOutput) {

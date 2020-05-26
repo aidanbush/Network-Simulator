@@ -38,6 +38,8 @@ class Flow: public NetworkObject {
 
         void seed(int seed);
 
+        double getTotalReward();
+
     protected:
         Flow(json &flowConfig);
         bool validateSource();

@@ -215,6 +215,10 @@ double Flow::getMaxRate() {
     return e->getMaxOutputRate();
 }
 
+double Flow::getTotalReward() {
+    return totalReward;
+}
+
 BasicFlow::BasicFlow(json &flowConfig): Flow(validateBasicFlowConfig(flowConfig)) {
     this->time = 0.001;
     this->headSize = 20;
@@ -404,7 +408,7 @@ void ECNFlow::stepAgent() {
         printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_Rewards.csv", rewardList);
         printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_Rates.csv", rateList);
         printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_ECNAverages.csv", averageECNList);
-        man.removeFlow(id, totalReward);
+        man.removeFlow(id);
         delete this;
     }
     // man.logEvent("ECNFlow", this->id, "Agent Step", "Agent called with state " + to_string(state) + " and reward "

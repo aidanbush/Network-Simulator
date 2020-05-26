@@ -68,7 +68,7 @@ class Manager {
 
         Flow *getFlow(int id);
         bool addFlow(Flow *flow);
-        void removeFlow(int id, double reward);
+        void removeFlow(int id);
 
         void pushEvent(EventI *e) {pq.push(e); }
         EventI *popEvent();
