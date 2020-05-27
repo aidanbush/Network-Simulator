@@ -47,7 +47,9 @@ void printUsage(char *pName) {
             "Options\n"
             "  -l [filename] sets the log file, if not set uses stdout\n"
             "  -s step through event by event\n"
-            "  -q supress all output except final results\n"
+            "  -q [level] supress output using the level given\n"
+            "    level: 1 only logging\n"
+            "    level: 2+ all output\n"
             "  -r [seed] sets the random seed for the run\n"
             "  -f [filename] sets the csv output filename\n"
             "  -h this usage message\n", basename(pName));
@@ -67,7 +69,7 @@ int main(int argc, char **argv) {
     while ((c = getopt(argc, argv, "q:hsl:r:f:o")) != -1) {
         switch (c) {
             case 'q':
-                man.setSuppressOutput(atoi(optarg));
+                man.setSuppressOutput(atoifiles(optarg));
                 break;
             case 's':
                 step = true;
