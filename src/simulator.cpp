@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
     while ((c = getopt(argc, argv, "q:hsl:r:f:o")) != -1) {
         switch (c) {
             case 'q':
-                man.setSuppressOutput(atoifiles(optarg));
+                man.setSuppressOutput(atoi(optarg));
                 break;
             case 's':
                 step = true;
