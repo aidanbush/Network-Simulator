@@ -2,6 +2,8 @@
 import matplotlib.pyplot as plt
 import pathlib, os, re
 
+import code
+
 DATA_DIR_RELATIVE = "results"
 
 dataDir = pathlib.Path(__file__).parent.absolute()/DATA_DIR_RELATIVE
@@ -9,8 +11,8 @@ dataDir = pathlib.Path(__file__).parent.absolute()/DATA_DIR_RELATIVE
 
 allFiles = os.listdir(dataDir)
 
-dataPattern = re.compile("^(Sarsa|ACAdd|ACMult|ACBoth|ACChoose|AC)_(\d{12})_Flow(\d)_(ECNAverages|Rates|Rewards).csv$")
-graphPattern = re.compile("^(Sarsa|ACAdd|ACMult|ACBoth|ACChoose|AC)_(\d{12})_(ECNAverage|Rates|Rewards).png$")
+dataPattern = re.compile("^(Sarsa|ACAdd|ACMult|ACBoth|ACChoose|AC|.+)_?(\d{12}|)_Flow(\d)_(ECNAverages|Rates|Rewards).csv$")
+graphPattern = re.compile("^(Sarsa|ACAdd|ACMult|ACBoth|ACChoose|AC|.+)_?(\d{12}|)_(ECNAverage|Rates|Rewards).pdf$")
 
 toGraph = dict()
 alreadyGraphed = []
@@ -45,4 +47,19 @@ for alg in toGraph:
             plt.xlabel("Steps")
             plt.ylabel(dataType[:-1])
             plt.legend()
-            plt.savefig(str(dataDir/("_".join([alg, date, dataType]) + ".png")))
+            plt.savefig(str(dataDir/("_".join([alg, date, dataType]) + ".pdf")))
+            plt.close()
+            if len(data) > 100:
+                plt.figure()
+                for flow in toGraph[alg][date][dataType]:
+                    f = open(dataDir/toGraph[alg][date][dataType][flow])
+                    data = [float(d) for d in f.readline().split(",")]
+                    f.close()
+                    plt.plot(range(1, 101), data[-100:], label="Flow " + flow)
+                    #plt.plot(range(1, 21), data[:20], label="Flow " + flow)
+                plt.title(" ".join([alg, dataType, "End"]))
+                plt.xlabel("Steps")
+                plt.ylabel(dataType[:-1])
+                plt.legend()
+                plt.savefig(str(dataDir/("_".join([alg, date, dataType, "End"]) + ".pdf")))
+                plt.close()

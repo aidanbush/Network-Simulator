@@ -22,9 +22,16 @@
 #define TX_PACKET_EVENT "flow create packet event"
 
 #define MIN_RATE 500.0
-#define NUM_AGENT_STEPS 100
-#define MI_TIME 10
+#define NUM_AGENT_STEPS 500
+#define MI_TIME 1
 #define STAT_FILE_DIRECTORY "results"
+
+#define REWARD_RATE // REWARD_BASIC REWARD_LOG REWARD_RATE
+#if defined(REWARD_BASIC) && defined(REWARD_LOG) || \
+    defined(REWARD_BASIC) && defined(REWARD_RATE) || \
+    defined(REWARD_LOG) && defined(REWARD_RATE)
+#error Cant have multiple reward defined
+#endif /* multiple rewards */
 
 using namespace std;
 
@@ -343,7 +350,20 @@ double ECNFlow::getState() {
 }
 
 double ECNFlow::getReward() {
+#ifdef REWARD_BASIC
     return packetsUntagged;
+#endif /* REWARD_BASIC */
+
+#ifdef REWARD_LOG
+    if (packetsUntagged == 0) {
+        return 0;
+    }
+    return log(packetsUntagged) +1;
+#endif /* LOG_REWARD */
+
+#ifdef REWARD_RATE
+    return packetsUntagged / pow(rate, 0.5);
+#endif /* REWARD_RATE */
 }
 
 void ECNFlow::resetState() {
@@ -397,9 +417,15 @@ void ECNFlow::stepAgent() {
         tm *currentTm = localtime(&currentTime);
         char date[13];
         strftime(date, 13, "%Y%m%d%H%M", currentTm);
-        printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_Rewards.csv", rewardList);
-        printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_Rates.csv", rateList);
-        printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_ECNAverages.csv", averageECNList);
+
+        string filePrefix = man.getCSVFilename();
+        if (filePrefix.empty()) {
+            filePrefix = agent->getName() + "_" + date;
+        }
+
+        printCSV(filePrefix + "_Flow" + to_string(id) + "_Rewards.csv", rewardList);
+        printCSV(filePrefix + "_Flow" + to_string(id) + "_Rates.csv", rateList);
+        printCSV(filePrefix + "_Flow" + to_string(id) + "_ECNAverages.csv", averageECNList);
         man.removeFlow(id);
         delete this;
     }

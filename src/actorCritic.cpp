@@ -14,14 +14,14 @@
 using namespace std;
 
 #define DEFAULT_ALPHA_U 0.005 //Add: 0.05, Mult: 0.005, Both: 0.005
-#define DEFAULT_ALPHA_V 0.01 //Add: 1, Mult: 0.1, Both: 0.01
+#define DEFAULT_ALPHA_V 0.1 //Add: 1, Mult: 0.1, Both: 0.01
 #define DEFAULT_GAMMA 1 // Continuous problem
-#define DEFAULT_TAU 32 //Add: 4, Mult: 2, Both: 32
+#define DEFAULT_TAU 2 //Add: 4, Mult: 2, Both: 32
 #define DEFAULT_INAC false //Add: true, Mult: false, Both: false
 #define DEFAULT_S false //Add: true, Mult: false, Both: false
 #define DEFAULT_INITIAL_WEIGHTS 0.1
-#define DEFAULT_INITIAL_K_PARAMETERS 0.1
-#define DEFAULT_INITIAL_PHI_PARAMETERS -0.1
+#define DEFAULT_INITIAL_K_PARAMETERS 1
+#define DEFAULT_INITIAL_PHI_PARAMETERS -1
 #define DEFAULT_INITIAL_MU_PARAMETERS 0
 #define DEFAULT_INITIAL_SIGMA_PARAMETERS 0
 #define ALPHA_R 0.01 // 0 //Always 0 for the starting state setting, but kept in so the algorithm is complete
@@ -33,7 +33,7 @@ using namespace std;
 #define PHI_ORDER 1
 #define MU_ORDER 2
 #define SIGMA_ORDER 3
-#define MODE Both //Add, Mult, Both, or Choose
+#define MODE Mult //Add, Mult, Both, or Choose
 
 #define REPORT_FLOW 1
 #define REPORT_ALL false
@@ -77,16 +77,16 @@ ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowI
     for (int i = 0; i < parameters.size(); i++) {
         switch (i / Tilecoder::getNumTiles()) {
             case K_ORDER:
-                parameters[i] = DEFAULT_INITIAL_K_PARAMETERS;
+                parameters[i] = DEFAULT_INITIAL_K_PARAMETERS / Tilecoder::getNumTilings();
                 break;
             case PHI_ORDER:
-                parameters[i] = DEFAULT_INITIAL_PHI_PARAMETERS;
+                parameters[i] = DEFAULT_INITIAL_PHI_PARAMETERS / Tilecoder::getNumTilings();
                 break;
             case MU_ORDER:
-                parameters[i] = DEFAULT_INITIAL_MU_PARAMETERS;
+                parameters[i] = DEFAULT_INITIAL_MU_PARAMETERS / Tilecoder::getNumTilings();
                 break;
             case SIGMA_ORDER:
-                parameters[i] = DEFAULT_INITIAL_SIGMA_PARAMETERS;
+                parameters[i] = DEFAULT_INITIAL_SIGMA_PARAMETERS / Tilecoder::getNumTilings();
                 break;
         }
     }

@@ -49,6 +49,7 @@ void printUsage(char *pName) {
             "  -s step through event by event\n"
             "  -q supress all output except final results\n"
             "  -r [seed] sets the random seed for the run\n"
+            "  -f [filename] sets the csv output filename\n"
             "  -h this usage message\n", basename(pName));
 }
 
@@ -63,7 +64,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    while ((c = getopt(argc, argv, "qhsl:r:")) != -1) {
+    while ((c = getopt(argc, argv, "qhsl:r:f:")) != -1) {
         switch (c) {
             case 'q':
                 man.setSuppressOutput();
@@ -83,6 +84,13 @@ int main(int argc, char **argv) {
                 break;
             case 'r':
                 srand(atoi(optarg));
+                break;
+            case 'f':
+                if (!man.setCSVFilename(optarg)) {
+                    fprintf(stderr, "multiple csv files specified\n");
+                    printUsage(argv[0]);
+                    return 1;
+                }
                 break;
             default:
                 fprintf(stderr, "Unkown option\n");

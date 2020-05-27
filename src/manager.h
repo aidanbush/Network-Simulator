@@ -81,6 +81,9 @@ class Manager {
 
         bool setLogFile(string filename);
 
+        bool setCSVFilename(string filename);
+        string getCSVFilename();
+
         void setParameters(vector<double> params, double initialWeights);
         bool getParameters(vector<double> *params, int numParams);
         bool getInitialWeights(double *initialWeights);
@@ -115,6 +118,8 @@ class Manager {
         map<int, Flow*> flows;
 
         FILE *logFile;
+
+        string CSVFilename;
 };
 
 extern Manager man;
