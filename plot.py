@@ -56,7 +56,6 @@ for alg in toGraph:
                     data = [float(d) for d in f.readline().split(",")]
                     f.close()
                     plt.plot(range(1, 101), data[-100:], label="Flow " + flow)
-                    #plt.plot(range(1, 21), data[:20], label="Flow " + flow)
                 plt.title(" ".join([alg, dataType, "End"]))
                 plt.xlabel("Steps")
                 plt.ylabel(dataType[:-1])

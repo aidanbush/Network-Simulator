@@ -26,6 +26,8 @@ class ActorCritic: public Agent {
         double selectActionMult();
         double selectActionAdd();
         
+        double getVariance();
+        
         double oldValue = 0;
         double oldState;
         /*TODO: this sets what the agent considers to be its previous action at the start of the episode
@@ -48,6 +50,7 @@ class ActorCritic: public Agent {
         double initialAlphaV;
         double alphaU;
         double alphaV;
+        double alphaR;
         double tau;
         double lambda;
         double gamma;

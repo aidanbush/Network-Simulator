@@ -22,7 +22,7 @@
 #define TX_PACKET_EVENT "flow create packet event"
 
 #define MIN_RATE 500.0
-#define NUM_AGENT_STEPS 500
+#define NUM_AGENT_STEPS 1000
 #define MI_TIME 1
 #define STAT_FILE_DIRECTORY "results"
 
@@ -222,6 +222,10 @@ double Flow::getMaxRate() {
     return e->getMaxOutputRate();
 }
 
+double Flow::getTotalReward() {
+    return totalReward;
+}
+
 BasicFlow::BasicFlow(json &flowConfig): Flow(validateBasicFlowConfig(flowConfig)) {
     this->time = 0.001;
     this->headSize = 20;
@@ -375,12 +379,16 @@ void ECNFlow::resetState() {
 void ECNFlow::updateStats() {
     totalPacketsUntagged += packetsUntagged;
     totalPacketsSent += packetsSent;
-    rewardList.push_back(packetsUntagged);
+    rewardList.push_back(getReward());
     rateList.push_back(rate);
     averageECNList.push_back(averageECN);
 }
 
 void ECNFlow::printCSV(string filename, vector<double> vec) {
+    if (man.getSuppressOutput() >=2) {
+        //Don't create CSV files if in q mode
+        return;
+    }
     //if (boost::filesystem::create_directory(STAT_FILE_DIRECTORY)) {
     if (!filesystem::exists(STAT_FILE_DIRECTORY)) {
         filesystem::create_directory(STAT_FILE_DIRECTORY);

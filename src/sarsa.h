@@ -1,6 +1,8 @@
 #ifndef SARSA_H
 #define SARSA_H
 
+#include <random>
+
 class Sarsa: public Agent {
     public:
         Sarsa(vector<double> *weights, double initialState, int flowId);
@@ -29,6 +31,8 @@ class Sarsa: public Agent {
         double epsilon;
 
         double totalReward = 0;
+        
+        std::minstd_rand0 generator;
 };
 
 #endif /* SARSA_H */

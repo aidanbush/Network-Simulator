@@ -64,10 +64,10 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    while ((c = getopt(argc, argv, "qhsl:r:f:")) != -1) {
+    while ((c = getopt(argc, argv, "q:hsl:r:f:o")) != -1) {
         switch (c) {
             case 'q':
-                man.setSuppressOutput();
+                man.setSuppressOutput(atoi(optarg));
                 break;
             case 's':
                 step = true;
