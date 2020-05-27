@@ -36,7 +36,7 @@ do
                                      "with seed" $SEED "("$COUNT of $TOTAL")"
                                 echo $NUM_PARAMS > params
                                 echo $ALPHA_U $ALPHA_V $ALPHA_R $TAU $INAC $S $INITIAL_WEIGHTS >> params
-                                gtimeout 2s ./simulator -r $SEED -q local.json params >> $RESULTS_DIR/tempOutput
+                                gtimeout 2s ./simulator -r $SEED -q 2 local.json params >> $RESULTS_DIR/tempOutput
                                 if [ $? -ne 0 ]
                                 then
                                     echo $ALPHA_U $ALPHA_V $ALPHA_R $TAU $INAC $S $INITIAL_WEIGHTS >> \
