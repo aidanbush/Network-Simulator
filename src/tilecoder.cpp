@@ -2,7 +2,7 @@
 
 #include "tilecoder.h"
 
-#define NUM_TILINGS 1
+#define NUM_TILINGS 10
 #define NUM_TILES_PER_TILING 11
 #define STATE_MIN 0.0
 #define STATE_MAX 1.0
