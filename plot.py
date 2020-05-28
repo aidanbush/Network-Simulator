@@ -2,8 +2,6 @@
 import matplotlib.pyplot as plt
 import pathlib, os, re
 
-import code
-
 DATA_DIR_RELATIVE = "results"
 
 dataDir = pathlib.Path(__file__).parent.absolute()/DATA_DIR_RELATIVE

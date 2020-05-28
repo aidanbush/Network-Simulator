@@ -41,6 +41,13 @@ class Flow: public NetworkObject {
         double getTotalReward();
 
     protected:
+        enum RewardType {
+            BasicReward,
+            RateReward,
+            LogReward,
+        };
+        RewardType rewardType;
+
         Flow(json &flowConfig);
         bool validateSource();
         bool validateDest();

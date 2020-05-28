@@ -26,12 +26,7 @@
 #define MI_TIME 1
 #define STAT_FILE_DIRECTORY "results"
 
-#define REWARD_RATE // REWARD_BASIC REWARD_LOG REWARD_RATE
-#if defined(REWARD_BASIC) && defined(REWARD_LOG) || \
-    defined(REWARD_BASIC) && defined(REWARD_RATE) || \
-    defined(REWARD_LOG) && defined(REWARD_RATE)
-#error Cant have multiple reward defined
-#endif /* multiple rewards */
+#define DEFAULT_REWARD_TYPE RateReward
 
 using namespace std;
 
@@ -111,6 +106,8 @@ Flow::Flow(json &flowConfig):
     this->curPId = 0;
     this->miTime = MI_TIME;
     this->maxTime = NUM_AGENT_STEPS*miTime;
+
+    this->rewardType = DEFAULT_REWARD_TYPE;
 }
 
 void Flow::seed(int seed) {
@@ -354,20 +351,18 @@ double ECNFlow::getState() {
 }
 
 double ECNFlow::getReward() {
-#ifdef REWARD_BASIC
-    return packetsUntagged;
-#endif /* REWARD_BASIC */
-
-#ifdef REWARD_LOG
-    if (packetsUntagged == 0) {
-        return 0;
+    switch (rewardType) {
+        case BasicReward:
+            return packetsUntagged;
+        case RateReward:
+            return packetsUntagged / pow(rate, 0.5);
+        case LogReward:
+            if (packetsUntagged == 0) {
+                return 0;
+            }
+            return log(packetsUntagged) +1;
     }
-    return log(packetsUntagged) +1;
-#endif /* LOG_REWARD */
-
-#ifdef REWARD_RATE
-    return packetsUntagged / pow(rate, 0.5);
-#endif /* REWARD_RATE */
+    throw runtime_error("Invalid reward specified\n");
 }
 
 void ECNFlow::resetState() {
