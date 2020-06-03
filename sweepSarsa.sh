@@ -1,4 +1,3 @@
-#!/usr/local/bin/bash
 shopt -s expand_aliases
 source ~/.bashrc
 
