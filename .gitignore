@@ -40,6 +40,8 @@ simulator
 # Config
 src/tests/local.json
 local.json
+src/ActorCriticDefines.h
+src/SarsaDefines.h
 
 # Results
 results/
