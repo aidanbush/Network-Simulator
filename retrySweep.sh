@@ -15,14 +15,14 @@ rm -f $RESULTS_DIR/tempOutput
 COUNT=0
 FAILED=0
 TOTAL=$(( `wc -l < failedParams`*100 ))
-cat failedParams | while read line || [[ -n $line ]]
+cat $RESULTS_DIR/failedParams | while read line || [[ -n $line ]]
 do
     echo $line > params
     for SEED in {1..100}
     do
         let COUNT++
         echo "Running for input" $line "with seed" $SEED "("$COUNT of $TOTAL")"
-        gtimeout 10s ./simulator -r $SEED -q 2 local.json params >> $RESULTS_DIR/tempOutput
+        timeout 10s ./simulator -r $SEED -q 2 local.json params >> $RESULTS_DIR/tempOutput
         if [ $? -ne 0 ]
         then
             echo $line >> $RESULTS_DIR/failedParamsRetry
