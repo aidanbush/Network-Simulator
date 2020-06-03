@@ -300,11 +300,11 @@ bool Manager::getInitialWeights(double *initialWeights) {
     }
 }
 
-void Manager::setSuppressOutput() {
-    suppressOutput = true;
+void Manager::setSuppressOutput(int value) {
+    suppressOutput = value;
 }
 
-bool Manager::getSuppressOutput() {
+int Manager::getSuppressOutput() {
     return suppressOutput;
 }
 
@@ -320,6 +320,19 @@ bool Manager::setLogFile(string filename) {
     return true;
 }
 
+bool Manager::setCSVFilename(string filename) {
+    if (CSVFilename.empty()) {
+        CSVFilename = filename;
+        return true;
+    }
+
+    return false;
+}
+
+string Manager::getCSVFilename() {
+    return CSVFilename;
+}
+
 void Manager::logTxEvent(string objName, int objId, string eventName, int destId, Packet *p) {
     string message = "dest: " + to_string(destId) + " packet: " + to_string(p->getId()) + " flow: "
         + to_string(p->getFlow());
@@ -327,7 +340,7 @@ void Manager::logTxEvent(string objName, int objId, string eventName, int destId
 }
 
 void Manager::logEvent(string objName, int objId, string eventName, string message) {
-    if (!suppressOutput) {
+    if (suppressOutput < 1) {
         fprintf(logFile, "time: %f %s: %d event: %s message: %s\n", time,
             objName.c_str(), objId, eventName.c_str(), message.c_str());
     }

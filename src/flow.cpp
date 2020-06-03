@@ -22,9 +22,11 @@
 #define TX_PACKET_EVENT "flow create packet event"
 
 #define MIN_RATE 500.0
-#define NUM_AGENT_STEPS 100
-#define MI_TIME 10
+#define NUM_AGENT_STEPS 1000
+#define MI_TIME 1
 #define STAT_FILE_DIRECTORY "results"
+
+#define DEFAULT_REWARD_TYPE RateReward
 
 using namespace std;
 
@@ -104,6 +106,8 @@ Flow::Flow(json &flowConfig):
     this->curPId = 0;
     this->miTime = MI_TIME;
     this->maxTime = NUM_AGENT_STEPS*miTime;
+
+    this->rewardType = DEFAULT_REWARD_TYPE;
 }
 
 void Flow::seed(int seed) {
@@ -347,7 +351,18 @@ double ECNFlow::getState() {
 }
 
 double ECNFlow::getReward() {
-    return packetsUntagged;
+    switch (rewardType) {
+        case BasicReward:
+            return packetsUntagged;
+        case RateReward:
+            return packetsUntagged / pow(rate, 0.5);
+        case LogReward:
+            if (packetsUntagged == 0) {
+                return 0;
+            }
+            return log(packetsUntagged) +1;
+    }
+    throw runtime_error("Invalid reward specified\n");
 }
 
 void ECNFlow::resetState() {
@@ -359,13 +374,13 @@ void ECNFlow::resetState() {
 void ECNFlow::updateStats() {
     totalPacketsUntagged += packetsUntagged;
     totalPacketsSent += packetsSent;
-    rewardList.push_back(packetsUntagged);
+    rewardList.push_back(getReward());
     rateList.push_back(rate);
     averageECNList.push_back(averageECN);
 }
 
 void ECNFlow::printCSV(string filename, vector<double> vec) {
-    if (man.getSuppressOutput()) {
+    if (man.getSuppressOutput() >=2) {
         //Don't create CSV files if in q mode
         return;
     }
@@ -405,9 +420,15 @@ void ECNFlow::stepAgent() {
         tm *currentTm = localtime(&currentTime);
         char date[13];
         strftime(date, 13, "%Y%m%d%H%M", currentTm);
-        printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_Rewards.csv", rewardList);
-        printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_Rates.csv", rateList);
-        printCSV(agent->getName() + "_" + date + "_Flow" + to_string(id) + "_ECNAverages.csv", averageECNList);
+
+        string filePrefix = man.getCSVFilename();
+        if (filePrefix.empty()) {
+            filePrefix = agent->getName() + "_" + date;
+        }
+
+        printCSV(filePrefix + "_Flow" + to_string(id) + "_Rewards.csv", rewardList);
+        printCSV(filePrefix + "_Flow" + to_string(id) + "_Rates.csv", rateList);
+        printCSV(filePrefix + "_Flow" + to_string(id) + "_ECNAverages.csv", averageECNList);
         man.removeFlow(id);
         delete this;
     }

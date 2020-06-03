@@ -81,13 +81,16 @@ class Manager {
 
         bool setLogFile(string filename);
 
+        bool setCSVFilename(string filename);
+        string getCSVFilename();
+
         void setParameters(vector<double> params, double initialWeights);
         bool getParameters(vector<double> *params, int numParams);
         bool getInitialWeights(double *initialWeights);
 
-        void setSuppressOutput();
+        void setSuppressOutput(int);
 
-        bool getSuppressOutput();
+        int getSuppressOutput();
 
         void logTxEvent(string objName, int objId, string eventName, int destId, Packet *p);
         void logEvent(string objName, int objId, string eventName, string message);
@@ -110,7 +113,7 @@ class Manager {
 
         double totalReward = 0;
 
-        bool suppressOutput = false;
+        int suppressOutput = 0;
 
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator> pq;
         map<int, PacketHandler*> packetHandlers;
@@ -119,6 +122,8 @@ class Manager {
         map<int, Flow*> flows;
 
         FILE *logFile;
+
+        string CSVFilename;
 };
 
 extern Manager man;
