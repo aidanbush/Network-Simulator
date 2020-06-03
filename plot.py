@@ -20,7 +20,7 @@ alreadyGraphed = set()
 for f in allFiles:
     match = graphPattern.match(f)
     if match:
-        alreadyGraphed.add(match.group(1))
+        alreadyGraphed.add((match.group(1), match.group(2)))
 
 for f in allFiles:
     match = dataPattern.match(f)
