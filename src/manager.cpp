@@ -345,3 +345,11 @@ void Manager::logEvent(string objName, int objId, string eventName, string messa
             objName.c_str(), objId, eventName.c_str(), message.c_str());
     }
 }
+
+void Manager::seed(int seed) {
+    generator.seed(seed);
+}
+
+int Manager::random() {
+    return generator();
+}

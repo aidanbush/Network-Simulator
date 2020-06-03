@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
                 }
                 break;
             case 'r':
-                srand(atoi(optarg));
+                man.seed(atoi(optarg));
                 break;
             case 'f':
                 if (!man.setCSVFilename(optarg)) {

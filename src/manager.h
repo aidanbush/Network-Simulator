@@ -4,6 +4,7 @@
 #include <queue>
 #include <map>
 #include <vector>
+#include <random>
 
 //TODO: why not include the headers?
 class PacketHandler;
@@ -96,6 +97,9 @@ class Manager {
         void logEvent(string objName, int objId, string eventName, string message);
 
         bool startSimulator();
+        
+        void seed(int seed);
+        int random();
 
     private:
         bool addHandler(PacketHandler *handler);
@@ -124,6 +128,8 @@ class Manager {
         FILE *logFile;
 
         string CSVFilename;
+        
+        mt19937 generator;
 };
 
 extern Manager man;
