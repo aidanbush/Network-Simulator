@@ -380,7 +380,7 @@ void ECNFlow::updateStats() {
 }
 
 void ECNFlow::printCSV(string filename, vector<double> vec) {
-    if (man.getSuppressOutput() >=2) {
+    if (man.getSuppressOutput(CSV)) {
         //Don't create CSV files if in q mode
         return;
     }

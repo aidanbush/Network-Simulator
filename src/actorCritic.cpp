@@ -31,8 +31,7 @@ using namespace std;
 #define DEFAULT_INITIAL_SIGMA_PARAMETERS 0
 #define NUM_PARAMS 6
 #define MODE Mult //Add, Mult, Both, or Choose
-#define REPORT_FLOW 1
-#define REPORT_ALL false
+#define REPORT_FLOW 1 // -1 for all flows
 #endif // __has_include
 
 #define TILE_MULTIPLE 4
@@ -202,7 +201,7 @@ void ActorCritic::step(double state, double reward, double &rate) {
     double delta = reward - rBar + GAMMA*diffSum;
     rBar += alphaR*delta;
 
-    if (flowId == REPORT_FLOW || REPORT_ALL) {
+    if ((flowId == REPORT_FLOW || REPORT_FLOW == -1) && !man.getSuppressOutput(AGENT_VALS)) {
         printf("\nflowId %d step %d\n", flowId, stepnum++);
         printf(" reward %f\n", reward);
         printf(" rBar %f\n", rBar);
@@ -272,7 +271,7 @@ void ActorCritic::step(double state, double reward, double &rate) {
         }
     }
 
-    if (flowId == REPORT_FLOW || REPORT_ALL) {
+    if ((flowId == REPORT_FLOW || REPORT_FLOW == -1) && !man.getSuppressOutput(AGENT_VALS)) {
         // tiles
         printf(" tiles:\n");
         for (auto it: tiles) {
@@ -313,7 +312,7 @@ void ActorCritic::step(double state, double reward, double &rate) {
     // select action
     actionPair = selectAction();
 
-    if (flowId == REPORT_FLOW || REPORT_ALL) {
+    if ((flowId == REPORT_FLOW || REPORT_FLOW == -1) && !man.getSuppressOutput(AGENT_VALS)) {
         printf("action:\n");
         printf(" k %e\n", k);
         printf(" phi %e\n", phi);

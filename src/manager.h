@@ -45,6 +45,13 @@ struct EventQueueComparator {
     }
 };
 
+enum LogLevel {
+    CSV=1,
+    PARAMS=2,
+    SIM_EVENTS=4,
+    AGENT_VALS=8
+};
+
 class Manager {
     public:
         Manager();
@@ -89,9 +96,8 @@ class Manager {
         bool getParameters(vector<double> *params, int numParams);
         bool getInitialWeights(double *initialWeights);
 
-        void setSuppressOutput(int);
-
-        int getSuppressOutput();
+        void setSuppressOutput(int value);
+        int getSuppressOutput(LogLevel level);
 
         void logTxEvent(string objName, int objId, string eventName, int destId, Packet *p);
         void logEvent(string objName, int objId, string eventName, string message);

@@ -21,7 +21,7 @@ do
     do
         let COUNT++
         echo "Running for input" $line "with seed" $SEED "("$COUNT of $TOTAL")"
-        timeout 10s ./simulator -r $SEED -q 2 local.json params >> $RESULTS_DIR/tempOutput
+        timeout 10s ./simulator -r $SEED -q 1111 local.json params >> $RESULTS_DIR/tempOutput
         if [ $? -ne 0 ]
         then
             echo $line >> $RESULTS_DIR/failedParamsRetry
