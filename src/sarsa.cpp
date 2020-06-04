@@ -9,8 +9,8 @@
 
 using namespace std;
 
-#if __has_include("SarsaDefines.h")
-#include "SarsaDefines.h"
+#if __has_include("sarsaDefines.h")
+#include "sarsaDefines.h"
 #else
 #define DEFAULT_ALPHA 0.9
 #define DEFAULT_LAMBDA 0.975

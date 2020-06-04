@@ -13,8 +13,8 @@
 
 using namespace std;
 
-#if __has_include("ActorCriticDefines.h")
-#include "ActorCriticDefines.h"
+#if __has_include("actorCriticDefines.h")
+#include "actorCriticDefines.h"
 #else
 #define DEFAULT_ALPHA_U 0.005 //Add: 1, Mult: 0.005, Both: 0.005
 #define DEFAULT_ALPHA_V 0.01 //Add: 0.5, Mult: 0.005, Both: 0.001

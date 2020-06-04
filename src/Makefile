@@ -48,9 +48,9 @@ $(BUILD_DIR)manager.o: manager.cpp manager.h packetHandler.h switch.h endpoint.h
 
 $(BUILD_DIR)agent.o: agent.cpp agent.h
 
-$(BUILD_DIR)sarsa.o: sarsa.cpp sarsa.h agent.h tilecoder.h
+$(BUILD_DIR)sarsa.o: sarsa.cpp sarsa.h agent.h tilecoder.h sarsaDefines.h
 
-$(BUILD_DIR)actorCritic.o: actorCritic.cpp actorCritic.h agent.h tilecoder.h
+$(BUILD_DIR)actorCritic.o: actorCritic.cpp actorCritic.h agent.h tilecoder.h actorCriticDefines.h
 
 $(BUILD_DIR)tilecoder.o: tilecoder.cpp tilecoder.h
 
