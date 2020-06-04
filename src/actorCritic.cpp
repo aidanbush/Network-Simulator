@@ -13,6 +13,7 @@
 
 using namespace std;
 
+// All following defines can be overridden in actorCriticDefines.h, which can be modified for local testing
 #if __has_include("actorCriticDefines.h")
 #include "actorCriticDefines.h"
 #else

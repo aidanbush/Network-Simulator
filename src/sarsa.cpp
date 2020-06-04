@@ -9,6 +9,7 @@
 
 using namespace std;
 
+// All following defines can be overridden in sarsaDefines.h, which can be modified for local testing
 #if __has_include("sarsaDefines.h")
 #include "sarsaDefines.h"
 #else
