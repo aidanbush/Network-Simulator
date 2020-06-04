@@ -40,8 +40,12 @@ simulator
 # Config
 src/tests/local.json
 local.json
-src/ActorCriticDefines.h
-src/SarsaDefines.h
+src/actorCriticDefines.h
+src/sarsaDefines.h
+src/endpointDefines.h
+src/interfaceDefines.h
+src/flowDefines.h
+src/tilecoderDefines.h
 
 # Results
 results/

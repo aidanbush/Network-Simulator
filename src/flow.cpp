@@ -21,12 +21,16 @@
 #define FLOW_STR        "Flow"
 #define TX_PACKET_EVENT "flow create packet event"
 
+// All following defines can be overridden in flowDefines.h, which can be modified for local testing
+#if __has_include("flowDefines.h")
+#include "flowDefines.h"
+#else
 #define MIN_RATE 500.0
-#define NUM_AGENT_STEPS 1000
-#define MI_TIME 1
+#define NUM_AGENT_STEPS 100
+#define MI_TIME 10
 #define STAT_FILE_DIRECTORY "results"
-
-#define DEFAULT_REWARD_TYPE RateReward
+#define DEFAULT_REWARD_TYPE BasicReward
+#endif // __has_include
 
 using namespace std;
 
