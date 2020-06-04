@@ -48,7 +48,7 @@ void printUsage(char *pName) {
             "  -l [filename] sets the log file, if not set uses stdout\n"
             "  -s step through event by event\n"
             "  -q [level] supresses output according to which flags are set\n"
-            "    Enter as a binary number setting all desired flags to 1, e.g. '-q 1101'"
+            "    Enter as a binary number setting all desired flags to 1, e.g. '-q 1101'\n"
             "    0001: Suppresses printing of csv files\n"
             "    0010: Suppresses printing of parameters at end of program\n"
             "    0100: Suppresses logging of simulator events\n"
