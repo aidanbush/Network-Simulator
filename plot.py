@@ -18,7 +18,7 @@ dataDir = pathlib.Path(__file__).parent.absolute()/DATA_DIR_RELATIVE
 allFiles = os.listdir(dataDir)
 
 dataPattern = re.compile("^(.+)_Flow(\d)_(ECNAverages|Rates|Rewards).csv$")
-graphPattern = re.compile("^(.+)_(ECNAverage|Rates|Rewards)" + FORMAT + "$")
+graphPattern = re.compile("^(.+)_(ECNAverages|Rates|Rewards)" + FORMAT + "$")
 
 toGraph = defaultdict(lambda: defaultdict(lambda: defaultdict(str)))
 # toGraph structure: { test prefix { data type {flow id : filename } } }
@@ -34,7 +34,7 @@ for f in allFiles:
     if match:
         prefix, flowId, dataType = match.groups()
 
-        if prefix in alreadyGraphed:
+        if (prefix, dataType) in alreadyGraphed:
             continue
 
         toGraph[prefix][dataType][flowId] = f
