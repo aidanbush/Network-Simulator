@@ -1,0 +1,73 @@
+import os, re
+from collections import defaultdict
+import numpy as np
+
+path = sys.argv[1]
+csvfile = sys.argv[2]
+
+def getFileData(path):
+    data = []
+    with open(path) as f:
+        data = list(map(float, f.readline().split(',')))
+    return data
+
+dataPattern = re.compile("^(.+)_Flow(\d)_(ECNAverages|Rates|Rewards|MultiActions|AddActions).csv$")
+
+DATA_TYPE_TO_INDEX = {"ECNAverages": 0, "Rates": 1, "Rewards": 2, "MultiActions": 3, "AddActions": 4}
+INDEX_TO_DATA_TYPE = {0: "ECNAverages", 1: "Rates", 2: "Rewards", 3: "MultiActions", 4: "AddActions"}
+
+NUM_ELEMENTS = 5
+
+# structure: {flowId { tests [ runs []] }}
+rawData = defaultdict(lambda: [[] for i in range(NUM_ELEMENTS)])
+
+for filename in os.listdir(dataDir):
+    match = dataPattern.match(filename)
+    if (!match):
+        continue
+
+    dataType = match.group(3)
+    flowId = match.group(2)
+
+    data = getFileData()
+    if data != [] and dataType in DATA_TYPE_TO_INDEX:
+        rawData[flowId][DATA_TYPE_TO_INDEX[dataType]].append(data)
+
+# convert to numpy array
+for flowId in rawData.keys():
+    for i in range(len(rawData[flowId])):
+        rawData[flowId][i] = np.array(rawData[flowId][i])
+
+maxSamples = max([len(rawData[flowId][i])
+    for flowId in rawData.keys()
+    for i in range(len(rawData[flowId]))])
+
+combinedData = defaultdict(lambda: [None for i in range(len(INDEX_TO_DATA_TYPE)*2)])
+
+# combine data
+for flowId in rawData.keys():
+    for i in range(len(rawData[flowId])):
+        combinedData[flowId][INDEX_TO_DATA_TYPE[i] * 2] = rawData[flowId][i].mean(0)
+        combinedData[flowId][INDEX_TO_DATA_TYPE[i] * 2 + 1] = rawData[flowId][i].std(0)
+
+flowIds = rawData.keys() # TODO use flowId's so ordering of dict doesn't matter
+
+# create headers
+rowHeaders = ["flow{} {} {}".format(flowId, INDEX_TO_DATA_TYPE[testIndex]. statsElement)
+        for flowId in flowIds for testIndex in rawData[flowId] for statsElement in ["mean", "stdev"]]
+
+with open(csvfile) as f:
+    writer = csv.writer(f)
+
+    # write headers
+    writer.writerow(rowHeaders)
+
+    # for each row
+    for r in maxSamples:
+        row = []
+        for flowId in flowIds:
+            # for each test
+            for i in range(len(combinedData[flowId])):
+                row.append(combinedData[flowId][i][r])
+        # print row
+        writer.writerow(row)
