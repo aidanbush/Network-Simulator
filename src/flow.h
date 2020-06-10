@@ -81,7 +81,9 @@ class Flow: public NetworkObject {
         double totalReward = 0;
         vector<double> rateList;
         vector<double> rewardList;
-        
+        vector<double> actionMultList;
+        vector<double> actionAddList;
+
         second_t maxTime;
 };
 
@@ -139,7 +141,10 @@ class ECNFlow: public Flow {
         double getState();
         double getReward();
         void resetState();
+
         void updateStats();
+        void updateStatsPostStep(pair<double, double> action);
+
         void printCSV(string filename, vector<double> vec);
 
         ECNPacket *createPacket();

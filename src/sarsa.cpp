@@ -76,7 +76,7 @@ pair<int, double> Sarsa::selectAction() {
     }
 }
 
-void Sarsa::step(double state, double reward, double &rate) {
+pair<double, double> Sarsa::step(double state, double reward, double &rate) {
     totalReward += reward;
     // Tilecode
     tiles = Tilecoder::tilecode(state);
@@ -118,20 +118,28 @@ void Sarsa::step(double state, double reward, double &rate) {
     oldAction = action;
     oldValue = value;
     oldTiles = tiles;
-    
+
+    pair<double, double> actionPair;
+
     //update rate
     switch (action) {
         case 0:
             rate *= 2;
+            actionPair = pair<double, double>(2, 0);
             break;
         case 1:
             rate /= 2;
+            actionPair = pair<double, double>(.5, 0);
             break;
         case 2:
             rate++;
+            actionPair = pair<double, double>(0, 1);
             break;
         case 3:
             rate--;
+            actionPair = pair<double, double>(0, -1);
             break;
     }
+
+    return actionPair;
 }

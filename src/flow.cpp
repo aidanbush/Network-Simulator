@@ -26,7 +26,7 @@
 #define MI_TIME 1
 #define STAT_FILE_DIRECTORY "results"
 
-#define DEFAULT_REWARD_TYPE RateReward
+#define DEFAULT_REWARD_TYPE BasicReward
 
 using namespace std;
 
@@ -374,9 +374,15 @@ void ECNFlow::resetState() {
 void ECNFlow::updateStats() {
     totalPacketsUntagged += packetsUntagged;
     totalPacketsSent += packetsSent;
+
     rewardList.push_back(getReward());
     rateList.push_back(rate);
     averageECNList.push_back(averageECN);
+}
+
+void ECNFlow::updateStatsPostStep(pair<double, double> action) {
+    actionMultList.push_back(action.first);
+    actionAddList.push_back(action.second);
 }
 
 void ECNFlow::printCSV(string filename, vector<double> vec) {
@@ -384,12 +390,13 @@ void ECNFlow::printCSV(string filename, vector<double> vec) {
         //Don't create CSV files if in q mode
         return;
     }
-    //if (boost::filesystem::create_directory(STAT_FILE_DIRECTORY)) {
+
+    // TODO clean up placement of setting path
     if (!filesystem::exists(STAT_FILE_DIRECTORY)) {
         filesystem::create_directory(STAT_FILE_DIRECTORY);
     }
     ofstream ofs;
-    ofs.open(string(STAT_FILE_DIRECTORY) + "/" + filename, ofstream::trunc);
+    ofs.open(filename, ofstream::trunc);
     if (vec.size() >= 1) {
         ofs << vec[0];
         for (int i = 1; i < (int)vec.size(); i++) {
@@ -403,10 +410,15 @@ void ECNFlow::stepAgent() {
     double state = getState();
     double reward = getReward();
     totalReward += reward;
+
     updateStats();
+
+    pair<double, double> action = agent->step(state, reward, rate);
+
+    updateStatsPostStep(action);
+
     resetState();
 
-    agent->step(state, reward, rate);
     rate = min(maxRate, max(MIN_RATE, rate));
     if (man.time + miTime <= maxTime) {
         EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
@@ -423,12 +435,14 @@ void ECNFlow::stepAgent() {
 
         string filePrefix = man.getCSVFilename();
         if (filePrefix.empty()) {
-            filePrefix = agent->getName() + "_" + date;
+            filePrefix = string(STAT_FILE_DIRECTORY) + "/" + agent->getName() + "_" + date;
         }
 
         printCSV(filePrefix + "_Flow" + to_string(id) + "_Rewards.csv", rewardList);
         printCSV(filePrefix + "_Flow" + to_string(id) + "_Rates.csv", rateList);
         printCSV(filePrefix + "_Flow" + to_string(id) + "_ECNAverages.csv", averageECNList);
+        printCSV(filePrefix + "_Flow" + to_string(id) + "_MultActions.csv", actionMultList);
+        printCSV(filePrefix + "_Flow" + to_string(id) + "_AddActions.csv", actionAddList);
         man.removeFlow(id);
         delete this;
     }

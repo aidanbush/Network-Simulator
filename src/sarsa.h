@@ -6,7 +6,7 @@
 class Sarsa: public Agent {
     public:
         Sarsa(vector<double> *weights, double initialState, int flowId);
-        void step(double state, double reward, double &rate);
+        pair<double, double> step(double state, double reward, double &rate);
         static vector<double> initializeWeights();
         string getName();
         void seed(int seed);

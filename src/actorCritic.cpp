@@ -19,7 +19,6 @@ using namespace std;
 #define DEFAULT_TAU 32 //Add: 32, Mult: 1, Both: 2
 #define DEFAULT_INAC false //Add: false, Mult: false, Both: false
 #define DEFAULT_S false //Add: true, Mult: false, Both: false
-#define DEFAULT_INITIAL_WEIGHTS 0.1
 #define GAMMA 1 //Always 1 for continuing case
 #define DEFAULT_INITIAL_WEIGHTS 0.1
 #define DEFAULT_INITIAL_K_PARAMETERS 1
@@ -169,6 +168,7 @@ pair<double, double> ActorCritic::selectAction() {
             actionPair = pair<double, double>(0.0, 0.0);
             break;
     }
+
     return actionPair;
 }
 
@@ -183,7 +183,7 @@ double ActorCritic::getVariance() {
     }
 }
 
-void ActorCritic::step(double state, double reward, double &rate) {
+pair<double, double> ActorCritic::step(double state, double reward, double &rate) {
     totalReward += reward;
     // Tilecode
     tiles = Tilecoder::tilecode(state);//, TILE_MULTIPLE);
@@ -336,4 +336,6 @@ void ActorCritic::step(double state, double reward, double &rate) {
             //TODO
             break;
     }
+
+    return actionPair;
 }
