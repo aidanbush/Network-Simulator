@@ -28,6 +28,8 @@
 #define MIN_RATE 500.0
 #define NUM_AGENT_STEPS 100
 #define MI_TIME 10
+#define PACKET_HEADER_SIZE 20
+#define PACKET_BODY_SIZE 236
 #define STAT_FILE_DIRECTORY "results"
 #define DEFAULT_REWARD_TYPE BasicReward
 #endif // __has_include
@@ -290,8 +292,8 @@ ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
     this->packetsSent = 0;
     this->averageECN = 0;
     this->rate = flowConfig["start_rate"];
-    this->headSize = 20;
-    this->bodySize = 236;
+    this->headSize = PACKET_HEADER_SIZE;
+    this->bodySize = PACKET_BODY_SIZE;
     this->ttl = 15;
     this->maxRate = getMaxRate();
 }
