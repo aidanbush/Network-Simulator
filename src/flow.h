@@ -41,6 +41,7 @@ class Flow: public NetworkObject {
         double getTotalReward();
 
     protected:
+        // TODO move out of Flow into ECNFlow
         enum RewardType {
             BasicReward,
             RateReward,
@@ -78,11 +79,16 @@ class Flow: public NetworkObject {
         double rate;
         double maxRate;
 
+        // TODO move out of Flow into ECNFlow
         double totalReward = 0;
         vector<double> rateList;
         vector<double> rewardList;
         vector<double> actionMultList;
         vector<double> actionAddList;
+        vector<double> multMeanList;
+        vector<double> multStdevList;
+        vector<double> addMeanList;
+        vector<double> addStdevList;
 
         second_t maxTime;
 };

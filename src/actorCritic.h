@@ -12,6 +12,9 @@ class ActorCritic: public Agent {
         string getName();
         void seed(int seed);
 
+        pair<double, double> getMultMeanStdev();
+        pair<double, double> getAddMeanStdev();
+
     private:
         enum Mode {
             Add,

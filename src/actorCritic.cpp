@@ -339,3 +339,11 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
 
     return actionPair;
 }
+
+pair<double, double> ActorCritic::getMultMeanStdev() {
+    return pair<double, double>(k * phi, sqrt(k * pow(phi, 2)));
+}
+
+pair<double, double> ActorCritic::getAddMeanStdev() {
+    return pair<double, double>(mu, sigma);
+}

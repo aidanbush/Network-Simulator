@@ -383,6 +383,18 @@ void ECNFlow::updateStats() {
 void ECNFlow::updateStatsPostStep(pair<double, double> action) {
     actionMultList.push_back(action.first);
     actionAddList.push_back(action.second);
+
+    // Add distribution data
+    ActorCritic *actorCriticAgent = dynamic_cast<ActorCritic*>(agent);
+    if (actorCriticAgent != NULL) {
+        pair<double, double> multMeanStdev = actorCriticAgent->getMultMeanStdev();
+        multMeanList.push_back(multMeanStdev.first);
+        multStdevList.push_back(multMeanStdev.second);
+
+        pair<double, double> addMeanStdev = actorCriticAgent->getAddMeanStdev();
+        addMeanList.push_back(addMeanStdev.first);
+        addStdevList.push_back(addMeanStdev.second);
+    }
 }
 
 void ECNFlow::printCSV(string filename, vector<double> vec) {
@@ -395,6 +407,7 @@ void ECNFlow::printCSV(string filename, vector<double> vec) {
     if (!filesystem::exists(STAT_FILE_DIRECTORY)) {
         filesystem::create_directory(STAT_FILE_DIRECTORY);
     }
+
     ofstream ofs;
     ofs.open(filename, ofstream::trunc);
     if (vec.size() >= 1) {
@@ -443,6 +456,15 @@ void ECNFlow::stepAgent() {
         printCSV(filePrefix + "_Flow" + to_string(id) + "_ECNAverages.csv", averageECNList);
         printCSV(filePrefix + "_Flow" + to_string(id) + "_MultActions.csv", actionMultList);
         printCSV(filePrefix + "_Flow" + to_string(id) + "_AddActions.csv", actionAddList);
+
+        if (dynamic_cast<ActorCritic*>(agent) != NULL) {
+            printCSV(filePrefix + "_Flow" + to_string(id) + "_MultMean.csv", multMeanList);
+            printCSV(filePrefix + "_Flow" + to_string(id) + "_MultStdev.csv", multStdevList);
+
+            printCSV(filePrefix + "_Flow" + to_string(id) + "_AddMean.csv", addMeanList);
+            printCSV(filePrefix + "_Flow" + to_string(id) + "_AddStdev.csv", addStdevList);
+        }
+
         man.removeFlow(id);
         delete this;
     }
