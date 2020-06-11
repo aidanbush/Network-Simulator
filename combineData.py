@@ -11,12 +11,12 @@ def getFileData(path):
         data = list(map(float, f.readline().split(',')))
     return data
 
-dataPattern = re.compile("^(.+)_Flow(\d)_(ECNAverages|Rates|Rewards|MultActions|AddActions).csv$")
+dataPattern = re.compile("^(.+)_Flow(\d)_(ECNAverages|Rates|Rewards|MultActions|AddActions|MultMean|MultStdev|AddMean|AddStdev).csv$")
 
-DATA_TYPE_TO_INDEX = {"ECNAverages": 0, "Rates": 1, "Rewards": 2, "MultActions": 3, "AddActions": 4}
-INDEX_TO_DATA_TYPE = {0: "ECNAverages", 1: "Rates", 2: "Rewards", 3: "MultActions", 4: "AddActions"}
+DATA_TYPE_TO_INDEX = {"ECNAverages": 0, "Rates": 1, "Rewards": 2, "MultActions": 3, "AddActions": 4, "MultMean": 5, "MultStdev": 6, "AddMean": 7, "AddStdev": 8}
+INDEX_TO_DATA_TYPE = {0: "ECNAverages", 1: "Rates", 2: "Rewards", 3: "MultActions", 4: "AddActions", 5: "MultMean", 6: "MultStdev", 7: "AddMean", 8: "AddStdev"}
 
-NUM_ELEMENTS = 5
+NUM_ELEMENTS = len(DATA_TYPE_TO_INDEX)
 
 # structure: {flowId { tests [ runs []] }}
 rawData = defaultdict(lambda: [[] for i in range(NUM_ELEMENTS)])
