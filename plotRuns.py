@@ -7,7 +7,6 @@ from collections import defaultdict
 STATS_ELEM_TO_INDEX = {"mean": 0, "stdev": 1}
 FIGSIZE=(16,9)
 
-# TODO get output dir from arguments
 csvFile = sys.argv[1]
 outputDir = sys.argv[2]
 
@@ -22,13 +21,14 @@ with open(csvFile) as f:
         for key in row.keys():
             flow, dataType, statsElem = key.split()
 
-            data[dataType][flow][STATS_ELEM_TO_INDEX[statsElem]].append(row[key])
+            data[dataType][flow][STATS_ELEM_TO_INDEX[statsElem]].append(float(row[key]))
 
-for dataType in data.keys:
+# make plots
+for dataType in data.keys():
     plt.figure(figsize=FIGSIZE)
     plt.title(dataType)
 
-    for flow in data[dataType].keys:
+    for flow in data[dataType].keys():
         flowData = data[dataType][flow]
 
         if type(flowData[0]) != np.ndarray:
@@ -37,7 +37,7 @@ for dataType in data.keys:
             flowData[1] = np.array(flowData[1])
 
         # plot line with stdev
-        pl.plot(label=flow, flowData[0])
-        pl.fill_between(flowData[0], flowData[0]-flowData[1], flowData[0]+flowData[1])
+        plt.plot(flowData[0], label=flow)
+        plt.fill_between(range(len(flowData[0])), flowData[0]-flowData[1], flowData[0]+flowData[1], alpha=0.75)
 
-    plt.save(os.path.join(outputDir, "{}.pdf".format(dataType)))
+    plt.savefig(os.path.join(outputDir, "{}.pdf".format(dataType)), format="pdf")
