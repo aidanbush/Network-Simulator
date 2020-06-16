@@ -94,9 +94,11 @@ Flow::Flow(json &flowConfig):
     //,agent(new AGENT_TYPE(man.getEndpoint(flowConfig["source_id"])->getWeights(), 0))
     {
     Endpoint *end = man.getEndpoint(flowConfig["source_id"]);
+    this->rate = flowConfig["start_rate"];
     switch (end->getAgentType()) {
         case ActorCriticAgent:
-            agent = new ActorCritic(end->getWeights(), 0, flowConfig["id"]);
+            agent = new ActorCritic(end->getWeights(), 0, flowConfig["id"],\
+                                    floor(this->rate*MI_TIME/(PACKET_HEADER_SIZE + PACKET_BODY_SIZE)/8));
             break;
         case SarsaAgent:
             agent = new Sarsa(end->getWeights(), 0, flowConfig["id"]);
@@ -291,7 +293,6 @@ ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
     this->packetsUntagged = 0;
     this->packetsSent = 0;
     this->averageECN = 0;
-    this->rate = flowConfig["start_rate"];
     this->headSize = PACKET_HEADER_SIZE;
     this->bodySize = PACKET_BODY_SIZE;
     this->ttl = 15;

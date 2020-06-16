@@ -51,8 +51,9 @@ vector<double> ActorCritic::initializeWeights() {
     return vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, initialWeights);
 }
 
-ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowId) {
+ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowId, double initialRBar) {
     this->flowId = flowId;
+    this->rBar = initialRBar;
 
     stepnum = 0;
 
