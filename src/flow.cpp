@@ -97,9 +97,18 @@ Flow::Flow(json &flowConfig):
     this->rate = flowConfig["start_rate"];
     switch (end->getAgentType()) {
         case ActorCriticAgent:
-            agent = new ActorCritic(end->getWeights(), 0, flowConfig["id"],\
-                                    floor(this->rate*MI_TIME/(PACKET_HEADER_SIZE + PACKET_BODY_SIZE)/8));
-            break;
+            {
+                double rBar = floor(this->rate*MI_TIME/(PACKET_HEADER_SIZE + PACKET_BODY_SIZE)/8);
+                if (DEFAULT_REWARD_TYPE == RateReward) {
+                    rBar = rBar / pow(this->rate, 0.5);
+                } else if (DEFAULT_REWARD_TYPE == LogReward) {
+                    if (rBar != 0) {
+                        rBar = log(rBar) + 1;
+                    }
+                }
+                agent = new ActorCritic(end->getWeights(), 0, flowConfig["id"], rBar);
+                break;
+            }
         case SarsaAgent:
             agent = new Sarsa(end->getWeights(), 0, flowConfig["id"]);
             break;
