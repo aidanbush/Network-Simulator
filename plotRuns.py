@@ -28,7 +28,7 @@ for dataType in data.keys():
     plt.figure(figsize=FIGSIZE)
     plt.title(dataType)
 
-    for flow in data[dataType].keys():
+    for flow in sorted(data[dataType].keys()):
         flowData = data[dataType][flow]
 
         if type(flowData[0]) != np.ndarray:
@@ -38,6 +38,9 @@ for dataType in data.keys():
 
         # plot line with stdev
         plt.plot(flowData[0], label=flow)
-        plt.fill_between(range(len(flowData[0])), flowData[0]-flowData[1], flowData[0]+flowData[1], alpha=0.75)
+        plt.fill_between(range(len(flowData[0])), flowData[0]-flowData[1], flowData[0]+flowData[1], alpha=1/3)
+        if (dataType in ["Rates", "MultActions", "MultMean", "MultStd"]):
+            plt.yscale("log")
+        plt.legend()
 
     plt.savefig(os.path.join(outputDir, "{}.pdf".format(dataType)), format="pdf")
