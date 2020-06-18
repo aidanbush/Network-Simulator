@@ -1,4 +1,3 @@
-#!/usr/local/bin/bash
 shopt -s expand_aliases
 source ~/.bashrc
 
@@ -32,7 +31,7 @@ do
                             "with seed" $SEED "("$COUNT of $TOTAL")"
                         echo 5 > params
                         echo $ALPHA $LAMBDA $GAMMA $EPSILON $INITIAL_WEIGHTS >> params
-                        gtimeout 2s ./simulator -r $SEED -q 2 local.json params >> $RESULTS_DIR/tempOutput
+                        timeout 2s ./simulator -r $SEED -q 1111 local.json params >> $RESULTS_DIR/tempOutput
                         if [ $? -ne 0 ]
                         then
                             echo $ALPHA $LAMBDA $GAMMA $EPSILON $INITIAL_WEIGHTS >> $RESULTS_DIR/failedParams

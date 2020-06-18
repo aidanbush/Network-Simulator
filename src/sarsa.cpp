@@ -9,12 +9,18 @@
 
 using namespace std;
 
+// All following defines can be overridden in sarsaDefines.h, which can be modified for local testing
+#if __has_include("sarsaDefines.h")
+#include "sarsaDefines.h"
+#else
 #define DEFAULT_ALPHA 0.9
 #define DEFAULT_LAMBDA 0.975
 #define DEFAULT_GAMMA 0.9
 #define DEFAULT_EPSILON 0.01
 #define DEFAULT_INITIAL_WEIGHTS 0.1
 #define NUM_PARAMS 4
+#endif // __has_include
+
 #define NUM_ACTIONS 4
 
 vector<double> Sarsa::initializeWeights() {

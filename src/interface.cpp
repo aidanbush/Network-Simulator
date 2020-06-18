@@ -14,7 +14,12 @@
 #define RX_LINK_EVENT_STR       "interface link rx"
 #define RX_HANDLER_EVENT_STR    "interface handler rx"
 
+// All following defines can be overridden in interfaceDefines.h, which can be modified for local testing
+#if __has_include("interfaceDefines.h")
+#include "interfaceDefines.h"
+#else
 #define DEFAULT_ECN_THRESHOLD 0.1
+#endif // __has_include
 
 using namespace std;
 

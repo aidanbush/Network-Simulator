@@ -132,7 +132,7 @@ static bool parseConfig(json& config) {
                 success = false;
             } else {
                 // ensure each flow has a separate seep but still reproducible
-                flow->seed((int)random());
+                flow->seed(man.random());
             }
         } catch (const runtime_error &e) {
             cerr << e.what() << endl;

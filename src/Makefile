@@ -34,11 +34,11 @@ $(BUILD_DIR)packetHandler.o: packetHandler.cpp packetHandler.h networkObject.h i
 
 $(BUILD_DIR)switch.o: switch.cpp switch.h packetHandler.h manager.h interface.h packet.h endpoint.h tests/throwAssert.h
 
-$(BUILD_DIR)endpoint.o: endpoint.cpp endpoint.h packetHandler.h packet.h interface.h agent.h actorCritic.h sarsa.h tests/throwAssert.h
+$(BUILD_DIR)endpoint.o: endpoint.cpp endpoint.h packetHandler.h packet.h interface.h agent.h actorCritic.h sarsa.h endpointDefines.h tests/throwAssert.h
 
-$(BUILD_DIR)interface.o: interface.cpp interface.h networkObject.h packetHandler.h manager.h packet.h link.h tests/throwAssert.h
+$(BUILD_DIR)interface.o: interface.cpp interface.h networkObject.h packetHandler.h manager.h packet.h link.h interfaceDefines.h tests/throwAssert.h
 
-$(BUILD_DIR)flow.o: flow.cpp flow.h networkObject.h manager.h packet.h endpoint.h agent.h actorCritic.h sarsa.h tests/throwAssert.h
+$(BUILD_DIR)flow.o: flow.cpp flow.h networkObject.h manager.h packet.h endpoint.h agent.h actorCritic.h sarsa.h flowDefines.h tests/throwAssert.h
 
 $(BUILD_DIR)link.o: link.cpp link.h networkObject.h manager.h packet.h interface.h tests/throwAssert.h
 
@@ -48,11 +48,11 @@ $(BUILD_DIR)manager.o: manager.cpp manager.h packetHandler.h switch.h endpoint.h
 
 $(BUILD_DIR)agent.o: agent.cpp agent.h
 
-$(BUILD_DIR)sarsa.o: sarsa.cpp sarsa.h agent.h tilecoder.h
+$(BUILD_DIR)sarsa.o: sarsa.cpp sarsa.h agent.h tilecoder.h sarsaDefines.h
 
-$(BUILD_DIR)actorCritic.o: actorCritic.cpp actorCritic.h agent.h tilecoder.h
+$(BUILD_DIR)actorCritic.o: actorCritic.cpp actorCritic.h agent.h tilecoder.h actorCriticDefines.h
 
-$(BUILD_DIR)tilecoder.o: tilecoder.cpp tilecoder.h
+$(BUILD_DIR)tilecoder.o: tilecoder.cpp tilecoder.h tilecoderDefines.h
 
 clean:
 	$(RM) $(TARGETS)

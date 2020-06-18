@@ -10,7 +10,12 @@
 #include "actorCritic.h"
 #include "sarsa.h"
 
+// All following defines can be overridden in endpointDefines.h, which can be modified for local testing
+#if __has_include("endpointDefines.h")
+#include "endpointDefines.h"
+#else
 #define AGENT_TYPE ActorCriticAgent // SarsaAgent or ActorCriticAgent
+#endif // __has_include
 
 using namespace std;
 using json = nlohmann::json;

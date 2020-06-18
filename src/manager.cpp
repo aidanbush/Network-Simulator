@@ -132,7 +132,7 @@ void Manager::removeFlow(int id) {
     flows.erase(id);
     if (flows.size() == 0) {
         // All flows finished, end simulation
-        if (!suppressOutput) {
+        if (!getSuppressOutput(PARAMS)) {
             for (auto p: params) {
                 cout << p << ",";
             }
@@ -304,8 +304,8 @@ void Manager::setSuppressOutput(int value) {
     suppressOutput = value;
 }
 
-int Manager::getSuppressOutput() {
-    return suppressOutput;
+int Manager::getSuppressOutput(LogLevel level) {
+    return suppressOutput & level;
 }
 
 bool Manager::setLogFile(string filename) {
@@ -340,8 +340,16 @@ void Manager::logTxEvent(string objName, int objId, string eventName, int destId
 }
 
 void Manager::logEvent(string objName, int objId, string eventName, string message) {
-    if (suppressOutput < 1) {
+    if (!getSuppressOutput(SIM_EVENTS)) {
         fprintf(logFile, "time: %f %s: %d event: %s message: %s\n", time,
             objName.c_str(), objId, eventName.c_str(), message.c_str());
     }
+}
+
+void Manager::seed(int seed) {
+    generator.seed(seed);
+}
+
+int Manager::random() {
+    return generator();
 }

@@ -4,6 +4,7 @@
 #include <queue>
 #include <map>
 #include <vector>
+#include <random>
 
 //TODO: why not include the headers?
 class PacketHandler;
@@ -42,6 +43,13 @@ struct EventQueueComparator {
     bool operator()(const EventI *lhs, const EventI *rhs) const {
         return lhs->time > rhs->time; // Lower time is higher priority
     }
+};
+
+enum LogLevel {
+    CSV=1,
+    PARAMS=2,
+    SIM_EVENTS=4,
+    AGENT_VALS=8
 };
 
 class Manager {
@@ -88,14 +96,16 @@ class Manager {
         bool getParameters(vector<double> *params, int numParams);
         bool getInitialWeights(double *initialWeights);
 
-        void setSuppressOutput(int);
-
-        int getSuppressOutput();
+        void setSuppressOutput(int value);
+        int getSuppressOutput(LogLevel level);
 
         void logTxEvent(string objName, int objId, string eventName, int destId, Packet *p);
         void logEvent(string objName, int objId, string eventName, string message);
 
         bool startSimulator();
+        
+        void seed(int seed);
+        int random();
 
     private:
         bool addHandler(PacketHandler *handler);
@@ -124,6 +134,8 @@ class Manager {
         FILE *logFile;
 
         string CSVFilename;
+        
+        mt19937 generator;
 };
 
 extern Manager man;

@@ -13,6 +13,10 @@
 
 using namespace std;
 
+// All following defines can be overridden in actorCriticDefines.h, which can be modified for local testing
+#if __has_include("actorCriticDefines.h")
+#include "actorCriticDefines.h"
+#else
 #define DEFAULT_ALPHA_U 0.005 //Add: 1, Mult: 0.005, Both: 0.005
 #define DEFAULT_ALPHA_V 0.01 //Add: 0.5, Mult: 0.005, Both: 0.001
 #define DEFAULT_ALPHA_R 0.1 //Add: 0.005, Mult: 0.0001, Both: 0.01
@@ -26,6 +30,9 @@ using namespace std;
 #define DEFAULT_INITIAL_MU_PARAMETERS 0
 #define DEFAULT_INITIAL_SIGMA_PARAMETERS 0
 #define NUM_PARAMS 6
+#define MODE Mult //Add, Mult, Both, or Choose
+#define REPORT_FLOW 1 // -1 for all flows
+#endif // __has_include
 
 #define TILE_MULTIPLE 4
 //TODO: better names for these constants
@@ -33,10 +40,6 @@ using namespace std;
 #define PHI_ORDER 1
 #define MU_ORDER 2
 #define SIGMA_ORDER 3
-#define MODE Mult //Add, Mult, Both, or Choose
-
-#define REPORT_FLOW 1
-#define REPORT_ALL false
 
 vector<double> ActorCritic::initializeWeights() {
     double initialWeights;
@@ -199,7 +202,7 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
     double delta = reward - rBar + GAMMA*diffSum;
     rBar += alphaR*delta;
 
-    if (flowId == REPORT_FLOW || REPORT_ALL) {
+    if ((flowId == REPORT_FLOW || REPORT_FLOW == -1) && !man.getSuppressOutput(AGENT_VALS)) {
         printf("\nflowId %d step %d\n", flowId, stepnum++);
         printf(" reward %f\n", reward);
         printf(" rBar %f\n", rBar);
@@ -269,7 +272,7 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
         }
     }
 
-    if (flowId == REPORT_FLOW || REPORT_ALL) {
+    if ((flowId == REPORT_FLOW || REPORT_FLOW == -1) && !man.getSuppressOutput(AGENT_VALS)) {
         // tiles
         printf(" tiles:\n");
         for (auto it: tiles) {
@@ -310,7 +313,7 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
     // select action
     actionPair = selectAction();
 
-    if (flowId == REPORT_FLOW || REPORT_ALL) {
+    if ((flowId == REPORT_FLOW || REPORT_FLOW == -1) && !man.getSuppressOutput(AGENT_VALS)) {
         printf("action:\n");
         printf(" k %e\n", k);
         printf(" phi %e\n", phi);

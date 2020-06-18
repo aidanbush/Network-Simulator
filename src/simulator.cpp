@@ -47,9 +47,12 @@ void printUsage(char *pName) {
             "Options\n"
             "  -l [filename] sets the log file, if not set uses stdout\n"
             "  -s step through event by event\n"
-            "  -q [level] supresses output at the level given\n"
-            "    level: 1 only event logging\n"
-            "    level: 2+ all output\n"
+            "  -q [level] supresses output according to which flags are set\n"
+            "    Enter as a binary number setting all desired flags to 1, e.g. '-q 1101'\n"
+            "    0001: Suppresses printing of csv files\n"
+            "    0010: Suppresses printing of parameters at end of program\n"
+            "    0100: Suppresses logging of simulator events\n"
+            "    1000: Suppresses logging of agent values\n"
             "  -r [seed] sets the random seed for the run\n"
             "  -f [filename] sets the csv output filename\n"
             "  -h this usage message\n", basename(pName));
@@ -69,7 +72,7 @@ int main(int argc, char **argv) {
     while ((c = getopt(argc, argv, "q:hsl:r:f:o")) != -1) {
         switch (c) {
             case 'q':
-                man.setSuppressOutput(atoi(optarg));
+                man.setSuppressOutput(stoi(optarg, nullptr, 2));
                 break;
             case 's':
                 step = true;
@@ -85,7 +88,7 @@ int main(int argc, char **argv) {
                 }
                 break;
             case 'r':
-                srand(atoi(optarg));
+                man.seed(atoi(optarg));
                 break;
             case 'f':
                 if (!man.setCSVFilename(optarg)) {
