@@ -27,6 +27,7 @@ class ActorCritic: public Agent {
         double selectActionAdd();
         
         double getVariance();
+        double computeDiffSum();
         
         double oldValue = 0;
         double oldState;
