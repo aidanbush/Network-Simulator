@@ -45,6 +45,9 @@ class Flow: public NetworkObject {
             BasicReward,
             RateReward,
             LogReward,
+            NegativeReward,
+            OffsetReward,
+            ECNReward,
         };
         RewardType rewardType;
 

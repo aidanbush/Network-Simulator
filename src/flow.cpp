@@ -367,6 +367,12 @@ double ECNFlow::getReward() {
                 return 0;
             }
             return log(packetsUntagged) +1;
+        case NegativeReward:
+            return packetsUntagged - packetsSent;
+        case OffsetReward:
+            return 2*packetsUntagged - packetsSent; // +1 if untagged, -1 if tagged
+        case ECNReward:
+            return (1 - averageECN)*packetsSent;
     }
     throw runtime_error("Invalid reward specified\n");
 }
