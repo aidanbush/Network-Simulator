@@ -366,13 +366,21 @@ double ECNFlow::getReward() {
             if (packetsUntagged == 0) {
                 return 0;
             }
-            return log(packetsUntagged) +1;
+            return log(packetsUntagged) + 1;
         case NegativeReward:
             return packetsUntagged - packetsSent;
         case OffsetReward:
             return 2*packetsUntagged - packetsSent; // +1 if untagged, -1 if tagged
         case ECNReward:
             return (1 - averageECN)*packetsSent;
+        case ExpertReward:
+            if ((averageECN > 0.1) != (rate > oldRate)) { // (ECN greater than threshold) XOR (rate has increased)
+                //Either ECN is low and rate increased or ECN is high and rate decreased
+                return 1.0;
+            } else {
+                //Either ECN is low and rate decreased or ECN is high and rate increased
+                return -1.0;
+            }
     }
     throw runtime_error("Invalid reward specified\n");
 }
@@ -419,6 +427,7 @@ void ECNFlow::stepAgent() {
     resetState();
 
     agent->step(state, reward, rate);
+    oldRate = rate;
     rate = min(maxRate, max(MIN_RATE, rate));
     if (man.time + miTime <= maxTime) {
         EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);

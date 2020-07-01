@@ -48,6 +48,7 @@ class Flow: public NetworkObject {
             NegativeReward,
             OffsetReward,
             ECNReward,
+            ExpertReward,
         };
         RewardType rewardType;
 
@@ -78,7 +79,8 @@ class Flow: public NetworkObject {
 
         Agent *agent;
         second_t miTime = 0.01; // 10 ms
-        double rate;
+        double rate = 0;
+        double oldRate = 0;
         double maxRate;
 
         double totalReward = 0;
