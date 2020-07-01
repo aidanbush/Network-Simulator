@@ -259,6 +259,8 @@ void ActorCritic::step(double state, double reward, double &rate) {
     vector<double> gradLog = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
     // Compute gradLog
     if (mode == Mult || mode == Both || (mode == Choose && actionPair.first != 0)) {
+        // If in Choose mode andthe multiplicative action (actionPair.first) is 0,
+        // that means an additive action was selected
         for (int i = 0; i < (int)oldTiles.size(); i++) {
             //grad log for k
             gradLog[oldTiles[i] + Tilecoder::getNumTiles()*K_ORDER] =\
