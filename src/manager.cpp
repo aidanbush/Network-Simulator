@@ -330,7 +330,23 @@ bool Manager::setCSVFilename(string filename) {
 }
 
 string Manager::getCSVFilename() {
-    return CSVFilename;
+    if (CSVDir.empty() || CSVFilename.empty()) {
+        return CSVFilename;
+    }
+    return CSVDir + "/" + CSVFilename;
+}
+
+bool Manager::setCSVDir(string filename) {
+    if (CSVDir.empty()) {
+        CSVDir = filename;
+        return true;
+    }
+
+    return false;
+}
+
+string Manager::getCSVDir() {
+    return CSVDir;
 }
 
 void Manager::logTxEvent(string objName, int objId, string eventName, int destId, Packet *p) {

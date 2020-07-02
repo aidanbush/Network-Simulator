@@ -1,7 +1,6 @@
-#!/bin/bash
+shopt -s expand_aliases source ~/.bashrc
 
 procLimit=6
-procLimit=$(($procLimit))
 
 timer=200
 numTests=5
@@ -33,11 +32,11 @@ for seed in `seq $numTests`; do
         sleep 1
     done
 
-    echo time timeout $timer ./simulator -r $seed -q 0100 -f ${tempResultsDir}/run_$seed $netConfig $paramFile \> ${resultsDir}/output_run_$seed
+    echo time timeout $timer ./simulator -r $seed -q 0100 -d ${tempResultsDir} -f run_$seed $netConfig $paramFile \> ${resultsDir}/output_run_$seed
     (
-    time timeout $timer ./simulator -r $seed -q 0100 -f ${tempResultsDir}/run_$seed $netConfig $paramFile > ${resultsDir}/output_run_$seed
+    time timeout $timer ./simulator -r $seed -q 0100 -d ${tempResultsDir} -f run_$seed $netConfig $paramFile > ${resultsDir}/output_run_$seed
     if [ $? -eq 124 ]; then
-        echo test $seed timedout
+        echo test $seed timed out
     fi
     ) &
 done

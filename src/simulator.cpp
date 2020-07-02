@@ -55,6 +55,7 @@ void printUsage(char *pName) {
             "    1000: Suppresses logging of agent values\n"
             "  -r [seed] sets the random seed for the run\n"
             "  -f [filename] sets the csv output filename\n"
+            "  -d [directory] sets the csv output directory\n"
             "  -h this usage message\n", basename(pName));
 }
 
@@ -69,7 +70,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    while ((c = getopt(argc, argv, "q:hsl:r:f:o")) != -1) {
+    while ((c = getopt(argc, argv, "q:hsl:r:f:od:")) != -1) {
         switch (c) {
             case 'q':
                 man.setSuppressOutput(stoi(optarg, nullptr, 2));
@@ -92,7 +93,14 @@ int main(int argc, char **argv) {
                 break;
             case 'f':
                 if (!man.setCSVFilename(optarg)) {
-                    fprintf(stderr, "multiple csv files specified\n");
+                    fprintf(stderr, "multiple output files specified\n");
+                    printUsage(argv[0]);
+                    return 1;
+                }
+                break;
+            case 'd':
+                if (!man.setCSVDir(optarg)) {
+                    fprintf(stderr, "multiple output directories specified\n");
                     printUsage(argv[0]);
                     return 1;
                 }
