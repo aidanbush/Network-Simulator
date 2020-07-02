@@ -253,7 +253,9 @@ void ActorCritic::step(double state, double reward, double &rate) {
     }
 
     for (auto i: oldTiles) {
-        weightTrace[i]++;
+        for (int j = 0; j < TILE_MULTIPLE; j++) {
+            weightTrace[i + j*Tilecoder::getNumTiles()]++;
+        }
     }
 
     for (int i = 0; i < (int)criticWeights->size(); i++) {
