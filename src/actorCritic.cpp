@@ -31,6 +31,7 @@ using namespace std;
 #define DEFAULT_INITIAL_MU_PARAMETERS 0
 #define DEFAULT_INITIAL_SIGMA_PARAMETERS 0
 #define NUM_PARAMS 6
+#define CHOOSE_EPSILON 0.1
 #define MODE Mult //Add, Mult, Both, or Choose
 #define REPORT_FLOW 1 // -1 for all flows
 #endif // __has_include
@@ -109,7 +110,7 @@ ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowI
     tiles = oldTiles; // TODO does this cause a bug, should we copy over?
 
     mode = MODE;
-    generator = default_random_engine();
+    generator = mt19937();
     if ((mode == Both || mode ==Choose) && s) {
         //TODO: add support for this, see Williams, R. 1992. Simple Statistical Gradient-Following
         //                                  Algorithms for Connectionist Reinforcement Learning
@@ -170,18 +171,22 @@ pair<double, double> ActorCritic::selectAction() {
             actionPair = pair<double, double>(selectActionMult(), selectActionAdd());
             break;
         case Choose:
-            double multValue = 0, addValue = 0;
-            for (int i = 0; i < (int)tiles.size(); i++) {
-                multValue += criticWeights->at(tiles[i] + K_ORDER*Tilecoder::getNumTiles());
-                multValue += criticWeights->at(tiles[i] + PHI_ORDER*Tilecoder::getNumTiles());
-                addValue += criticWeights->at(tiles[i] + MU_ORDER*Tilecoder::getNumTiles());
-                addValue += criticWeights->at(tiles[i] + SIGMA_ORDER*Tilecoder::getNumTiles());
+            bool doMultAction;
+            if (generator()/generator.max() < CHOOSE_EPSILON) {
+                doMultAction = generator()/generator.max() < 0.5;
+            } else {
+                double multValue = 0, addValue = 0;
+                for (int i = 0; i < (int)tiles.size(); i++) {
+                    multValue += criticWeights->at(tiles[i] + K_ORDER*Tilecoder::getNumTiles());
+                    multValue += criticWeights->at(tiles[i] + PHI_ORDER*Tilecoder::getNumTiles());
+                    addValue += criticWeights->at(tiles[i] + MU_ORDER*Tilecoder::getNumTiles());
+                    addValue += criticWeights->at(tiles[i] + SIGMA_ORDER*Tilecoder::getNumTiles());
+                }
+                doMultAction = multValue > addValue;
             }
-            if (multValue > addValue) {
+            if (doMultAction) {
                 actionPair = pair<double, double>(selectActionMult(), 0.0);
             } else {
-                //TODO: This defaults the (probably rare) case of the values being equal to use the additive action
-                //      Do we want this, or should it be handled differently?
                 actionPair = pair<double, double>(0.0, selectActionAdd());
             }
             break;
