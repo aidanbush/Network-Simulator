@@ -6,7 +6,7 @@
 
 class ActorCritic: public Agent {
     public:
-        ActorCritic(vector<double> *weights, double initialState, int flowId);
+        ActorCritic(vector<double> *weights, double initialState, int flowId, double initialRBar);
         pair<double, double> step(double state, double reward, double &rate);
         static vector<double> initializeWeights();
         string getName();
