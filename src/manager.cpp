@@ -330,10 +330,7 @@ bool Manager::setCSVFilename(string filename) {
 }
 
 string Manager::getCSVFilename() {
-    if (CSVDir.empty() || CSVFilename.empty()) {
-        return CSVFilename;
-    }
-    return CSVDir + "/" + CSVFilename;
+    return CSVFilename;
 }
 
 bool Manager::setCSVDir(string filename) {

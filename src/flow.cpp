@@ -463,9 +463,16 @@ void ECNFlow::stepAgent() {
         char date[13];
         strftime(date, 13, "%Y%m%d%H%M", currentTm);
 
+        string fileDir = man.getCSVDir();
+        if (fileDir.empty()) {
+            fileDir = string(STAT_FILE_DIRECTORY);
+        }
+
         string filePrefix = man.getCSVFilename();
         if (filePrefix.empty()) {
-            filePrefix = string(STAT_FILE_DIRECTORY) + "/" + agent->getName() + "_" + date;
+            filePrefix = fileDir + "/" + agent->getName() + "_" + date;
+        } else {
+            filePrefix = fileDir + "/" + filePrefix;
         }
 
         printCSV(filePrefix + "_Flow" + to_string(id) + "_Rewards.csv", rewardList);

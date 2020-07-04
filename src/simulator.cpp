@@ -54,8 +54,9 @@ void printUsage(char *pName) {
             "    0100: Suppresses logging of simulator events\n"
             "    1000: Suppresses logging of agent values\n"
             "  -r [seed] sets the random seed for the run\n"
-            "  -f [filename] sets the csv output filename\n"
-            "  -d [directory] sets the csv output directory\n"
+            "  -f [filename] sets the output filename prefix\n"
+            "  -d [directory] sets the output directory\n"
+            "    default: results/\n"
             "  -h this usage message\n", basename(pName));
 }
 
