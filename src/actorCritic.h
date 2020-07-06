@@ -6,7 +6,7 @@
 
 class ActorCritic: public Agent {
     public:
-        ActorCritic(vector<double> *weights, double initialState, int flowId);
+        ActorCritic(vector<double> *weights, double initialState, int flowId, double initialRBar);
         void step(double state, double reward, double &rate);
         static vector<double> initializeWeights();
         string getName();
@@ -20,13 +20,14 @@ class ActorCritic: public Agent {
             Choose
         };
         Mode mode;
-        default_random_engine generator;
+        mt19937 generator;
         
         pair<double, double> selectAction();
         double selectActionMult();
         double selectActionAdd();
         
         double getVariance();
+        double computeDiffSum();
         
         double oldValue = 0;
         double oldState;
