@@ -20,13 +20,14 @@ class ActorCritic: public Agent {
             Choose
         };
         Mode mode;
-        default_random_engine generator;
+        mt19937 generator;
         
         pair<double, double> selectAction();
         double selectActionMult();
         double selectActionAdd();
         
         double getVariance();
+        double computeDiffSum();
         
         double oldValue = 0;
         double oldState;
