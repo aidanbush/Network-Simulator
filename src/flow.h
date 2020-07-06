@@ -81,6 +81,7 @@ class Flow: public NetworkObject {
         second_t miTime = 0.01; // 10 ms
         double rate = 0;
         double oldRate = 0;
+        double oldECN = 0;
         double maxRate;
 
         double totalReward = 0;

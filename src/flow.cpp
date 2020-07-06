@@ -374,7 +374,7 @@ double ECNFlow::getReward() {
         case ECNReward:
             return (1 - averageECN)*packetsSent;
         case ExpertReward:
-            if ((averageECN > 0.1) != (rate > oldRate)) { // (ECN greater than threshold) XOR (rate has increased)
+            if ((oldECN > 0.1) != (rate > oldRate)) { // (ECN greater than threshold) XOR (rate has increased)
                 //Either ECN is low and rate increased or ECN is high and rate decreased
                 return 1.0;
             } else {
@@ -428,6 +428,7 @@ void ECNFlow::stepAgent() {
 
     agent->step(state, reward, rate);
     oldRate = rate;
+    oldECN = averageECN;
     rate = min(maxRate, max(MIN_RATE, rate));
     if (man.time + miTime <= maxTime) {
         EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
