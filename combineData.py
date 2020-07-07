@@ -13,10 +13,9 @@ def getFileData(path):
 
 dataPattern = re.compile("^(.+)_Flow(\d)_(ECNAverages|Rates|Rewards|MultActions|AddActions|MultMean|MultStdev|AddMean|AddStdev).csv$")
 
-DATA_TYPE_TO_INDEX = {"ECNAverages": 0, "Rates": 1, "Rewards": 2, "MultActions": 3, "AddActions": 4, "MultMean": 5, "MultStdev": 6, "AddMean": 7, "AddStdev": 8}
-INDEX_TO_DATA_TYPE = {0: "ECNAverages", 1: "Rates", 2: "Rewards", 3: "MultActions", 4: "AddActions", 5: "MultMean", 6: "MultStdev", 7: "AddMean", 8: "AddStdev"}
+DATA_TYPES = ["ECNAverages", "Rates", "Rewards", "MultActions", "AddActions", "MultMean", "MultStdev", "AddMean", "AddStdev"]
 
-NUM_ELEMENTS = len(DATA_TYPE_TO_INDEX)
+NUM_ELEMENTS = len(DATA_TYPES)
 
 # structure: {flowId { tests [ runs []] }}
 rawData = defaultdict(lambda: [[] for i in range(NUM_ELEMENTS)])
@@ -30,8 +29,8 @@ for filename in os.listdir(dataPath):
     flowId = match.group(2)
 
     data = getFileData(os.path.join(dataPath, filename))
-    if data != [] and dataType in DATA_TYPE_TO_INDEX:
-        rawData[flowId][DATA_TYPE_TO_INDEX[dataType]].append(data)
+    if data != [] and dataType in DATA_TYPES:
+        rawData[flowId][DATA_TYPES.index(dataType)].append(data)
 
 # convert to numpy array
 for flowId in rawData.keys():
@@ -43,7 +42,7 @@ maxSamples = max([len(rawData[flowId][run][dataType])
     for run in range(len(rawData[flowId]))
     for dataType in range(len(rawData[flowId][run]))])
 
-combinedData = defaultdict(lambda: [None for i in range(len(INDEX_TO_DATA_TYPE)*2)])
+combinedData = defaultdict(lambda: [None for i in range(NUM_ELEMENTS * 2)])
 
 # combine data
 for flowId in rawData.keys():
@@ -54,7 +53,7 @@ for flowId in rawData.keys():
 flowIds = rawData.keys() # TODO use flowId's so ordering of dict doesn't matter
 
 # create headers
-rowHeaders = ["flow{} {} {}".format(flowId, INDEX_TO_DATA_TYPE[testIndex], statsElement)
+rowHeaders = ["flow{} {} {}".format(flowId, DATA_TYPES[testIndex], statsElement)
         for flowId in flowIds for testIndex in range(len(rawData[flowId])) for statsElement in ["mean", "stdev"]]
 
 

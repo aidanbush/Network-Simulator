@@ -8,7 +8,13 @@ STATS_ELEM_TO_INDEX = {"mean": 0, "stdev": 1}
 FIGSIZE=(16,9)
 
 csvFile = sys.argv[1]
-outputDir = sys.argv[2]
+
+outputDir = "results" #sys.argv[2]
+if "-d" in sys.argv:
+    outputDir = sys.argv[sys.argv.index("-d") + 1]
+plotFormat = "pdf"
+if "-f" in sys.argv:
+    plotFormat = sys.argv[sys.argv.index("-f") + 1]
 
 # data type {flow [mean, std]}
 data = defaultdict(lambda: defaultdict(lambda: [[],[]]))
@@ -43,4 +49,4 @@ for dataType in data.keys():
             plt.yscale("log")
         plt.legend()
 
-    plt.savefig(os.path.join(outputDir, "{}.pdf".format(dataType)), format="pdf")
+    plt.savefig(os.path.join(outputDir, "{}.{}".format(dataType, plotFormat)), format=plotFormat)

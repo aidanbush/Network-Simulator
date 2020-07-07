@@ -95,10 +95,21 @@ Flow::Flow(json &flowConfig):
     //,agent(new AGENT_TYPE(man.getEndpoint(flowConfig["source_id"])->getWeights(), 0))
     {
     Endpoint *end = man.getEndpoint(flowConfig["source_id"]);
+    this->rate = flowConfig["start_rate"];
     switch (end->getAgentType()) {
         case ActorCriticAgent:
-            agent = new ActorCritic(end->getWeights(), 0, flowConfig["id"]);
-            break;
+            {
+                double rBar = floor(this->rate*MI_TIME/(PACKET_HEADER_SIZE + PACKET_BODY_SIZE)/8);
+                if (DEFAULT_REWARD_TYPE == RateReward) {
+                    rBar = rBar / pow(this->rate, 0.5);
+                } else if (DEFAULT_REWARD_TYPE == LogReward) {
+                    if (rBar != 0) {
+                        rBar = log(rBar) + 1;
+                    }
+                }
+                agent = new ActorCritic(end->getWeights(), 0, flowConfig["id"], rBar);
+                break;
+            }
         case SarsaAgent:
             agent = new Sarsa(end->getWeights(), 0, flowConfig["id"]);
             break;
@@ -292,7 +303,6 @@ ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
     this->packetsUntagged = 0;
     this->packetsSent = 0;
     this->averageECN = 0;
-    this->rate = flowConfig["start_rate"];
     this->headSize = PACKET_HEADER_SIZE;
     this->bodySize = PACKET_BODY_SIZE;
     this->ttl = 15;
@@ -460,23 +470,31 @@ void ECNFlow::stepAgent() {
         char date[13];
         strftime(date, 13, "%Y%m%d%H%M", currentTm);
 
-        string filePrefix = man.getCSVFilename();
-        if (filePrefix.empty()) {
-            filePrefix = string(STAT_FILE_DIRECTORY) + "/" + agent->getName() + "_" + date;
+        string fileDir = man.getCSVDir();
+        if (fileDir.empty()) {
+            fileDir = string(STAT_FILE_DIRECTORY);
         }
 
-        printCSV(filePrefix + "_Flow" + to_string(id) + "_Rewards.csv", rewardList);
-        printCSV(filePrefix + "_Flow" + to_string(id) + "_Rates.csv", rateList);
-        printCSV(filePrefix + "_Flow" + to_string(id) + "_ECNAverages.csv", averageECNList);
-        printCSV(filePrefix + "_Flow" + to_string(id) + "_MultActions.csv", actionMultList);
-        printCSV(filePrefix + "_Flow" + to_string(id) + "_AddActions.csv", actionAddList);
+        string filePathExceptSuffix = man.getCSVFilename();
+        if (filePathExceptSuffix.empty()) {
+            filePathExceptSuffix = fileDir + "/" + agent->getName() + "_" + date;
+        } else {
+            filePathExceptSuffix = fileDir + "/" + filePathExceptSuffix;
+        }
+        filePathExceptSuffix += "_Flow" + to_string(id);
+
+        printCSV(filePathExceptSuffix + "_Rewards.csv", rewardList);
+        printCSV(filePathExceptSuffix + "_Rates.csv", rateList);
+        printCSV(filePathExceptSuffix + "_ECNAverages.csv", averageECNList);
+        printCSV(filePathExceptSuffix + "_MultActions.csv", actionMultList);
+        printCSV(filePathExceptSuffix + "_AddActions.csv", actionAddList);
 
         if (dynamic_cast<ActorCritic*>(agent) != NULL) {
-            printCSV(filePrefix + "_Flow" + to_string(id) + "_MultMean.csv", multMeanList);
-            printCSV(filePrefix + "_Flow" + to_string(id) + "_MultStdev.csv", multStdevList);
+            printCSV(filePathExceptSuffix + "_MultMean.csv", multMeanList);
+            printCSV(filePathExceptSuffix + "_MultStdev.csv", multStdevList);
 
-            printCSV(filePrefix + "_Flow" + to_string(id) + "_AddMean.csv", addMeanList);
-            printCSV(filePrefix + "_Flow" + to_string(id) + "_AddStdev.csv", addStdevList);
+            printCSV(filePathExceptSuffix + "_AddMean.csv", addMeanList);
+            printCSV(filePathExceptSuffix + "_AddStdev.csv", addStdevList);
         }
 
         man.removeFlow(id);

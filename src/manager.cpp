@@ -333,6 +333,19 @@ string Manager::getCSVFilename() {
     return CSVFilename;
 }
 
+bool Manager::setCSVDir(string filename) {
+    if (CSVDir.empty()) {
+        CSVDir = filename;
+        return true;
+    }
+
+    return false;
+}
+
+string Manager::getCSVDir() {
+    return CSVDir;
+}
+
 void Manager::logTxEvent(string objName, int objId, string eventName, int destId, Packet *p) {
     string message = "dest: " + to_string(destId) + " packet: " + to_string(p->getId()) + " flow: "
         + to_string(p->getFlow());
