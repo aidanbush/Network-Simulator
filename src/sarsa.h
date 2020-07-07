@@ -32,7 +32,7 @@ class Sarsa: public Agent {
 
         double totalReward = 0;
         
-        std::minstd_rand0 generator;
+        mt19937 generator;
 };
 
 #endif /* SARSA_H */
