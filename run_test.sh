@@ -1,20 +1,40 @@
 shopt -s expand_aliases source ~/.bashrc
 
-procLimit=6
-
+procLimit=1
 timer=200
 numTests=5
+offset=0
+plotFormat=pdf
 
-# get args as parameters
-tempResultsDir=$(mktemp -d)
-echo $tempResultsDir
+while getopts "o:n:f:p:t:" c; do
+    case $c in
+        o)
+            offset=${OPTARG}
+            ;;
+        n)
+            numTests=${OPTARG}
+            ;;
+        f)
+            plotFormat=${OPTARG}
+            ;;
+        p)
+            procLimit=${OPTARG}
+            ;;
+        t)
+            timer=${OPTARG}
+            ;;
+    esac
+done
+
+# shift arguments so remaining arguments start at 1
+shift $(($OPTIND - 1))
 
 netConfig=$1
 testName=$2
 paramFile=$3
 
-echo parameters
-cat $paramFile
+tempResultsDir=$(mktemp -d)
+echo saving temperary files to $tempResultsDir
 
 resultsDir=results/${testName}
 
@@ -27,8 +47,10 @@ cp $paramFile $resultsDir
 
 # run tests
 for seed in `seq $numTests`; do
+    seed=$(($seed + $offset))
+
     # ensure only create new processes when less than procLimit exist
-    while [ `ps -u $(whoami) | grep simulator | wc -l` -gt $procLimit ] ; do
+    while [ `ps -u $(whoami) | grep simulator | wc -l` -ge $procLimit ] ; do
         sleep 1
     done
 
@@ -47,7 +69,7 @@ wait
 python combineData.py $tempResultsDir ${resultsDir}/results.csv
 
 # plot data
-python plotRuns.py ${resultsDir}/results.csv ${resultsDir}
+python plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat}
 
 # clean up
 rm -r $tempResultsDir

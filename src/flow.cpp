@@ -468,25 +468,26 @@ void ECNFlow::stepAgent() {
             fileDir = string(STAT_FILE_DIRECTORY);
         }
 
-        string filePrefix = man.getCSVFilename();
-        if (filePrefix.empty()) {
-            filePrefix = fileDir + "/" + agent->getName() + "_" + date;
+        string filePathExceptSuffix = man.getCSVFilename();
+        if (filePathExceptSuffix.empty()) {
+            filePathExceptSuffix = fileDir + "/" + agent->getName() + "_" + date;
         } else {
-            filePrefix = fileDir + "/" + filePrefix;
+            filePathExceptSuffix = fileDir + "/" + filePathExceptSuffix;
         }
+        filePathExceptSuffix += "_Flow" + to_string(id);
 
-        printCSV(filePrefix + "_Flow" + to_string(id) + "_Rewards.csv", rewardList);
-        printCSV(filePrefix + "_Flow" + to_string(id) + "_Rates.csv", rateList);
-        printCSV(filePrefix + "_Flow" + to_string(id) + "_ECNAverages.csv", averageECNList);
-        printCSV(filePrefix + "_Flow" + to_string(id) + "_MultActions.csv", actionMultList);
-        printCSV(filePrefix + "_Flow" + to_string(id) + "_AddActions.csv", actionAddList);
+        printCSV(filePathExceptSuffix + "_Rewards.csv", rewardList);
+        printCSV(filePathExceptSuffix + "_Rates.csv", rateList);
+        printCSV(filePathExceptSuffix + "_ECNAverages.csv", averageECNList);
+        printCSV(filePathExceptSuffix + "_MultActions.csv", actionMultList);
+        printCSV(filePathExceptSuffix + "_AddActions.csv", actionAddList);
 
         if (dynamic_cast<ActorCritic*>(agent) != NULL) {
-            printCSV(filePrefix + "_Flow" + to_string(id) + "_MultMean.csv", multMeanList);
-            printCSV(filePrefix + "_Flow" + to_string(id) + "_MultStdev.csv", multStdevList);
+            printCSV(filePathExceptSuffix + "_MultMean.csv", multMeanList);
+            printCSV(filePathExceptSuffix + "_MultStdev.csv", multStdevList);
 
-            printCSV(filePrefix + "_Flow" + to_string(id) + "_AddMean.csv", addMeanList);
-            printCSV(filePrefix + "_Flow" + to_string(id) + "_AddStdev.csv", addStdevList);
+            printCSV(filePathExceptSuffix + "_AddMean.csv", addMeanList);
+            printCSV(filePathExceptSuffix + "_AddStdev.csv", addStdevList);
         }
 
         man.removeFlow(id);
