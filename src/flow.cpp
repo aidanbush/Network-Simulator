@@ -368,6 +368,13 @@ double ECNFlow::getReward() {
                 return 0;
             }
             return log(packetsUntagged) +1;
+        case advancedReward:
+            // (untagged - tagged) / sqrt(rate)
+            double r = (2*packetsUntagged - packetsSent) / pow(rate, 0.5);
+            if (rate == MIN_RATE || rate == maxRate) {
+                r -= 1;
+            }
+            return r;
     }
     throw runtime_error("Invalid reward specified\n");
 }
