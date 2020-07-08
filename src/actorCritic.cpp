@@ -23,7 +23,6 @@ using namespace std;
 #define DEFAULT_TAU 32 //Add: 32, Mult: 1, Both: 2
 #define DEFAULT_INAC false //Add: false, Mult: false, Both: false
 #define DEFAULT_S false //Add: true, Mult: false, Both: false
-#define DEFAULT_INITIAL_WEIGHTS 0.1
 #define GAMMA 1 //Always 1 for continuing case
 #define DEFAULT_INITIAL_WEIGHTS 0.1
 #define DEFAULT_INITIAL_K_PARAMETERS 1
@@ -191,6 +190,7 @@ pair<double, double> ActorCritic::selectAction() {
             }
             break;
     }
+
     return actionPair;
 }
 
@@ -208,7 +208,7 @@ double ActorCritic::getVariance() {
 double ActorCritic::computeDiffSum() {
     double diffSum = 0;
     if (mode == Choose) {
-        double multNew = 0, multOld = 0, addNew = 0, addOld = 0; 
+        double multNew = 0, multOld = 0, addNew = 0, addOld = 0;
         for (int i = 0; i < (int)tiles.size(); i++) {
             //TODO: For multOld and addOld consider reusing the computation in the last selectAction call
             multNew += criticWeights->at(tiles[i] + K_ORDER*Tilecoder::getNumTiles());
@@ -232,7 +232,7 @@ double ActorCritic::computeDiffSum() {
     return diffSum;
 }
 
-void ActorCritic::step(double state, double reward, double &rate) {
+pair<double, double> ActorCritic::step(double state, double reward, double &rate) {
     totalReward += reward;
     // Tilecode
     tiles = Tilecoder::tilecode(state);
@@ -383,4 +383,14 @@ void ActorCritic::step(double state, double reward, double &rate) {
             }
             break;
     }
+
+    return actionPair;
+}
+
+pair<double, double> ActorCritic::getMultMeanStdev() {
+    return pair<double, double>(k * phi, sqrt(k * pow(phi, 2)));
+}
+
+pair<double, double> ActorCritic::getAddMeanStdev() {
+    return pair<double, double>(mu, sigma);
 }

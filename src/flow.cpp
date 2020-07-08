@@ -31,6 +31,7 @@
 #define PACKET_HEADER_SIZE 20
 #define PACKET_BODY_SIZE 236
 #define STAT_FILE_DIRECTORY "results"
+
 #define DEFAULT_REWARD_TYPE BasicReward
 #endif // __has_include
 
@@ -404,9 +405,27 @@ void ECNFlow::resetState() {
 void ECNFlow::updateStats() {
     totalPacketsUntagged += packetsUntagged;
     totalPacketsSent += packetsSent;
+
     rewardList.push_back(getReward());
     rateList.push_back(rate);
     averageECNList.push_back(averageECN);
+}
+
+void ECNFlow::updateStatsPostStep(pair<double, double> action) {
+    actionMultList.push_back(action.first);
+    actionAddList.push_back(action.second);
+
+    // Add distribution data
+    ActorCritic *actorCriticAgent = dynamic_cast<ActorCritic*>(agent);
+    if (actorCriticAgent != NULL) {
+        pair<double, double> multMeanStdev = actorCriticAgent->getMultMeanStdev();
+        multMeanList.push_back(multMeanStdev.first);
+        multStdevList.push_back(multMeanStdev.second);
+
+        pair<double, double> addMeanStdev = actorCriticAgent->getAddMeanStdev();
+        addMeanList.push_back(addMeanStdev.first);
+        addStdevList.push_back(addMeanStdev.second);
+    }
 }
 
 void ECNFlow::printCSV(string filename, vector<double> vec) {
@@ -414,12 +433,14 @@ void ECNFlow::printCSV(string filename, vector<double> vec) {
         //Don't create CSV files if in q mode
         return;
     }
-    //if (boost::filesystem::create_directory(STAT_FILE_DIRECTORY)) {
+
+    // TODO clean up placement of setting path
     if (!filesystem::exists(STAT_FILE_DIRECTORY)) {
         filesystem::create_directory(STAT_FILE_DIRECTORY);
     }
+
     ofstream ofs;
-    ofs.open(string(STAT_FILE_DIRECTORY) + "/" + filename, ofstream::trunc);
+    ofs.open(filename, ofstream::trunc);
     if (vec.size() >= 1) {
         ofs << vec[0];
         for (int i = 1; i < (int)vec.size(); i++) {
@@ -433,12 +454,17 @@ void ECNFlow::stepAgent() {
     double state = getState();
     double reward = getReward();
     totalReward += reward;
-    updateStats();
-    resetState();
 
-    agent->step(state, reward, rate);
+    updateStats();
+
+    pair<double, double> action = agent->step(state, reward, rate);
     oldRate = rate;
     oldECN = averageECN;
+
+    updateStatsPostStep(action);
+
+    resetState();
+
     rate = min(maxRate, max(MIN_RATE, rate));
     if (man.time + miTime <= maxTime) {
         EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
@@ -453,14 +479,33 @@ void ECNFlow::stepAgent() {
         char date[13];
         strftime(date, 13, "%Y%m%d%H%M", currentTm);
 
-        string filePrefix = man.getCSVFilename();
-        if (filePrefix.empty()) {
-            filePrefix = agent->getName() + "_" + date;
+        string fileDir = man.getCSVDir();
+        if (fileDir.empty()) {
+            fileDir = string(STAT_FILE_DIRECTORY);
         }
 
-        printCSV(filePrefix + "_Flow" + to_string(id) + "_Rewards.csv", rewardList);
-        printCSV(filePrefix + "_Flow" + to_string(id) + "_Rates.csv", rateList);
-        printCSV(filePrefix + "_Flow" + to_string(id) + "_ECNAverages.csv", averageECNList);
+        string filePathExceptSuffix = man.getCSVFilename();
+        if (filePathExceptSuffix.empty()) {
+            filePathExceptSuffix = fileDir + "/" + agent->getName() + "_" + date;
+        } else {
+            filePathExceptSuffix = fileDir + "/" + filePathExceptSuffix;
+        }
+        filePathExceptSuffix += "_Flow" + to_string(id);
+
+        printCSV(filePathExceptSuffix + "_Rewards.csv", rewardList);
+        printCSV(filePathExceptSuffix + "_Rates.csv", rateList);
+        printCSV(filePathExceptSuffix + "_ECNAverages.csv", averageECNList);
+        printCSV(filePathExceptSuffix + "_MultActions.csv", actionMultList);
+        printCSV(filePathExceptSuffix + "_AddActions.csv", actionAddList);
+
+        if (dynamic_cast<ActorCritic*>(agent) != NULL) {
+            printCSV(filePathExceptSuffix + "_MultMean.csv", multMeanList);
+            printCSV(filePathExceptSuffix + "_MultStdev.csv", multStdevList);
+
+            printCSV(filePathExceptSuffix + "_AddMean.csv", addMeanList);
+            printCSV(filePathExceptSuffix + "_AddStdev.csv", addStdevList);
+        }
+
         man.removeFlow(id);
         delete this;
     }

@@ -92,6 +92,9 @@ class Manager {
         bool setCSVFilename(string filename);
         string getCSVFilename();
 
+        bool setCSVDir(string filename);
+        string getCSVDir();
+
         void setParameters(vector<double> params, double initialWeights);
         bool getParameters(vector<double> *params, int numParams);
         bool getInitialWeights(double *initialWeights);
@@ -103,7 +106,7 @@ class Manager {
         void logEvent(string objName, int objId, string eventName, string message);
 
         bool startSimulator();
-        
+
         void seed(int seed);
         int random();
 
@@ -134,7 +137,8 @@ class Manager {
         FILE *logFile;
 
         string CSVFilename;
-        
+        string CSVDir;
+
         mt19937 generator;
 };
 
