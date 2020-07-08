@@ -99,7 +99,35 @@ Flow::Flow(json &flowConfig):
     switch (end->getAgentType()) {
         case ActorCriticAgent:
             {
-                double rBar = floor(this->rate*MI_TIME/(PACKET_HEADER_SIZE + PACKET_BODY_SIZE)/8);
+                double rBar;
+                double expectedPackets = floor(this->rate*MI_TIME/(PACKET_HEADER_SIZE + PACKET_BODY_SIZE)/8);
+                switch (DEFAULT_REWARD_TYPE) {
+                    case BasicReward:
+                        rBar = expectedPackets;
+                        break;
+                    case RateReward:
+                        rBar = expectedPackets / pow(this->rate, 0.5);
+                        break;
+                    case LogReward:
+                        if (expectedPackets != 0) {
+                            rBar = log(expectedPackets) + 1;
+                        } else {
+                            rBar = 0;
+                        }
+                        break;
+                    case NegativeReward:
+                        rBar = 0;
+                        break;
+                    case OffsetReward:
+                        rBar = expectedPackets;
+                        break;
+                    case ECNReward:
+                        rBar = expectedPackets;
+                        break;
+                    case ExpertReward:
+                        rBar = 1;
+                        break;
+                }
                 if (DEFAULT_REWARD_TYPE == RateReward) {
                     rBar = rBar / pow(this->rate, 0.5);
                 } else if (DEFAULT_REWARD_TYPE == LogReward) {
