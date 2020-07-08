@@ -232,13 +232,82 @@ double ActorCritic::computeDiffSum() {
     return diffSum;
 }
 
+void ActorCritic::updateCriticTraces(vector<int> features) {
+    for (int i = 0; i < (int)weightTrace.size(); i++) {
+        weightTrace[i] *= GAMMA * lambda;
+    }
+
+    for (auto xi: features) {
+        for (int j = 0; j < TILE_MULTIPLE; j++) {
+            weightTrace[xi + j*Tilecoder::getNumTiles()]++;
+        }
+    }
+}
+
+void ActorCritic::updateCriticWeights(double delta) {
+    for (int i = 0; i < (int)criticWeights->size(); i++) {
+        (*criticWeights)[i] += weightTrace[i] * alphaV * delta;
+    }
+}
+
+void ActorCritic::computeMultActionGradient(vector<double> &gradLog, vector<int> features,
+        pair<double, double> action) {
+    // TODO make sure modified object elements
+    for (int i = 0; i < (int)features.size(); i++) {
+        //grad log for k
+        gradLog[features[i] + Tilecoder::getNumTiles()*K_ORDER] =\
+                                            (k - 1)*(log(action.first/phi) - boost::math::digamma(k));
+        // grad log for phi
+        gradLog[features[i] + Tilecoder::getNumTiles()*PHI_ORDER] = action.first/phi - k;
+    }
+}
+
+void ActorCritic::computeAddActionGradient(vector<double> &gradLog, vector<int> features,
+        pair<double, double> action) {
+    for (int i = 0; i < (int)features.size(); i++) {
+        //grad log for mu
+        gradLog[features[i] + Tilecoder::getNumTiles()*MU_ORDER] = (action.second - mu)/(sigma*sigma);
+        // grad log for sigma
+        gradLog[features[i] + Tilecoder::getNumTiles()*SIGMA_ORDER] =\
+                                            (action.second - mu)*(action.second - mu)/(sigma*sigma) - 1;
+    }
+}
+
+vector<double> ActorCritic::computeGradient(vector<int> features, pair<double, double> action) {
+    vector<double> gradLog = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
+
+    if (mode == Mult || mode == Both || (mode == Choose && action.first != 0)) {
+        // If in Choose mode andthe multiplicative action (actionPair.first) is 0,
+        // that means an additive action was selected
+        computeMultActionGradient(gradLog, features, action);
+    }
+
+    if (mode == Add || mode == Both || (mode == Choose && action.first == 0)) {
+        computeAddActionGradient(gradLog, features, action);
+    }
+
+    return gradLog;
+}
+
+void ActorCritic::updateActorTrace(vector<double> gradLog) {
+    for (int i = 0; i < (int)parameterTrace.size(); i++) {
+        parameterTrace[i] = GAMMA*lambda*parameterTrace[i] + gradLog[i];
+    }
+}
+
+void ActorCritic::updateActorWeights(vector<double> trace, double delta) {
+    for (int i = 0; i < (int)parameters.size(); i++) {
+        parameters[i] += alphaU*delta*trace[i] * (s ? getVariance() : 1);
+    }
+}
+
 pair<double, double> ActorCritic::step(double state, double reward, double &rate) {
     totalReward += reward;
     // Tilecode
     tiles = Tilecoder::tilecode(state);
 
-    // Update weights
     double delta = reward - rBar + computeDiffSum();
+
     rBar += alphaR*delta;
 
     if ((flowId == REPORT_FLOW || REPORT_FLOW == -1) && !man.getSuppressOutput(AGENT_VALS)) {
@@ -248,48 +317,14 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
         printf(" delta %f\n", delta);
     }
 
-    for (int i = 0; i < (int)weightTrace.size(); i++) {
-        weightTrace[i] *= GAMMA*lambda;
-    }
+    updateCriticTraces(oldTiles);
 
-    for (auto i: oldTiles) {
-        for (int j = 0; j < TILE_MULTIPLE; j++) {
-            weightTrace[i + j*Tilecoder::getNumTiles()]++;
-        }
-    }
+    updateCriticWeights(delta);
 
-    for (int i = 0; i < (int)criticWeights->size(); i++) {
-        (*criticWeights)[i] += weightTrace[i]*alphaV*delta;
-    }
-
+    vector<double> gradLog = computeGradient(oldTiles, actionPair);
     // Update parameters
-    vector<double> gradLog = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
-    // Compute gradLog
-    if (mode == Mult || mode == Both || (mode == Choose && actionPair.first != 0)) {
-        // If in Choose mode andthe multiplicative action (actionPair.first) is 0,
-        // that means an additive action was selected
-        for (int i = 0; i < (int)oldTiles.size(); i++) {
-            //grad log for k
-            gradLog[oldTiles[i] + Tilecoder::getNumTiles()*K_ORDER] =\
-                                                (k - 1)*(log(actionPair.first/phi) - boost::math::digamma(k));
-            // grad log for phi
-            gradLog[oldTiles[i] + Tilecoder::getNumTiles()*PHI_ORDER] = actionPair.first/phi - k;
-        }
-    }
-    if (mode == Add || mode == Both || (mode == Choose && actionPair.first == 0)) {
-        for (int i = 0; i < (int)oldTiles.size(); i++) {
-            //grad log for mu
-            gradLog[oldTiles[i] + Tilecoder::getNumTiles()*MU_ORDER] = (actionPair.second - mu)/(sigma*sigma);
-            // grad log for sigma
-            gradLog[oldTiles[i] + Tilecoder::getNumTiles()*SIGMA_ORDER] =\
-                                                (actionPair.second - mu)*(actionPair.second - mu)/(sigma*sigma) - 1;
-        }
-    }
-    // End Compute gradLog
 
-    for (int i = 0; i < (int)parameterTrace.size(); i++) {
-        parameterTrace[i] = GAMMA*lambda*parameterTrace[i] + gradLog[i];
-    }
+    updateActorTrace(gradLog);
 
     if (inac) {
         double gradLogDot = 0;
@@ -302,14 +337,10 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
             actorWeights[i] += alphaV*(delta*parameterTrace[i] - gradLogDot*actorWeights[i]);
         }
         //Update parameters (u)
-        for (int i = 0; i < (int)parameters.size(); i++) {
-            parameters[i] += alphaU*actorWeights[i]*(s ? getVariance() : 1);
-        }
+        updateActorWeights(actorWeights, 1);
     } else {
         //Update parameters (u)
-        for (int i = 0; i < (int)parameters.size(); i++) {
-            parameters[i] += alphaU*delta*parameterTrace[i]*(s ? getVariance() : 1);
-        }
+        updateActorWeights(parameterTrace, delta);
     }
 
     if ((flowId == REPORT_FLOW || REPORT_FLOW == -1) && !man.getSuppressOutput(AGENT_VALS)) {

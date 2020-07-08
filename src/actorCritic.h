@@ -24,14 +24,24 @@ class ActorCritic: public Agent {
         };
         Mode mode;
         mt19937 generator;
-        
+
         pair<double, double> selectAction();
         double selectActionMult();
         double selectActionAdd();
-        
+
         double getVariance();
         double computeDiffSum();
-        
+
+        void updateCriticTraces(vector<int> features);
+        void updateCriticWeights(double delta);
+
+        vector<double> computeGradient(vector<int> features, pair<double, double> action);
+        void computeMultActionGradient(vector<double> &gradLog, vector<int> features, pair<double, double> action);
+        void computeAddActionGradient(vector<double> &gradLog, vector<int> features, pair<double, double> action);
+
+        void updateActorTrace(vector<double> gradLog);
+        void updateActorWeights(vector<double> trace, double delta);
+
         double oldValue = 0;
         double oldState;
         /*TODO: this sets what the agent considers to be its previous action at the start of the episode
