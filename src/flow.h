@@ -46,9 +46,11 @@ class Flow: public NetworkObject {
             BasicReward,
             RateReward,
             LogReward,
-            advancedReward,
+            AdvancedReward,
         };
         RewardType rewardType;
+
+        double initialAverageReward();
 
         Flow(json &flowConfig);
         bool validateSource();
