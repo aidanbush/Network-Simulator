@@ -141,12 +141,20 @@ void ActorCritic::seed(int seed) {
 }
 
 double ActorCritic::selectActionMult() {
+#ifdef USE_NORM_TANH
+    k = sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_ORDER);
+    phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_ORDER));
+    normal_distribution distribution(k, phi);
+
+    double action = exp(tanh(distribution(generator)));
+#else
     k = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_ORDER)) + 1;
     phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_ORDER));
 
     gamma_distribution distribution(k, phi);
-    //TODO: Consider clipping the value to a pre defined range
-    return distribution(generator);
+    double action = distribution(generator);
+#endif
+    return action;
 }
 
 double ActorCritic::selectActionAdd() {
@@ -197,7 +205,11 @@ pair<double, double> ActorCritic::selectAction() {
 double ActorCritic::getVariance() {
     switch (mode) {
         case Mult:
+#ifdef USE_NORM_TANH
+            return phi*phi;
+#else
             return k*phi*phi;
+#endif
         case Add:
             return sigma*sigma;
         default:
@@ -252,7 +264,15 @@ void ActorCritic::updateCriticWeights(double delta) {
 
 void ActorCritic::computeMultActionGradient(vector<double> &gradLog, vector<int> features,
         pair<double, double> action) {
-    // TODO make sure modified object elements
+#ifdef USE_NORM_TANH
+    for (int i = 0; i < (int)features.size(); i++) {
+        //grad log for k (mu)
+        gradLog[features[i] + Tilecoder::getNumTiles()*K_ORDER] = (action.first - k) / (phi * phi);
+        // grad log for phi (sigma)
+        gradLog[features[i] + Tilecoder::getNumTiles()*PHI_ORDER] =\
+                                            (action.first - k)*(action.first - k) / (phi * phi) - 1;
+    }
+#else
     for (int i = 0; i < (int)features.size(); i++) {
         //grad log for k
         gradLog[features[i] + Tilecoder::getNumTiles()*K_ORDER] =\
@@ -260,6 +280,7 @@ void ActorCritic::computeMultActionGradient(vector<double> &gradLog, vector<int>
         // grad log for phi
         gradLog[features[i] + Tilecoder::getNumTiles()*PHI_ORDER] = action.first/phi - k;
     }
+#endif
 }
 
 void ActorCritic::computeAddActionGradient(vector<double> &gradLog, vector<int> features,
@@ -419,7 +440,11 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
 }
 
 pair<double, double> ActorCritic::getMultMeanStdev() {
+#ifdef USE_NORM_TANH
+    return pair<double, double>(k, phi);
+#else
     return pair<double, double>(k * phi, sqrt(k * pow(phi, 2)));
+#endif
 }
 
 pair<double, double> ActorCritic::getAddMeanStdev() {
