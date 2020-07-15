@@ -47,6 +47,10 @@ class Flow: public NetworkObject {
             RateReward,
             LogReward,
             AdvancedReward,
+            NegativeReward,
+            OffsetReward,
+            ECNReward,
+            ExpertReward,
         };
         RewardType rewardType;
 
@@ -79,7 +83,9 @@ class Flow: public NetworkObject {
 
         Agent *agent;
         second_t miTime = 0.01; // 10 ms
-        double rate;
+        double rate = 0;
+        double oldRate = 0;
+        double oldECN = 0;
         double maxRate;
 
         // TODO move out of Flow into ECNFlow

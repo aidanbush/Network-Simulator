@@ -91,21 +91,29 @@ Flow *createFlow(json &flowConfig) {
 // TODO move out of Flow
 double Flow::initialAverageReward() {
     double rBar = 0;
+    double expectedPackets = floor(this->rate*MI_TIME/(PACKET_HEADER_SIZE + PACKET_BODY_SIZE)/8); // new
 
     switch (DEFAULT_REWARD_TYPE) {
+        case OffsetReward:
+        case ECNReward:
         case BasicReward:
-            rBar = floor(this->rate*MI_TIME/(PACKET_HEADER_SIZE + PACKET_BODY_SIZE)/8);
+            rBar = expectedPackets;
             break;
         case AdvancedReward:
         case RateReward:
-            rBar = floor(this->rate*MI_TIME/(PACKET_HEADER_SIZE + PACKET_BODY_SIZE)/8)
-                / pow(this->rate, 0.5);
+            rBar = expectedPackets / pow(this->rate, 0.5);
             break;
         case LogReward:
-            rBar = floor(this->rate*MI_TIME/(PACKET_HEADER_SIZE + PACKET_BODY_SIZE)/8);
+            rBar = expectedPackets;
             if (rBar != 0) {
                 rBar = log(rBar) + 1;
             }
+            break;
+        case NegativeReward:
+            rBar = 0;
+            break;
+        case ExpertReward:
+            rBar = 1;
             break;
     }
 
@@ -395,7 +403,7 @@ double ECNFlow::getReward() {
             if (packetsUntagged == 0) {
                 return 0;
             }
-            return log(packetsUntagged) +1;
+            return log(packetsUntagged) + 1;
         case AdvancedReward:
             // (untagged - tagged) / sqrt(rate)
             double r = (2*packetsUntagged - packetsSent) / pow(rate, 0.5);
@@ -403,6 +411,20 @@ double ECNFlow::getReward() {
                 r -= 1;
             }
             return r;
+        case NegativeReward:
+            return packetsUntagged - packetsSent;
+        case OffsetReward:
+            return 2*packetsUntagged - packetsSent; // +1 if untagged, -1 if tagged
+        case ECNReward:
+            return (1 - averageECN)*packetsSent;
+        case ExpertReward:
+            if ((oldECN > 0.1) != (rate > oldRate)) { // (ECN greater than threshold) XOR (rate has increased)
+                //Either ECN is low and rate increased or ECN is high and rate decreased
+                return 1.0;
+            } else {
+                //Either ECN is low and rate decreased or ECN is high and rate increased
+                return -1.0;
+            }
     }
     throw runtime_error("Invalid reward specified\n");
 }
@@ -469,6 +491,8 @@ void ECNFlow::stepAgent() {
     updateStats();
 
     pair<double, double> action = agent->step(state, reward, rate);
+    oldRate = rate;
+    oldECN = averageECN;
 
     updateStatsPostStep(action);
 
