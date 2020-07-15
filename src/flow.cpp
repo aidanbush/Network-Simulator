@@ -538,6 +538,16 @@ void ECNFlow::packetArrived(Packet *p) {
     Flow::packetArrived(p);
 }
 
+void ECNFlow::packetDropped(Packet *p) {
+    packetsSent++;
+    Flow::packetDropped(p);
+}
+
+void ECNFlow::packetError(Packet *p) {
+    packetsSent++;
+    Flow::packetError(p);
+}
+
 /* tests */
 #ifdef _TEST
 TestFlow::TestFlow(json &flowConfig): Flow(validateTestFlowConfig(flowConfig)) {}
