@@ -99,7 +99,35 @@ Flow::Flow(json &flowConfig):
     switch (end->getAgentType()) {
         case ActorCriticAgent:
             {
-                double rBar = floor(this->rate*MI_TIME/(PACKET_HEADER_SIZE + PACKET_BODY_SIZE)/8);
+                double rBar;
+                double expectedPackets = floor(this->rate*MI_TIME/(PACKET_HEADER_SIZE + PACKET_BODY_SIZE)/8);
+                switch (DEFAULT_REWARD_TYPE) {
+                    case BasicReward:
+                        rBar = expectedPackets;
+                        break;
+                    case RateReward:
+                        rBar = expectedPackets / pow(this->rate, 0.5);
+                        break;
+                    case LogReward:
+                        if (expectedPackets != 0) {
+                            rBar = log(expectedPackets) + 1;
+                        } else {
+                            rBar = 0;
+                        }
+                        break;
+                    case NegativeReward:
+                        rBar = 0;
+                        break;
+                    case OffsetReward:
+                        rBar = expectedPackets;
+                        break;
+                    case ECNReward:
+                        rBar = expectedPackets;
+                        break;
+                    case ExpertReward:
+                        rBar = 1;
+                        break;
+                }
                 if (DEFAULT_REWARD_TYPE == RateReward) {
                     rBar = rBar / pow(this->rate, 0.5);
                 } else if (DEFAULT_REWARD_TYPE == LogReward) {
@@ -377,7 +405,21 @@ double ECNFlow::getReward() {
             if (packetsUntagged == 0) {
                 return 0;
             }
-            return log(packetsUntagged) +1;
+            return log(packetsUntagged) + 1;
+        case NegativeReward:
+            return packetsUntagged - packetsSent;
+        case OffsetReward:
+            return 2*packetsUntagged - packetsSent; // +1 if untagged, -1 if tagged
+        case ECNReward:
+            return (1 - averageECN)*packetsSent;
+        case ExpertReward:
+            if ((oldECN > 0.1) != (rate > oldRate)) { // (ECN greater than threshold) XOR (rate has increased)
+                //Either ECN is low and rate increased or ECN is high and rate decreased
+                return 1.0;
+            } else {
+                //Either ECN is low and rate decreased or ECN is high and rate increased
+                return -1.0;
+            }
     }
     throw runtime_error("Invalid reward specified\n");
 }
@@ -444,6 +486,8 @@ void ECNFlow::stepAgent() {
     updateStats();
 
     pair<double, double> action = agent->step(state, reward, rate);
+    oldRate = rate;
+    oldECN = averageECN;
 
     updateStatsPostStep(action);
 
