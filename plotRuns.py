@@ -1,3 +1,4 @@
+#!/usr/local/bin/python3
 import csv
 import os, sys
 import matplotlib.pyplot as plt
