@@ -139,6 +139,8 @@ class ECNFlow: public Flow {
         ECNPacket *createPacket(int ttl, int headSize, int bodySize);
 
         void packetArrived(Packet *p);
+        void packetDropped(Packet *p);
+        void packetError(Packet *p);
 
         static json &validateECNFlowConfig(json &flowConfig);
 
