@@ -32,6 +32,7 @@ using namespace std;
 #define NUM_PARAMS 6
 #define CHOOSE_EPSILON 0.1
 #define MODE Mult //Add, Mult, Both, or Choose
+#define MULT_MODE Gamma
 #define REPORT_FLOW 1 // -1 for all flows
 #endif // __has_include
 
@@ -109,6 +110,8 @@ ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowI
     tiles = oldTiles; // TODO does this cause a bug, should we copy over?
 
     mode = MODE;
+    multMode = MULT_MODE;
+
     generator = mt19937();
     if ((mode == Both || mode ==Choose) && s) {
         //TODO: add support for this, see Williams, R. 1992. Simple Statistical Gradient-Following
@@ -141,19 +144,30 @@ void ActorCritic::seed(int seed) {
 }
 
 double ActorCritic::selectActionMult() {
-#ifdef USE_NORM_TANH
-    k = sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_ORDER);
-    phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_ORDER));
-    normal_distribution distribution(k, phi);
+    double action;
 
-    double action = exp(tanh(distribution(generator)));
-#else
-    k = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_ORDER)) + 1;
-    phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_ORDER));
+    switch (multMode) {
+        case GaussianTanh:
+            {
+                k = sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_ORDER);
+                phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_ORDER));
+                normal_distribution distribution(k, phi);
 
-    gamma_distribution distribution(k, phi);
-    double action = distribution(generator);
-#endif
+                action = exp(tanh(distribution(generator)));
+            }
+            break;
+        case Gamma:
+            {
+                k = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_ORDER)) + 1;
+                phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_ORDER));
+
+                gamma_distribution distribution(k, phi);
+                action = distribution(generator);
+            }
+            break;
+        default:
+            throw runtime_error("unsupported multiplicative mode\n");
+    }
     return action;
 }
 
@@ -205,11 +219,14 @@ pair<double, double> ActorCritic::selectAction() {
 double ActorCritic::getVariance() {
     switch (mode) {
         case Mult:
-#ifdef USE_NORM_TANH
-            return phi*phi;
-#else
-            return k*phi*phi;
-#endif
+            switch (multMode) {
+                case GaussianTanh:
+                    return phi*phi;
+                case Gamma:
+                    return k*phi*phi;
+                default:
+                    throw runtime_error("unsupported multiplicative mode\n");
+            }
         case Add:
             return sigma*sigma;
         default:
@@ -264,23 +281,28 @@ void ActorCritic::updateCriticWeights(double delta) {
 
 void ActorCritic::computeMultActionGradient(vector<double> &gradLog, vector<int> features,
         pair<double, double> action) {
-#ifdef USE_NORM_TANH
-    for (int i = 0; i < (int)features.size(); i++) {
-        //grad log for k (mu)
-        gradLog[features[i] + Tilecoder::getNumTiles()*K_ORDER] = (action.first - k) / (phi * phi);
-        // grad log for phi (sigma)
-        gradLog[features[i] + Tilecoder::getNumTiles()*PHI_ORDER] =\
-                                            (action.first - k)*(action.first - k) / (phi * phi) - 1;
+    switch (multMode) {
+        case GaussianTanh:
+            for (int i = 0; i < (int)features.size(); i++) {
+                //grad log for k (mu)
+                gradLog[features[i] + Tilecoder::getNumTiles()*K_ORDER] = (action.first - k) / (phi * phi);
+                // grad log for phi (sigma)
+                gradLog[features[i] + Tilecoder::getNumTiles()*PHI_ORDER] =\
+                                                    (action.first - k)*(action.first - k) / (phi * phi) - 1;
+            }
+            break;
+        case Gamma:
+            for (int i = 0; i < (int)features.size(); i++) {
+                //grad log for k
+                gradLog[features[i] + Tilecoder::getNumTiles()*K_ORDER] =\
+                                                    (k - 1)*(log(action.first/phi) - boost::math::digamma(k));
+                // grad log for phi
+                gradLog[features[i] + Tilecoder::getNumTiles()*PHI_ORDER] = action.first/phi - k;
+            }
+            break;
+        default:
+            throw runtime_error("unsupported multiplicative mode\n");
     }
-#else
-    for (int i = 0; i < (int)features.size(); i++) {
-        //grad log for k
-        gradLog[features[i] + Tilecoder::getNumTiles()*K_ORDER] =\
-                                            (k - 1)*(log(action.first/phi) - boost::math::digamma(k));
-        // grad log for phi
-        gradLog[features[i] + Tilecoder::getNumTiles()*PHI_ORDER] = action.first/phi - k;
-    }
-#endif
 }
 
 void ActorCritic::computeAddActionGradient(vector<double> &gradLog, vector<int> features,
@@ -440,11 +462,14 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
 }
 
 pair<double, double> ActorCritic::getMultMeanStdev() {
-#ifdef USE_NORM_TANH
-    return pair<double, double>(k, phi);
-#else
-    return pair<double, double>(k * phi, sqrt(k * pow(phi, 2)));
-#endif
+    switch (multMode) {
+        case GaussianTanh:
+            return pair<double, double>(k, phi);
+        case Gamma:
+            return pair<double, double>(k * phi, sqrt(k * pow(phi, 2)));
+        default:
+            throw runtime_error("unsupported multiplicative mode\n");
+    }
 }
 
 pair<double, double> ActorCritic::getAddMeanStdev() {

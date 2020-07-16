@@ -23,6 +23,13 @@ class ActorCritic: public Agent {
             Choose
         };
         Mode mode;
+
+        enum MultMode {
+            Gamma,
+            GaussianTanh,
+        };
+        MultMode multMode;
+
         mt19937 generator;
 
         pair<double, double> selectAction();
