@@ -47,7 +47,7 @@ class ActorCritic: public Agent {
         void computeAddActionGradient(vector<double> &gradLog, vector<int> features, pair<double, double> action);
 
         void updateActorTrace(vector<double> gradLog);
-        void updateActorWeights(vector<double> trace, double delta);
+        void updateActorDistWeights(vector<double> trace, double delta);
 
         double oldValue = 0;
         double oldState;

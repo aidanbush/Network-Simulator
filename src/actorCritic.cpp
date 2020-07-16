@@ -338,7 +338,7 @@ void ActorCritic::updateActorTrace(vector<double> gradLog) {
     }
 }
 
-void ActorCritic::updateActorWeights(vector<double> trace, double delta) {
+void ActorCritic::updateActorDistWeights(vector<double> trace, double delta) {
     for (int i = 0; i < (int)parameters.size(); i++) {
         parameters[i] += alphaU*delta*trace[i] * (s ? getVariance() : 1);
     }
@@ -380,10 +380,10 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
             actorWeights[i] += alphaV*(delta*parameterTrace[i] - gradLogDot*actorWeights[i]);
         }
         //Update parameters (u)
-        updateActorWeights(actorWeights, 1);
+        updateActorDistWeights(actorWeights, 1);
     } else {
         //Update parameters (u)
-        updateActorWeights(parameterTrace, delta);
+        updateActorDistWeights(parameterTrace, delta);
     }
 
     if ((flowId == REPORT_FLOW || REPORT_FLOW == -1) && !man.getSuppressOutput(AGENT_VALS)) {
