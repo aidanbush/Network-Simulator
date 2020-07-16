@@ -18,7 +18,7 @@ if "-f" in sys.argv:
     plotFormat = sys.argv[sys.argv.index("-f") + 1]
 
 plotRange = None
-if "-r" in sys.args:
+if "-r" in sys.argv:
     plotRange = tuple(map(int, sys.argv[sys.argv.index("-r") + 1].split('-')))
 
 # data type {flow [mean, std]}
@@ -31,7 +31,7 @@ with open(csvFile) as f:
 
     for row in reader:
         c += 1
-        if plotRange != None and c < plotRange[0] or c > plotRange[1]:
+        if plotRange != None and (c < plotRange[0] or c > plotRange[1]):
             continue
         for key in row.keys():
             flow, dataType, statsElem = key.split()
