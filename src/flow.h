@@ -46,6 +46,10 @@ class Flow: public NetworkObject {
             BasicReward,
             RateReward,
             LogReward,
+            NegativeReward,
+            OffsetReward,
+            ECNReward,
+            ExpertReward,
         };
         RewardType rewardType;
 
@@ -76,7 +80,9 @@ class Flow: public NetworkObject {
 
         Agent *agent;
         second_t miTime = 0.01; // 10 ms
-        double rate;
+        double rate = 0;
+        double oldRate = 0;
+        double oldECN = 0;
         double maxRate;
 
         // TODO move out of Flow into ECNFlow
@@ -130,6 +136,8 @@ class ECNFlow: public Flow {
         ECNPacket *createPacket(int ttl, int headSize, int bodySize);
 
         void packetArrived(Packet *p);
+        void packetDropped(Packet *p);
+        void packetError(Packet *p);
 
         static json &validateECNFlowConfig(json &flowConfig);
 
