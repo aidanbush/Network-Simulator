@@ -39,15 +39,16 @@ class ActorCritic: public Agent {
         double getVariance();
         double computeDiffSum();
 
-        void updateCriticTraces(vector<int> features);
+        void updateCriticTrace();
         void updateCriticWeights(double delta);
 
-        vector<double> computeGradient(vector<int> features, pair<double, double> action);
-        void computeMultActionGradient(vector<double> &gradLog, vector<int> features, pair<double, double> action);
-        void computeAddActionGradient(vector<double> &gradLog, vector<int> features, pair<double, double> action);
+        vector<double> computeGradient();
+        void computeMultActionGradient(vector<double> &gradLog);
+        void computeAddActionGradient(vector<double> &gradLog);
 
         void updateActorTrace(vector<double> gradLog);
-        void updateActorDistWeights(vector<double> trace, double delta);
+        void updateActorParams(double delta);
+        void updateActorParamsINAC();
 
         double oldValue = 0;
         double oldState;
@@ -59,7 +60,7 @@ class ActorCritic: public Agent {
         vector<int> oldTiles;
         vector<double> parameters; // u
         vector<double> *criticWeights; // v
-        vector<double> actorWeights; // w
+        vector<double> advantageParameters; // w
         vector<double> weightTrace; // ev
         vector<double> parameterTrace; // eu
         double rBar = 0;

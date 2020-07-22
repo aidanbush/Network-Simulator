@@ -99,7 +99,7 @@ ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowI
 
     criticWeights = weights;
 
-    actorWeights = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
+    advantageParameters = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
 
     weightTrace = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
     parameterTrace = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
@@ -165,8 +165,6 @@ double ActorCritic::selectActionMult() {
                 action = distribution(generator);
             }
             break;
-        default:
-            throw runtime_error("unsupported multiplicative mode\n");
     }
     return action;
 }
@@ -224,8 +222,6 @@ double ActorCritic::getVariance() {
                     return phi*phi;
                 case Gamma:
                     return k*phi*phi;
-                default:
-                    throw runtime_error("unsupported multiplicative mode\n");
             }
         case Add:
             return sigma*sigma;
@@ -261,12 +257,12 @@ double ActorCritic::computeDiffSum() {
     return diffSum;
 }
 
-void ActorCritic::updateCriticTraces(vector<int> features) {
+void ActorCritic::updateCriticTrace() {
     for (int i = 0; i < (int)weightTrace.size(); i++) {
         weightTrace[i] *= GAMMA * lambda;
     }
 
-    for (auto xi: features) {
+    for (auto xi: oldTiles) {
         for (int j = 0; j < TILE_MULTIPLE; j++) {
             weightTrace[xi + j*Tilecoder::getNumTiles()]++;
         }
@@ -279,54 +275,50 @@ void ActorCritic::updateCriticWeights(double delta) {
     }
 }
 
-void ActorCritic::computeMultActionGradient(vector<double> &gradLog, vector<int> features,
-        pair<double, double> action) {
+void ActorCritic::computeMultActionGradient(vector<double> &gradLog) {
     switch (multMode) {
         case GaussianTanh:
-            for (int i = 0; i < (int)features.size(); i++) {
+            for (int i = 0; i < (int)oldTiles.size(); i++) {
                 //grad log for k (mu)
-                gradLog[features[i] + Tilecoder::getNumTiles()*K_ORDER] = (action.first - k) / (phi * phi);
+                gradLog[oldTiles[i] + Tilecoder::getNumTiles()*K_ORDER] = (actionPair.first - k) / (phi * phi);
                 // grad log for phi (sigma)
-                gradLog[features[i] + Tilecoder::getNumTiles()*PHI_ORDER] =\
-                                                    (action.first - k)*(action.first - k) / (phi * phi) - 1;
+                gradLog[oldTiles[i] + Tilecoder::getNumTiles()*PHI_ORDER] =\
+                                                    (actionPair.first - k)*(actionPair.first - k) / (phi * phi) - 1;
             }
             break;
         case Gamma:
-            for (int i = 0; i < (int)features.size(); i++) {
+            for (int i = 0; i < (int)oldTiles.size(); i++) {
                 //grad log for k
-                gradLog[features[i] + Tilecoder::getNumTiles()*K_ORDER] =\
-                                                    (k - 1)*(log(action.first/phi) - boost::math::digamma(k));
+                gradLog[oldTiles[i] + Tilecoder::getNumTiles()*K_ORDER] =\
+                                                    (k - 1)*(log(actionPair.first/phi) - boost::math::digamma(k));
                 // grad log for phi
-                gradLog[features[i] + Tilecoder::getNumTiles()*PHI_ORDER] = action.first/phi - k;
+                gradLog[oldTiles[i] + Tilecoder::getNumTiles()*PHI_ORDER] = actionPair.first/phi - k;
             }
             break;
-        default:
-            throw runtime_error("unsupported multiplicative mode\n");
     }
 }
 
-void ActorCritic::computeAddActionGradient(vector<double> &gradLog, vector<int> features,
-        pair<double, double> action) {
-    for (int i = 0; i < (int)features.size(); i++) {
+void ActorCritic::computeAddActionGradient(vector<double> &gradLog) {
+    for (int i = 0; i < (int)oldTiles.size(); i++) {
         //grad log for mu
-        gradLog[features[i] + Tilecoder::getNumTiles()*MU_ORDER] = (action.second - mu)/(sigma*sigma);
+        gradLog[oldTiles[i] + Tilecoder::getNumTiles()*MU_ORDER] = (actionPair.second - mu)/(sigma*sigma);
         // grad log for sigma
-        gradLog[features[i] + Tilecoder::getNumTiles()*SIGMA_ORDER] =\
-                                            (action.second - mu)*(action.second - mu)/(sigma*sigma) - 1;
+        gradLog[oldTiles[i] + Tilecoder::getNumTiles()*SIGMA_ORDER] =\
+                                            (actionPair.second - mu)*(actionPair.second - mu)/(sigma*sigma) - 1;
     }
 }
 
-vector<double> ActorCritic::computeGradient(vector<int> features, pair<double, double> action) {
+vector<double> ActorCritic::computeGradient() {
     vector<double> gradLog = vector<double>(Tilecoder::getNumTiles() * TILE_MULTIPLE, 0);
 
-    if (mode == Mult || mode == Both || (mode == Choose && action.first != 0)) {
+    if (mode == Mult || mode == Both || (mode == Choose && actionPair.first != 0)) {
         // If in Choose mode andthe multiplicative action (actionPair.first) is 0,
         // that means an additive action was selected
-        computeMultActionGradient(gradLog, features, action);
+        computeMultActionGradient(gradLog);
     }
 
-    if (mode == Add || mode == Both || (mode == Choose && action.first == 0)) {
-        computeAddActionGradient(gradLog, features, action);
+    if (mode == Add || mode == Both || (mode == Choose && actionPair.first == 0)) {
+        computeAddActionGradient(gradLog);
     }
 
     return gradLog;
@@ -338,9 +330,15 @@ void ActorCritic::updateActorTrace(vector<double> gradLog) {
     }
 }
 
-void ActorCritic::updateActorDistWeights(vector<double> trace, double delta) {
+void ActorCritic::updateActorParamsINAC() {
+    for (int i = 0; i < (int)advantageParameters.size(); i++) {
+        parameters[i] += alphaU*advantageParameters[i] * (s ? getVariance() : 1);
+    }
+}
+
+void ActorCritic::updateActorParams(double delta) {
     for (int i = 0; i < (int)parameters.size(); i++) {
-        parameters[i] += alphaU*delta*trace[i] * (s ? getVariance() : 1);
+        parameters[i] += alphaU*delta*parameterTrace[i] * (s ? getVariance() : 1);
     }
 }
 
@@ -360,12 +358,14 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
         printf(" delta %f\n", delta);
     }
 
-    updateCriticTraces(oldTiles);
+    // update update critic trace using oldTiles
+    updateCriticTrace();
 
+    // update citic weights using trace
     updateCriticWeights(delta);
 
-    vector<double> gradLog = computeGradient(oldTiles, actionPair);
-    // Update parameters
+    // compute gradients using oldTiles and actionPair
+    vector<double> gradLog = computeGradient();
 
     updateActorTrace(gradLog);
 
@@ -375,15 +375,17 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
         for (int i = 0; i < (int)gradLog.size(); i++) {
             gradLogDot += gradLog[i]*gradLog[i];
         }
-        //Update actor weights (w)
-        for (int i = 0; i < (int)actorWeights.size(); i++) {
-            actorWeights[i] += alphaV*(delta*parameterTrace[i] - gradLogDot*actorWeights[i]);
+
+        //Update advantage parameters (w)
+        for (int i = 0; i < (int)advantageParameters.size(); i++) {
+            advantageParameters[i] += alphaV*(delta*parameterTrace[i] - gradLogDot*advantageParameters[i]);
         }
-        //Update parameters (u)
-        updateActorDistWeights(actorWeights, 1);
+
+        // Update parameters (u) using advantageParameters
+        updateActorParamsINAC();
     } else {
-        //Update parameters (u)
-        updateActorDistWeights(parameterTrace, delta);
+        //Update parameters (u) using parametersTrace
+        updateActorParams(delta);
     }
 
     if ((flowId == REPORT_FLOW || REPORT_FLOW == -1) && !man.getSuppressOutput(AGENT_VALS)) {
@@ -462,14 +464,18 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
 }
 
 pair<double, double> ActorCritic::getMultMeanStdev() {
+    pair<double, double> meanStdev;
+
     switch (multMode) {
         case GaussianTanh:
-            return pair<double, double>(k, phi);
+            meanStdev = pair<double, double>(k, phi);
+            break;
         case Gamma:
-            return pair<double, double>(k * phi, sqrt(k * pow(phi, 2)));
-        default:
-            throw runtime_error("unsupported multiplicative mode\n");
+            meanStdev = pair<double, double>(k * phi, sqrt(k * pow(phi, 2)));
+            break;
     }
+
+    return meanStdev;
 }
 
 pair<double, double> ActorCritic::getAddMeanStdev() {
