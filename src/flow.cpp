@@ -88,6 +88,38 @@ Flow *createFlow(json &flowConfig) {
     return flow;
 }
 
+// TODO move out of Flow
+double Flow::initialAverageReward() {
+    double rBar = 0;
+    double expectedPackets = floor(this->rate*MI_TIME/(PACKET_HEADER_SIZE + PACKET_BODY_SIZE)/8); // new
+
+    switch (DEFAULT_REWARD_TYPE) {
+        case OffsetReward:
+        case ECNReward:
+        case BasicReward:
+            rBar = expectedPackets;
+            break;
+        case AdvancedReward:
+        case RateReward:
+            rBar = expectedPackets / pow(this->rate, 0.5);
+            break;
+        case LogReward:
+            rBar = expectedPackets;
+            if (rBar != 0) {
+                rBar = log(rBar) + 1;
+            }
+            break;
+        case NegativeReward:
+            rBar = 0;
+            break;
+        case ExpertReward:
+            rBar = 1;
+            break;
+    }
+
+    return rBar;
+}
+
 //flowConfig already validated
 Flow::Flow(json &flowConfig):
     NetworkObject(flowConfig["id"])
@@ -99,42 +131,8 @@ Flow::Flow(json &flowConfig):
     switch (end->getAgentType()) {
         case ActorCriticAgent:
             {
-                double rBar;
-                double expectedPackets = floor(this->rate*MI_TIME/(PACKET_HEADER_SIZE + PACKET_BODY_SIZE)/8);
-                switch (DEFAULT_REWARD_TYPE) {
-                    case BasicReward:
-                        rBar = expectedPackets;
-                        break;
-                    case RateReward:
-                        rBar = expectedPackets / pow(this->rate, 0.5);
-                        break;
-                    case LogReward:
-                        if (expectedPackets != 0) {
-                            rBar = log(expectedPackets) + 1;
-                        } else {
-                            rBar = 0;
-                        }
-                        break;
-                    case NegativeReward:
-                        rBar = 0;
-                        break;
-                    case OffsetReward:
-                        rBar = expectedPackets;
-                        break;
-                    case ECNReward:
-                        rBar = expectedPackets;
-                        break;
-                    case ExpertReward:
-                        rBar = 1;
-                        break;
-                }
-                if (DEFAULT_REWARD_TYPE == RateReward) {
-                    rBar = rBar / pow(this->rate, 0.5);
-                } else if (DEFAULT_REWARD_TYPE == LogReward) {
-                    if (rBar != 0) {
-                        rBar = log(rBar) + 1;
-                    }
-                }
+                double rBar = initialAverageReward();
+
                 agent = new ActorCritic(end->getWeights(), 0, flowConfig["id"], rBar);
                 break;
             }
@@ -406,6 +404,15 @@ double ECNFlow::getReward() {
                 return 0;
             }
             return log(packetsUntagged) + 1;
+        case AdvancedReward:
+            {
+                // (untagged - tagged) / sqrt(rate)
+                double r = (2*packetsUntagged - packetsSent) / pow(rate, 0.5);
+                if (rate == MIN_RATE || rate == maxRate) {
+                    r -= 1;
+                }
+                return r;
+            }
         case NegativeReward:
             return packetsUntagged - packetsSent;
         case OffsetReward:

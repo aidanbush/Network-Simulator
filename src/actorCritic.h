@@ -23,15 +23,35 @@ class ActorCritic: public Agent {
             Choose
         };
         Mode mode;
+
+        enum MultMode {
+            Gamma,
+            GaussianTanh,
+        };
+        MultMode multMode;
+
         mt19937 generator;
-        
+
         pair<double, double> selectAction();
         double selectActionMult();
         double selectActionAdd();
-        
+
         double getVariance();
         double computeDiffSum();
-        
+
+        void updateWeightTrace();
+        void updateCriticWeights(double delta);
+
+        vector<double> computeGradient();
+        void computeMultActionGradient(vector<double> &gradLog);
+        void computeAddActionGradient(vector<double> &gradLog);
+
+        void updateParameterTrace(vector<double> gradLog);
+        void updateParameters(double delta);
+
+        void updateAdvantageParameters(vector<double> gradlog, double delta);
+        void updateParametersINAC();
+
         double oldValue = 0;
         double oldState;
         /*TODO: this sets what the agent considers to be its previous action at the start of the episode
@@ -42,7 +62,7 @@ class ActorCritic: public Agent {
         vector<int> oldTiles;
         vector<double> parameters; // u
         vector<double> *criticWeights; // v
-        vector<double> actorWeights; // w
+        vector<double> advantageParameters; // w
         vector<double> weightTrace; // ev
         vector<double> parameterTrace; // eu
         double rBar = 0;
