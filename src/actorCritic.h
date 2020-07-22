@@ -39,14 +39,14 @@ class ActorCritic: public Agent {
         double getVariance();
         double computeDiffSum();
 
-        void updateCriticTrace();
+        void updateWeightTrace();
         void updateCriticWeights(double delta);
 
         vector<double> computeGradient();
         void computeMultActionGradient(vector<double> &gradLog);
         void computeAddActionGradient(vector<double> &gradLog);
 
-        void updateActorTrace(vector<double> gradLog);
+        void updateParameterTrace(vector<double> gradLog);
         void updateParameters(double delta);
 
         void updateAdvantageParameters(vector<double> gradlog, double delta);

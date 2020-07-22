@@ -257,7 +257,7 @@ double ActorCritic::computeDiffSum() {
     return diffSum;
 }
 
-void ActorCritic::updateCriticTrace() {
+void ActorCritic::updateWeightTrace() {
     for (int i = 0; i < (int)weightTrace.size(); i++) {
         weightTrace[i] *= GAMMA * lambda;
     }
@@ -324,7 +324,7 @@ vector<double> ActorCritic::computeGradient() {
     return gradLog;
 }
 
-void ActorCritic::updateActorTrace(vector<double> gradLog) {
+void ActorCritic::updateParameterTrace(vector<double> gradLog) {
     for (int i = 0; i < (int)parameterTrace.size(); i++) {
         parameterTrace[i] = GAMMA*lambda*parameterTrace[i] + gradLog[i];
     }
@@ -372,7 +372,7 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
     }
 
     // update update critic trace using oldTiles
-    updateCriticTrace();
+    updateWeightTrace();
 
     // update citic weights using trace
     updateCriticWeights(delta);
@@ -380,7 +380,7 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
     // compute gradients using oldTiles and actionPair
     vector<double> gradLog = computeGradient();
 
-    updateActorTrace(gradLog);
+    updateParameterTrace(gradLog);
 
     if (inac) {
         // update advantage parameters (w)
