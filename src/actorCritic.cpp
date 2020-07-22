@@ -330,13 +330,26 @@ void ActorCritic::updateActorTrace(vector<double> gradLog) {
     }
 }
 
-void ActorCritic::updateActorParamsINAC() {
+void ActorCritic::updateAdvantageParameters(vector<double> gradLog, double delta) {
+    double gradLogDot = 0;
+    //Get gradlog dot gradlog
+    for (int i = 0; i < (int)gradLog.size(); i++) {
+        gradLogDot += gradLog[i]*gradLog[i];
+    }
+
+    //Update advantage parameters (w)
+    for (int i = 0; i < (int)advantageParameters.size(); i++) {
+        advantageParameters[i] += alphaV*(delta*parameterTrace[i] - gradLogDot*advantageParameters[i]);
+    }
+}
+
+void ActorCritic::updateParametersINAC() {
     for (int i = 0; i < (int)advantageParameters.size(); i++) {
         parameters[i] += alphaU*advantageParameters[i] * (s ? getVariance() : 1);
     }
 }
 
-void ActorCritic::updateActorParams(double delta) {
+void ActorCritic::updateParameters(double delta) {
     for (int i = 0; i < (int)parameters.size(); i++) {
         parameters[i] += alphaU*delta*parameterTrace[i] * (s ? getVariance() : 1);
     }
@@ -370,22 +383,14 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
     updateActorTrace(gradLog);
 
     if (inac) {
-        double gradLogDot = 0;
-        //Get gradlog dot gradlog
-        for (int i = 0; i < (int)gradLog.size(); i++) {
-            gradLogDot += gradLog[i]*gradLog[i];
-        }
-
-        //Update advantage parameters (w)
-        for (int i = 0; i < (int)advantageParameters.size(); i++) {
-            advantageParameters[i] += alphaV*(delta*parameterTrace[i] - gradLogDot*advantageParameters[i]);
-        }
+        // update advantage parameters (w)
+        updateAdvantageParameters(gradLog, delta);
 
         // Update parameters (u) using advantageParameters
-        updateActorParamsINAC();
+        updateParametersINAC();
     } else {
         //Update parameters (u) using parametersTrace
-        updateActorParams(delta);
+        updateParameters(delta);
     }
 
     if ((flowId == REPORT_FLOW || REPORT_FLOW == -1) && !man.getSuppressOutput(AGENT_VALS)) {

@@ -47,8 +47,10 @@ class ActorCritic: public Agent {
         void computeAddActionGradient(vector<double> &gradLog);
 
         void updateActorTrace(vector<double> gradLog);
-        void updateActorParams(double delta);
-        void updateActorParamsINAC();
+        void updateParameters(double delta);
+
+        void updateAdvantageParameters(vector<double> gradlog, double delta);
+        void updateParametersINAC();
 
         double oldValue = 0;
         double oldState;
