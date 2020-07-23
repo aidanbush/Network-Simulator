@@ -175,7 +175,14 @@ double ActorCritic::selectActionMult() {
 
     gamma_distribution distribution(k, phi);
     //TODO: Consider clipping the value to a pre defined range
-    return distribution(generator);
+    double action = distribution(generator);
+    if (SPLIT_DISTRIBUTION) {
+        action++; // Change range from (0, inf) to (1, inf) so it is always increasing
+        if (decreaseRate) {
+            action = 1/action; // If a decrease is needed, invert it
+        }
+    }
+    return action;
 }
 
 double ActorCritic::selectActionAdd() {
@@ -188,7 +195,15 @@ double ActorCritic::selectActionAdd() {
     }
     normal_distribution distribution(mu, sigma);
     //TODO: Consider clipping the value to a pre defined range
-    return distribution(generator);
+    double action = distribution(generator);
+    if (SPLIT_DISTRIBUTION) {
+        if (decreaseRate) {
+            action = min(action, 0.0);
+        } else {
+            action = max(action, 0.0);
+        }
+    }
+    return action;
 }
 
 pair<double, double> ActorCritic::selectAction() {
