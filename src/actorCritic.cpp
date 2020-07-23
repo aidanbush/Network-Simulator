@@ -271,12 +271,16 @@ pair<double, double> ActorCritic::selectAction() {
 double ActorCritic::getVariance() {
     switch (mode) {
         case Mult:
+            double variance;
             switch (multMode) {
                 case GaussianTanh:
-                    return phi*phi;
+                    variance = phi*phi;
+                    break;
                 case Gamma:
-                    return k*phi*phi;
+                    variance = k*phi*phi;
+                    break;
             }
+            return variance;
         case Add:
             return sigma*sigma;
         default:
@@ -346,7 +350,7 @@ void ActorCritic::computeMultActionGradient(vector<double> &gradLog) {
                     gradLog[oldTiles[i] + Tilecoder::getNumTiles()*K_DIV_ORDER] =\
                                                         (k - 1)*(log(actionPair.first/phi) - boost::math::digamma(k));
                     // grad log for phi
-                    gradLog[oldTiles[i] + Tilecoder::getNumTiles()*PHI_DIVORDER] = actionPair.first/phi - k;
+                    gradLog[oldTiles[i] + Tilecoder::getNumTiles()*PHI_DIV_ORDER] = actionPair.first/phi - k;
                 } else {
                     //grad log for k
                     gradLog[oldTiles[i] + Tilecoder::getNumTiles()*K_MUL_ORDER] =\
