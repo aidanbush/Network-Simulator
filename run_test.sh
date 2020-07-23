@@ -66,10 +66,12 @@ done
 wait
 
 # combine data
-python combineData.py $tempResultsDir ${resultsDir}/results.csv
+echo python combineData.py $tempResultsDir ${resultsDir}/results.csv
+time python combineData.py $tempResultsDir ${resultsDir}/results.csv
 
 # plot data
-python plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat}
+echo python plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat}
+time python plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat}
 
 # clean up
 rm -r $tempResultsDir

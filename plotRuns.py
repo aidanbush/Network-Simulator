@@ -10,12 +10,17 @@ FIGSIZE=(16,9)
 
 csvFile = sys.argv[1]
 
-outputDir = "results" #sys.argv[2]
+outputDir = "results"
 if "-d" in sys.argv:
     outputDir = sys.argv[sys.argv.index("-d") + 1]
+
 plotFormat = "pdf"
 if "-f" in sys.argv:
     plotFormat = sys.argv[sys.argv.index("-f") + 1]
+
+plotRange = None
+if "-r" in sys.argv:
+    plotRange = tuple(map(int, sys.argv[sys.argv.index("-r") + 1].split('-')))
 
 # data type {flow [mean, std]}
 data = defaultdict(lambda: defaultdict(lambda: [[],[]]))
@@ -23,8 +28,12 @@ data = defaultdict(lambda: defaultdict(lambda: [[],[]]))
 # open csv
 with open(csvFile) as f:
     reader = csv.DictReader(f)
+    c = 0
 
     for row in reader:
+        c += 1
+        if plotRange != None and (c < plotRange[0] or c > plotRange[1]):
+            continue
         for key in row.keys():
             flow, dataType, statsElem = key.split()
 
