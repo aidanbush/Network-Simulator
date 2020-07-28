@@ -36,8 +36,8 @@ using namespace std;
 #define REPORT_FLOW 1 // -1 for all flows
 #endif // __has_include
 
-#define TILECODE_NUM_DIMS 1
-#define TILECODE_DIM_RANGES {{0,1}}
+#define TILECODE_NUM_DIMS 2
+#define TILECODE_DIM_RANGES {{0,1}, {0,1}}
 #define TILECODE_PATTERNS {{0}}
 #define TILESCODE_TILES_PER_DIM_TILING {11}
 #define TILECODE_NUM_TILIGS {1}
@@ -62,6 +62,9 @@ ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initial
     this->flowId = flowId;
     this->rBar = initialRBar;
 
+    tilecoder = new Tilecoder(TILECODE_NUM_DIMS, TILECODE_DIM_RANGES, TILECODE_PATTERNS,
+            TILESCODE_TILES_PER_DIM_TILING, TILECODE_NUM_TILIGS);
+
     stepnum = 0;
 
     vector<double> params;
@@ -82,7 +85,7 @@ ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initial
         s = params[5];
     }
     alphaU = (double)initialAlphaU / tilecoder->getNumTotalTilings();
-    alphaV = (double)initialAlphaV/ tilecoder->getNumTotalTilings();
+    alphaV = (double)initialAlphaV / tilecoder->getNumTotalTilings();
     lambda = 1 - 1.0/tau;
 
     parameters = vector<double>(tilecoder->getNumTiles() * TILE_MULTIPLE, 0);
@@ -104,9 +107,6 @@ ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initial
     }
 
     this->criticWeights = initializeWeights();
-
-    tilecoder = new Tilecoder(TILECODE_NUM_DIMS, TILECODE_DIM_RANGES, TILECODE_PATTERNS,
-            TILESCODE_TILES_PER_DIM_TILING, TILECODE_NUM_TILIGS);
 
     advantageParameters = vector<double>(tilecoder->getNumTiles() * TILE_MULTIPLE, 0);
 

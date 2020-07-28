@@ -67,8 +67,8 @@ Tilecoder::Tilecoder(int numDimensions, vector<pair<double, double>> dimensionRa
     this->numTilings = numTilings;
 
     // calculate tileWidths, and offsets
-    for (int i = 0; i < int(dimensionRanges.size()); i++) {
-        this->tileWidths.push_back(1 / (tilesPerDimTiling[i] - 1));
+    for (int i = 0; i < int(tilecodingPatterns.size()); i++) {
+        this->tileWidths.push_back(1 / double(tilesPerDimTiling[i] - 1));
         this->offsets.push_back(tileWidths[i] / numTilings[i]);
     }
 
@@ -120,7 +120,7 @@ int Tilecoder::getNumTotalTilings() {
 vector<int> Tilecoder::tilecode(vector<double> state) {
     // check number of dimensions
     if (int(state.size()) != numDimensions) {
-        throw runtime_error("Number of dimensions and ranges don't match");
+        throw runtime_error("Number of state dimensions doesn't match expected");
     }
 
     // normalize

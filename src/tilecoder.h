@@ -28,8 +28,8 @@ class Tilecoder {
         vector<int> tilesPerDimTiling;
         vector<int> numTilings;
 
-        int numTotalTiles;
-        int numTotalTilings;
+        int numTotalTiles = 0;
+        int numTotalTilings = 0;
         vector<int> numPatternTiles;
 
         vector<double> tileWidths;

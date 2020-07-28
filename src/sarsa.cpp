@@ -21,8 +21,8 @@ using namespace std;
 #define NUM_PARAMS 4
 #endif // __has_include
 
-#define TILECODE_NUM_DIMS 1
-#define TILECODE_DIM_RANGES {{0,1}}
+#define TILECODE_NUM_DIMS 2
+#define TILECODE_DIM_RANGES {{0,1}, {0,1}}
 #define TILECODE_PATTERNS {{0}}
 #define TILESCODE_TILES_PER_DIM_TILING {11}
 #define TILECODE_NUM_TILIGS {1}
@@ -40,6 +40,9 @@ vector<double> Sarsa::initializeWeights() {
 Sarsa::Sarsa(vector<double> initialState, int flowId) {
     this->flowId = flowId;
 
+    tilecoder = new Tilecoder(TILECODE_NUM_DIMS, TILECODE_DIM_RANGES, TILECODE_PATTERNS,
+            TILESCODE_TILES_PER_DIM_TILING, TILECODE_NUM_TILIGS);
+
     vector<double> params;
     if (!man.getParameters(&params, NUM_PARAMS)) {
         initialAlpha = DEFAULT_ALPHA;
@@ -54,9 +57,6 @@ Sarsa::Sarsa(vector<double> initialState, int flowId) {
     }
 
     this->weights = initializeWeights();
-
-    tilecoder = new Tilecoder(TILECODE_NUM_DIMS, TILECODE_DIM_RANGES, TILECODE_PATTERNS,
-            TILESCODE_TILES_PER_DIM_TILING, TILECODE_NUM_TILIGS);
 
     alpha = (double)initialAlpha / tilecoder->getNumTotalTilings();
     trace = vector<double>(tilecoder->getNumTiles() * NUM_ACTIONS, 0);
