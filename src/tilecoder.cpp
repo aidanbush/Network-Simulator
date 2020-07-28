@@ -68,7 +68,7 @@ Tilecoder::Tilecoder(int numDimensions, vector<pair<double, double>> dimensionRa
 
     // calculate tileWidths, and offsets
     for (int i = 0; i < int(dimensionRanges.size()); i++) {
-        this->tileWidths.push_back((dimensionRanges[i].second - dimensionRanges[i].first) / (tilesPerDimTiling[i] - 1));
+        this->tileWidths.push_back(1 / (tilesPerDimTiling[i] - 1));
         this->offsets.push_back(tileWidths[i] / numTilings[i]);
     }
 
