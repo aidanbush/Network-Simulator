@@ -74,7 +74,7 @@ Tilecoder::Tilecoder(int numDimensions, vector<pair<double, double>> dimensionRa
 
     calculateNumTiles();
 
-    calculateNumTilings();
+    calculateNumTotalTilings();
 }
 
 void Tilecoder::calculateNumTiles() {
@@ -88,7 +88,7 @@ void Tilecoder::calculateNumTiles() {
         tiles += curTiles;
     }
 
-    numTotaltiles = tiles;
+    numTotalTiles = tiles;
 }
 
 int Tilecoder::calculatePatternTiles(vector<int> pattern, int tilesPerDimTiling, int numTilings) {
@@ -103,17 +103,17 @@ int Tilecoder::calculatePatternTiles(vector<int> pattern, int tilesPerDimTiling,
     return size;
 }
 
-void calculateNumTilings() {
+void Tilecoder::calculateNumTotalTilings() {
     for (auto tilings: numTilings) {
         numTotalTilings += tilings;
     }
 }
 
 int Tilecoder::getNumTiles() {
-    return totalSize;
+    return numTotalTiles;
 }
 
-int getNumTilings() {
+int Tilecoder::getNumTotalTilings() {
     return numTotalTilings;
 }
 
@@ -149,7 +149,7 @@ vector<int> Tilecoder::tilecode(vector<double> state) {
             tiles.push_back(curTiles[i] + patternOffset);
         }
 
-        patternOffset += patternSizes[i];
+        patternOffset += numPatternTiles[i];
     }
 
     return tiles;

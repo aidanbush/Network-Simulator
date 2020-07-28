@@ -12,11 +12,13 @@ class Tilecoder {
         vector<int> tilecode(vector<double> state);
 
         int getNumTiles();
-        int getNumTilings();
+        int getNumTotalTilings();
 
     private:
         void calculateNumTiles();
         int calculatePatternTiles(vector<int> pattern, int tilesPerDimTiling, int numTilings);
+
+        void calculateNumTotalTilings();
 
         vector<int> tilecodeSingle(vector<double> state, int tilesPerDim, int numTilings, double tileWidth, double offset);
 
@@ -28,7 +30,7 @@ class Tilecoder {
 
         int numTotalTiles;
         int numTotalTilings;
-        vector<int> numPatternTile;
+        vector<int> numPatternTiles;
 
         vector<double> tileWidths;
         vector<double> offsets;

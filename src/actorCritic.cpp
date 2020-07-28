@@ -81,24 +81,24 @@ ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initial
         inac = params[4];
         s = params[5];
     }
-    alphaU = (double)initialAlphaU / tilecoder->getNumTilings();
-    alphaV = (double)initialAlphaV/ tilecoder->getNumTilings();
+    alphaU = (double)initialAlphaU / tilecoder->getNumTotalTilings();
+    alphaV = (double)initialAlphaV/ tilecoder->getNumTotalTilings();
     lambda = 1 - 1.0/tau;
 
     parameters = vector<double>(tilecoder->getNumTiles() * TILE_MULTIPLE, 0);
     for (int i = 0; i < (int)parameters.size(); i++) {
         switch (i / tilecoder->getNumTiles()) {
             case K_ORDER:
-                parameters[i] = DEFAULT_INITIAL_K_PARAMETERS / tilecoder->getNumTilings();
+                parameters[i] = DEFAULT_INITIAL_K_PARAMETERS / tilecoder->getNumTotalTilings();
                 break;
             case PHI_ORDER:
-                parameters[i] = DEFAULT_INITIAL_PHI_PARAMETERS / tilecoder->getNumTilings();
+                parameters[i] = DEFAULT_INITIAL_PHI_PARAMETERS / tilecoder->getNumTotalTilings();
                 break;
             case MU_ORDER:
-                parameters[i] = DEFAULT_INITIAL_MU_PARAMETERS / tilecoder->getNumTilings();
+                parameters[i] = DEFAULT_INITIAL_MU_PARAMETERS / tilecoder->getNumTotalTilings();
                 break;
             case SIGMA_ORDER:
-                parameters[i] = DEFAULT_INITIAL_SIGMA_PARAMETERS / tilecoder->getNumTilings();
+                parameters[i] = DEFAULT_INITIAL_SIGMA_PARAMETERS / tilecoder->getNumTotalTilings();
                 break;
         }
     }

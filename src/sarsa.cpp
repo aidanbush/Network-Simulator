@@ -58,7 +58,7 @@ Sarsa::Sarsa(vector<double> initialState, int flowId) {
     tilecoder = new Tilecoder(TILECODE_NUM_DIMS, TILECODE_DIM_RANGES, TILECODE_PATTERNS,
             TILESCODE_TILES_PER_DIM_TILING, TILECODE_NUM_TILIGS);
 
-    alpha = (double)initialAlpha / tilecoder->getNumTilings();
+    alpha = (double)initialAlpha / tilecoder->getNumTotalTilings();
     trace = vector<double>(tilecoder->getNumTiles() * NUM_ACTIONS, 0);
     oldState = initialState;
     oldTiles = tilecoder->tilecode(initialState);
