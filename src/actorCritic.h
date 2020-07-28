@@ -73,7 +73,10 @@ class ActorCritic: public Agent {
         vector<double> weightTrace; // ev
         vector<double> parameterTrace; // eu
         double rBar = 0;
-        double k, phi, mu, sigma;
+        double k = 0;
+        double phi = 0;
+        double mu = 0;
+        double sigma = 0;
 
         int stepnum = 0;
 
