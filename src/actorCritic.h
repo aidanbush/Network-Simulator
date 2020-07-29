@@ -70,7 +70,7 @@ class ActorCritic: public Agent {
 
         int stepnum = 0;
 
-        bool decreaseRate;
+        bool splitDistributionDecrease;
 
         double initialAlphaU;
         double initialAlphaV;

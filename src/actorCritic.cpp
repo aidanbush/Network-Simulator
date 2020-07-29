@@ -178,7 +178,7 @@ double ActorCritic::selectActionMult() {
     switch (multMode) {
         case GaussianTanh:
             {
-                if (SPLIT_DISTRIBUTION && decreaseRate) {
+                if (SPLIT_DISTRIBUTION && splitDistributionDecrease) {
                     k = sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_DIV_ORDER);
                     phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_DIV_ORDER));
                 } else {
@@ -192,7 +192,7 @@ double ActorCritic::selectActionMult() {
             break;
         case Gamma:
             {
-                if (SPLIT_DISTRIBUTION && decreaseRate) {
+                if (SPLIT_DISTRIBUTION && splitDistributionDecrease) {
                     k = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_DIV_ORDER)) + 1;
                     phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_DIV_ORDER));
                 } else {
@@ -209,7 +209,7 @@ double ActorCritic::selectActionMult() {
 
     if (SPLIT_DISTRIBUTION) {
         action++; // Change range from (0, inf) to (1, inf) so it is always increasing
-        if (decreaseRate) {
+        if (splitDistributionDecrease) {
             action = 1/action; // If a decrease is needed, invert it
         }
     }
@@ -217,7 +217,7 @@ double ActorCritic::selectActionMult() {
 }
 
 double ActorCritic::selectActionAdd() {
-    if (SPLIT_DISTRIBUTION && decreaseRate) {
+    if (SPLIT_DISTRIBUTION && splitDistributionDecrease) {
         mu = sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*MU_SUB_ORDER);
         sigma = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*SIGMA_SUB_ORDER));
     } else {
@@ -228,7 +228,7 @@ double ActorCritic::selectActionAdd() {
     //TODO: Consider clipping the value to a pre defined range
     double action = distribution(generator);
     if (SPLIT_DISTRIBUTION) {
-        if (decreaseRate) {
+        if (splitDistributionDecrease) {
             action = min(action, 0.0);
         } else {
             action = max(action, 0.0);
@@ -332,7 +332,7 @@ void ActorCritic::computeMultActionGradient(vector<double> &gradLog) {
     switch (multMode) {
         case GaussianTanh:
             for (int i = 0; i < (int)oldTiles.size(); i++) {
-                if (SPLIT_DISTRIBUTION && decreaseRate) {
+                if (SPLIT_DISTRIBUTION && splitDistributionDecrease) {
                     //grad log for k (mu)
                     gradLog[oldTiles[i] + Tilecoder::getNumTiles()*K_DIV_ORDER] = (actionPair.first - k)/(phi*phi);
                     // grad log for phi (sigma)
@@ -349,7 +349,7 @@ void ActorCritic::computeMultActionGradient(vector<double> &gradLog) {
             break;
         case Gamma:
             for (int i = 0; i < (int)oldTiles.size(); i++) {
-                if (SPLIT_DISTRIBUTION && decreaseRate) {
+                if (SPLIT_DISTRIBUTION && splitDistributionDecrease) {
                     //grad log for k
                     gradLog[oldTiles[i] + Tilecoder::getNumTiles()*K_DIV_ORDER] =\
                                                         (k - 1)*(log(actionPair.first/phi) - boost::math::digamma(k));
@@ -369,7 +369,7 @@ void ActorCritic::computeMultActionGradient(vector<double> &gradLog) {
 
 void ActorCritic::computeAddActionGradient(vector<double> &gradLog) {
     for (int i = 0; i < (int)oldTiles.size(); i++) {
-        if (SPLIT_DISTRIBUTION && decreaseRate) {
+        if (SPLIT_DISTRIBUTION && splitDistributionDecrease) {
             //grad log for mu
             gradLog[oldTiles[i] + Tilecoder::getNumTiles()*MU_SUB_ORDER] = (actionPair.second - mu)/(sigma*sigma);
             // grad log for sigma
@@ -434,7 +434,7 @@ void ActorCritic::updateParameters(double delta) {
 
 pair<double, double> ActorCritic::step(double state, double reward, double &rate) {
     totalReward += reward;
-    decreaseRate = (state > DEC_THRESHOLD);
+    splitDistributionDecrease = (state > DEC_THRESHOLD);
     // Tilecode
     tiles = Tilecoder::tilecode(state);
 
