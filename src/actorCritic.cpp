@@ -217,6 +217,7 @@ double ActorCritic::selectActionMult() {
                 double sample1 = distribution1(generator);
                 double sample2 = distribution2(generator);
                 // https://en.wikipedia.org/wiki/Beta_distribution#Generating_beta-distributed_random_variates
+                //TODO: BETA_MULT_SCALE sets the upper bound, do we want to shift so the lower bound is above zero?
                 action = BETA_MULT_SCALE*sample1/(sample1 + sample2);
             }
             break;
