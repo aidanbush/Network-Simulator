@@ -1,4 +1,5 @@
-shopt -s expand_aliases source ~/.bashrc
+shopt -s expand_aliases
+source ~/.bashrc
 
 procLimit=1
 timer=200
