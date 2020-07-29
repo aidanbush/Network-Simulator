@@ -27,6 +27,7 @@ class ActorCritic: public Agent {
         enum MultMode {
             Gamma,
             GaussianTanh,
+            Beta,
         };
         MultMode multMode;
 

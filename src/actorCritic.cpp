@@ -34,6 +34,7 @@ using namespace std;
 #define MODE Mult //Add, Mult, Both, or Choose
 #define MULT_MODE Gamma
 #define GAUSSIAN_TANH_SCALE 1
+#define BETA_MULT_SCALE 10 //TODO: can this and GAUSSIAN_TANH_SCALE be combined into one?
 #define REPORT_FLOW 1 // -1 for all flows
 #define SPLIT_DISTRIBUTION 1
 #define DEC_THRESHOLD 0.1
@@ -175,10 +176,10 @@ double ActorCritic::selectActionMult() {
         case GaussianTanh:
             {
                 if (SPLIT_DISTRIBUTION && decreaseRate) {
-                    k = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_DIV_ORDER)) + 1;
+                    k = sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_DIV_ORDER);
                     phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_DIV_ORDER));
                 } else {
-                    k = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_MUL_ORDER)) + 1;
+                    k = sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_MUL_ORDER);
                     phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_MUL_ORDER));
                 }
 
@@ -199,6 +200,24 @@ double ActorCritic::selectActionMult() {
                 gamma_distribution distribution(k, phi);
                  //TODO: Consider clipping the value to a pre defined range
                 action = distribution(generator);
+            }
+            break;
+        case Beta:
+            {
+                if (SPLIT_DISTRIBUTION && decreaseRate) {
+                    k = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_DIV_ORDER)) + 1;
+                    phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_DIV_ORDER)) + 1;
+                } else {
+                    k = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_MUL_ORDER)) + 1;
+                    phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_MUL_ORDER)) + 1;
+                }
+
+                gamma_distribution distribution1(k, 1.0);
+                gamma_distribution distribution2(phi, 1.0);
+                double sample1 = distribution1(generator);
+                double sample2 = distribution2(generator);
+                // https://en.wikipedia.org/wiki/Beta_distribution#Generating_beta-distributed_random_variates
+                action = BETA_MULT_SCALE*sample1/(sample1 + sample2);
             }
             break;
     }
@@ -279,6 +298,8 @@ double ActorCritic::getVariance() {
                 case Gamma:
                     variance = k*phi*phi;
                     break;
+                case Beta:
+                    variance = k*phi/((k + phi)*(k + phi)*(k + phi + 1));
             }
             return variance;
         case Add:
@@ -357,6 +378,27 @@ void ActorCritic::computeMultActionGradient(vector<double> &gradLog) {
                                                         (k - 1)*(log(actionPair.first/phi) - boost::math::digamma(k));
                     // grad log for phi
                     gradLog[oldTiles[i] + Tilecoder::getNumTiles()*PHI_MUL_ORDER] = actionPair.first/phi - k;
+                }
+            }
+            break;
+        case Beta:
+            for (int i = 0; i < (int)oldTiles.size(); i++) {
+                if (SPLIT_DISTRIBUTION && decreaseRate) {
+                    //grad log for k
+                    gradLog[oldTiles[i] + Tilecoder::getNumTiles()*K_DIV_ORDER] =\
+                            (k - 1)*(log(actionPair.first) + boost::math::digamma(k + phi) - boost::math::digamma(k));
+                    // grad log for phi
+                    gradLog[oldTiles[i] + Tilecoder::getNumTiles()*PHI_DIV_ORDER] =\
+                                            (phi - 1)*(log(1 - actionPair.first) + boost::math::digamma(k + phi) -\
+                                            boost::math::digamma(phi));
+                } else {
+                    //grad log for k
+                    gradLog[oldTiles[i] + Tilecoder::getNumTiles()*K_MUL_ORDER] =\
+                            (k - 1)*(log(actionPair.first) + boost::math::digamma(k + phi) + boost::math::digamma(k));
+                    // grad log for phi
+                    gradLog[oldTiles[i] + Tilecoder::getNumTiles()*PHI_MUL_ORDER] =\
+                                            (phi - 1)*(log(1 - actionPair.first) + boost::math::digamma(k + phi) -\
+                                            boost::math::digamma(phi));
                 }
             }
             break;
@@ -543,18 +585,20 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
 }
 
 pair<double, double> ActorCritic::getMultMeanStdev() {
-    pair<double, double> meanStdev;
-
+    double mean;
+    double stdev = sqrt(getVariance());
     switch (multMode) {
         case GaussianTanh:
-            meanStdev = pair<double, double>(k, phi);
+            mean = k;
             break;
         case Gamma:
-            meanStdev = pair<double, double>(k * phi, sqrt(k * pow(phi, 2)));
+            mean = k * phi;
             break;
+        case Beta:
+            mean = k/(k + phi);
     }
 
-    return meanStdev;
+    return pair<double, double>(mean, stdev);;
 }
 
 pair<double, double> ActorCritic::getAddMeanStdev() {
