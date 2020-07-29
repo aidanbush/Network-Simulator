@@ -39,7 +39,11 @@ using namespace std;
 #define DEC_THRESHOLD 0.1
 #endif // __has_include
 
-#define TILE_MULTIPLE 4*(1 + SPLIT_DISTRIBUTION)
+#if SPLIT_DISTRIBUTION > 0
+#define TILE_MULTIPLE 8
+#else
+#define TILE_MULTIPLE 4
+#endif
 //TODO: better names for these constants
 #define K_MUL_ORDER 0
 #define PHI_MUL_ORDER 1
