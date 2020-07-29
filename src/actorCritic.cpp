@@ -175,10 +175,10 @@ double ActorCritic::selectActionMult() {
         case GaussianTanh:
             {
                 if (SPLIT_DISTRIBUTION && decreaseRate) {
-                    k = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_DIV_ORDER)) + 1;
+                    k = sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_DIV_ORDER);
                     phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_DIV_ORDER));
                 } else {
-                    k = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_MUL_ORDER)) + 1;
+                    k = sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_MUL_ORDER);
                     phi = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*PHI_MUL_ORDER));
                 }
 
