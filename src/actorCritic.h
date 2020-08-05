@@ -37,6 +37,8 @@ class ActorCritic: public Agent {
         double selectActionMult();
         double selectActionAdd();
 
+        double getMultVariance();
+        double getAddVariance();
         double getVariance();
         double computeDiffSum();
 

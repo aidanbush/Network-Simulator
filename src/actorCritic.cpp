@@ -217,8 +217,7 @@ double ActorCritic::selectActionMult() {
                 double sample1 = distribution1(generator);
                 double sample2 = distribution2(generator);
                 // https://en.wikipedia.org/wiki/Beta_distribution#Generating_beta-distributed_random_variates
-                //TODO: BETA_MULT_SCALE sets the upper bound, do we want to shift so the lower bound is above zero?
-                action = BETA_MULT_SCALE*sample1/(sample1 + sample2);
+                action = sample1/(sample1 + sample2);
             }
             break;
     }
@@ -288,23 +287,32 @@ pair<double, double> ActorCritic::selectAction() {
     return actionPair;
 }
 
+double ActorCritic::getMultVariance() {
+    double variance;
+    switch (multMode) {
+        case GaussianTanh:
+            variance = phi*phi;
+            break;
+        case Gamma:
+            variance = k*phi*phi;
+            break;
+        case Beta:
+            variance = k*phi/((k + phi)*(k + phi)*(k + phi + 1));
+            break;
+    }
+    return variance;
+}
+
+double ActorCritic::getAddVariance() {
+    return sigma*sigma;
+}
+
 double ActorCritic::getVariance() {
     switch (mode) {
         case Mult:
-            double variance;
-            switch (multMode) {
-                case GaussianTanh:
-                    variance = phi*phi;
-                    break;
-                case Gamma:
-                    variance = k*phi*phi;
-                    break;
-                case Beta:
-                    variance = k*phi/((k + phi)*(k + phi)*(k + phi + 1));
-            }
-            return variance;
+            return getMultVariance();
         case Add:
-            return sigma*sigma;
+            return getAddVariance();
         default:
             throw runtime_error("Getting variance only supported in Add and Mult modes");
     }
@@ -565,12 +573,19 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
     switch (mode) {
         case Mult:
             rate *= actionPair.first;
+            if (multMode == Beta) {
+                rate *= BETA_MULT_SCALE;
+                //TODO: BETA_MULT_SCALE sets the upper bound, do we want to shift so the lower bound is above zero?
+            }
             break;
         case Add:
             rate += actionPair.second;
             break;
         case Both:
             rate *= actionPair.first;
+            if (multMode == Beta) {
+                rate *= BETA_MULT_SCALE;
+            }
             rate += actionPair.second;
             break;
         case Choose:
@@ -578,6 +593,9 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
                 rate += actionPair.second;
             } else {
                 rate *= actionPair.first;
+                if (multMode == Beta) {
+                    rate *= BETA_MULT_SCALE;
+                }
             }
             break;
     }
@@ -587,7 +605,7 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
 
 pair<double, double> ActorCritic::getMultMeanStdev() {
     double mean;
-    double stdev = sqrt(getVariance());
+    double stdev = sqrt(getMultVariance());
     switch (multMode) {
         case GaussianTanh:
             mean = k;
