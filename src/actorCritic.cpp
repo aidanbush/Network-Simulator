@@ -403,7 +403,7 @@ void ActorCritic::computeMultActionGradient(vector<double> &gradLog) {
                 } else {
                     //grad log for k
                     gradLog[oldTiles[i] + Tilecoder::getNumTiles()*K_MUL_ORDER] =\
-                            (k - 1)*(log(actionPair.first) + boost::math::digamma(k + phi) + boost::math::digamma(k));
+                            (k - 1)*(log(actionPair.first) + boost::math::digamma(k + phi) - boost::math::digamma(k));
                     // grad log for phi
                     gradLog[oldTiles[i] + Tilecoder::getNumTiles()*PHI_MUL_ORDER] =\
                                             (phi - 1)*(log(1 - actionPair.first) + boost::math::digamma(k + phi) -\
