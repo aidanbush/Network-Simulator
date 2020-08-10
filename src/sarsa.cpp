@@ -51,14 +51,11 @@ Sarsa::Sarsa(vector<double> *weights, double initialState, int flowId) {
     trace = vector<double>(Tilecoder::getNumTiles() * NUM_ACTIONS, 0);
     oldState = initialState;
     oldTiles = Tilecoder::tilecode(initialState);
+    generator.seed(man.random());
 }
 
 string Sarsa::getName() {
     return "Sarsa";
-}
-
-void Sarsa::seed(int seed) {
-    generator.seed(seed);
 }
 
 pair<int, double> Sarsa::selectAction() {

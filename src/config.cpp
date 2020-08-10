@@ -130,9 +130,6 @@ static bool parseConfig(json& config) {
             if (!man.addFlow(flow)) {
                 delete flow;
                 success = false;
-            } else {
-                // ensure each flow has a separate seep but still reproducible
-                flow->seed(man.random());
             }
         } catch (const runtime_error &e) {
             cerr << e.what() << endl;

@@ -36,8 +36,6 @@ class Flow: public NetworkObject {
 
         bool validate();
 
-        void seed(int seed);
-
         double getTotalReward();
 
     protected:
