@@ -1,4 +1,5 @@
-shopt -s expand_aliases source ~/.bashrc
+shopt -s expand_aliases
+source ~/.bashrc
 
 procLimit=1
 timer=200
@@ -50,7 +51,7 @@ for seed in `seq $numTests`; do
     seed=$(($seed + $offset))
 
     # ensure only create new processes when less than procLimit exist
-    while [ `ps -u $(whoami) | grep simulator | wc -l` -ge $procLimit ] ; do
+    while [ `ps -u $(whoami) -o comm | grep simulator | wc -l` -ge $procLimit ] ; do
         sleep 1
     done
 
