@@ -93,6 +93,28 @@ int Tilecoder::getNumTotalTilings() {
     return numTotalTilings;
 }
 
+vector<int> Tilecoder::tilecodeSingle(vector<double> state, int tilesPerDim, int numTilings, double tileWidth,
+        double offset) {
+    vector<int> tiles = vector<int>(numTilings);
+
+    for (int t = 0; t < int(tiles.size()); t++) {
+        int tile = 0;
+        int dimensionOffset = 1;
+
+        for (int d = 0; d < int(state.size()); d++) {
+            tile += int((state[d] + offset * t) / tileWidth) * dimensionOffset;
+            dimensionOffset *= tilesPerDim;
+        }
+
+        // tiling offset
+        tile += t * dimensionOffset;
+
+        tiles[t] = tile;
+    }
+
+    return tiles;
+}
+
 vector<int> Tilecoder::tilecode(vector<double> state) {
     // check number of dimensions
     if (int(state.size()) != numDimensions) {
@@ -126,28 +148,6 @@ vector<int> Tilecoder::tilecode(vector<double> state) {
         }
 
         patternOffset += numPatternTiles[i];
-    }
-
-    return tiles;
-}
-
-vector<int> Tilecoder::tilecodeSingle(vector<double> state, int tilesPerDim, int numTilings, double tileWidth,
-        double offset) {
-    vector<int> tiles = vector<int>(numTilings);
-
-    for (int t = 0; t < int(tiles.size()); t++) {
-        int tile = 0;
-        int dimensionOffset = 1;
-
-        for (int d = 0; d < int(state.size()); d++) {
-            tile += int((state[d] + offset * t) / tileWidth) * dimensionOffset;
-            dimensionOffset *= tilesPerDim;
-        }
-
-        // tiling offset
-        tile += t * dimensionOffset;
-
-        tiles[t] = tile;
     }
 
     return tiles;

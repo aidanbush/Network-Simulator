@@ -34,13 +34,14 @@ using namespace std;
 #define MODE Mult //Add, Mult, Both, or Choose
 #define MULT_MODE Gamma
 #define REPORT_FLOW 1 // -1 for all flows
-#endif // __has_include
 
-#define TILECODE_NUM_DIMS 2
-#define TILECODE_DIM_RANGES {{0,1}, {0,1}}
+#define TILECODE_NUM_DIMS 1
+#define TILECODE_DIM_RANGES {{0,1}}
 #define TILECODE_PATTERNS {{0}}
 #define TILESCODE_TILES_PER_DIM_TILING {11}
 #define TILECODE_NUM_TILIGS {1}
+#endif // __has_include
+
 
 #define TILE_MULTIPLE 4
 //TODO: better names for these constants

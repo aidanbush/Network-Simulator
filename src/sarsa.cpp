@@ -19,13 +19,13 @@ using namespace std;
 #define DEFAULT_EPSILON 0.01
 #define DEFAULT_INITIAL_WEIGHTS 0.1
 #define NUM_PARAMS 4
-#endif // __has_include
 
-#define TILECODE_NUM_DIMS 2
-#define TILECODE_DIM_RANGES {{0,1}, {0,1}}
+#define TILECODE_NUM_DIMS 1
+#define TILECODE_DIM_RANGES {{0,1}}
 #define TILECODE_PATTERNS {{0}}
 #define TILESCODE_TILES_PER_DIM_TILING {11}
 #define TILECODE_NUM_TILIGS {1}
+#endif // __has_include
 
 #define NUM_ACTIONS 4
 

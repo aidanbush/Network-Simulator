@@ -33,6 +33,8 @@
 #define STAT_FILE_DIRECTORY "results"
 
 #define DEFAULT_REWARD_TYPE BasicReward
+
+#define INITIAL_STATE {0}
 #endif // __has_include
 
 using namespace std;
@@ -130,7 +132,7 @@ Flow::Flow(json &flowConfig):
     this->rate = flowConfig["start_rate"];
 
     // TODO move agents into ECN Flow
-    vector<double> initialState = {0, 0};
+    vector<double> initialState = INITIAL_STATE;
     switch (end->getAgentType()) {
         case ActorCriticAgent:
             {
@@ -392,8 +394,7 @@ void ECNFlow::startFlow() {
 }
 
 vector<double> ECNFlow::getState() {
-    //return packetsSent == 0 ? 0 : (double)(packetsSent - packetsUntagged) / packetsSent;
-    return {averageECN, rate};
+    return {averageECN};
 }
 
 double ECNFlow::getReward() {
