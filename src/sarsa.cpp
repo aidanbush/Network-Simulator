@@ -29,14 +29,6 @@ using namespace std;
 
 #define NUM_ACTIONS 4
 
-vector<double> Sarsa::initializeWeights() {
-    double initialWeights;
-    if (!man.getInitialWeights(&initialWeights)) {
-        initialWeights = DEFAULT_INITIAL_WEIGHTS;
-    }
-    return vector<double>(tilecoder->getNumTiles() * NUM_ACTIONS, initialWeights);
-}
-
 Sarsa::Sarsa(vector<double> initialState, int flowId) {
     this->flowId = flowId;
 
@@ -44,19 +36,23 @@ Sarsa::Sarsa(vector<double> initialState, int flowId) {
             TILESCODE_TILES_PER_DIM_TILING, TILECODE_NUM_TILIGS);
 
     vector<double> params;
+    double initialWeights;
+
     if (!man.getParameters(&params, NUM_PARAMS)) {
         initialAlpha = DEFAULT_ALPHA;
         lambda = DEFAULT_LAMBDA;
         gamma = DEFAULT_GAMMA;
         epsilon = DEFAULT_EPSILON;
+        initialWeights = DEFAULT_INITIAL_WEIGHTS;
     } else {
         initialAlpha = params[0];
         lambda = params[1];
         gamma = params[2];
         epsilon = params[3];
+        man.getInitialWeights(&initialWeights);
     }
 
-    this->weights = initializeWeights();
+    this->weights = vector<double>(tilecoder->getNumTiles() * NUM_ACTIONS, initialWeights);
 
     alpha = (double)initialAlpha / tilecoder->getNumTotalTilings();
     trace = vector<double>(tilecoder->getNumTiles() * NUM_ACTIONS, 0);

@@ -15,8 +15,6 @@ class Sarsa: public Agent {
         void seed(int seed);
 
     private:
-        vector<double> initializeWeights();
-
         pair<int, double> selectAction();
 
         vector<double> weights;

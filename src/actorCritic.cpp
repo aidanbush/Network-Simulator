@@ -50,15 +50,6 @@ using namespace std;
 #define MU_ORDER 2
 #define SIGMA_ORDER 3
 
-vector<double> ActorCritic::initializeWeights() {
-    double initialWeights;
-    if (!man.getInitialWeights(&initialWeights)) {
-        initialWeights = DEFAULT_INITIAL_WEIGHTS;
-    }
-
-    return vector<double>(tilecoder->getNumTiles() * TILE_MULTIPLE, initialWeights);
-}
-
 ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initialRBar) {
     this->flowId = flowId;
     this->rBar = initialRBar;
@@ -69,6 +60,8 @@ ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initial
     stepnum = 0;
 
     vector<double> params;
+    double initialWeights;
+
     if (!man.getParameters(&params, NUM_PARAMS)) {
         initialAlphaU = DEFAULT_ALPHA_U;
         initialAlphaV = DEFAULT_ALPHA_V;
@@ -76,6 +69,7 @@ ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initial
         tau = DEFAULT_TAU;
         inac = DEFAULT_INAC;
         s = DEFAULT_S;
+        initialWeights = DEFAULT_INITIAL_WEIGHTS;
     } else {
         initialAlphaU = params[0];
         initialAlphaV = params[1];
@@ -84,6 +78,7 @@ ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initial
         //TODO: ensure this cast works
         inac = params[4];
         s = params[5];
+        man.getInitialWeights(&initialWeights);
     }
     alphaU = (double)initialAlphaU / tilecoder->getNumTotalTilings();
     alphaV = (double)initialAlphaV / tilecoder->getNumTotalTilings();
@@ -107,7 +102,7 @@ ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initial
         }
     }
 
-    this->criticWeights = initializeWeights();
+    this->criticWeights = vector<double>(tilecoder->getNumTiles() * TILE_MULTIPLE, initialWeights);
 
     advantageParameters = vector<double>(tilecoder->getNumTiles() * TILE_MULTIPLE, 0);
 

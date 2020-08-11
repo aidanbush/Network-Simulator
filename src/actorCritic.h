@@ -37,8 +37,6 @@ class ActorCritic: public Agent {
 
         mt19937 generator;
 
-        vector<double> initializeWeights();
-
         pair<double, double> selectAction();
         double selectActionMult();
         double selectActionAdd();
