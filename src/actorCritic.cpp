@@ -33,8 +33,10 @@ using namespace std;
 #define CHOOSE_EPSILON 0.1
 #define MODE Mult //Add, Mult, Both, or Choose
 #define MULT_MODE Gamma
+#define ADD_MODE Gaussian
 #define GAUSSIAN_TANH_SCALE 1
 #define BETA_MULT_SCALE 10 //TODO: can this and GAUSSIAN_TANH_SCALE be combined into one?
+#define BETA_ADD_SCALE 100
 #define REPORT_FLOW 1 // -1 for all flows
 #define SPLIT_DISTRIBUTION 1
 #define DEC_THRESHOLD 0.1
@@ -133,6 +135,7 @@ ActorCritic::ActorCritic(vector<double> *weights, double initialState, int flowI
 
     mode = MODE;
     multMode = MULT_MODE;
+    addMode = ADD_MODE;
 
     generator = mt19937();
     if (mode == Choose) {
@@ -202,7 +205,7 @@ double ActorCritic::selectActionMult() {
                 action = distribution(generator);
             }
             break;
-        case Beta:
+        case BetaMult:
             {
                 if (SPLIT_DISTRIBUTION && decreaseRate) {
                     k = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*K_DIV_ORDER)) + 1;
@@ -222,32 +225,44 @@ double ActorCritic::selectActionMult() {
             break;
     }
 
-    if (SPLIT_DISTRIBUTION) {
-        action++; // Change range from (0, inf) to (1, inf) so it is always increasing
-        if (decreaseRate) {
-            action = 1/action; // If a decrease is needed, invert it
-        }
-    }
     return action;
 }
 
 double ActorCritic::selectActionAdd() {
-    if (SPLIT_DISTRIBUTION && decreaseRate) {
-        mu = sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*MU_SUB_ORDER);
-        sigma = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*SIGMA_SUB_ORDER));
-    } else {
-        mu = sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*MU_ADD_ORDER);
-        sigma = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*SIGMA_ADD_ORDER));
-    }
-    normal_distribution distribution(mu, sigma);
-    //TODO: Consider clipping the value to a pre defined range
-    double action = distribution(generator);
-    if (SPLIT_DISTRIBUTION) {
-        if (decreaseRate) {
-            action = min(action, 0.0);
-        } else {
-            action = max(action, 0.0);
-        }
+    double action;
+
+    switch (addMode) {
+        case Gaussian:
+            {
+                if (SPLIT_DISTRIBUTION && decreaseRate) {
+                    mu = sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*MU_SUB_ORDER);
+                    sigma = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*SIGMA_SUB_ORDER));
+                } else {
+                    mu = sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*MU_ADD_ORDER);
+                    sigma = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*SIGMA_ADD_ORDER));
+                }
+                normal_distribution distribution(mu, sigma);
+                //TODO: Consider clipping the value to a pre defined range
+                action = distribution(generator);
+            }
+            break;
+        case BetaAdd:
+            {
+                if (SPLIT_DISTRIBUTION && decreaseRate) {
+                    mu = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*MU_SUB_ORDER)) + 1;
+                    sigma = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*SIGMA_SUB_ORDER)) + 1;
+                } else {
+                    mu = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*MU_ADD_ORDER)) + 1;
+                    sigma = exp(sumIndices(&parameters, &tiles, Tilecoder::getNumTiles()*SIGMA_ADD_ORDER)) + 1;
+                }
+
+                gamma_distribution distribution1(mu, 1.0);
+                gamma_distribution distribution2(sigma, 1.0);
+                double sample1 = distribution1(generator);
+                double sample2 = distribution2(generator);
+                // https://en.wikipedia.org/wiki/Beta_distribution#Generating_beta-distributed_random_variates
+                action = sample1/(sample1 + sample2);
+            }
     }
     return action;
 }
@@ -296,7 +311,7 @@ double ActorCritic::getMultVariance() {
         case Gamma:
             variance = k*phi*phi;
             break;
-        case Beta:
+        case BetaMult:
             variance = k*phi/((k + phi)*(k + phi)*(k + phi + 1));
             break;
     }
@@ -304,7 +319,16 @@ double ActorCritic::getMultVariance() {
 }
 
 double ActorCritic::getAddVariance() {
-    return sigma*sigma;
+    double variance;
+    switch (addMode) {
+        case Gaussian:
+            variance = sigma*sigma;
+            break;
+        case BetaAdd:
+            variance = mu*sigma/((mu + sigma)*(mu + sigma)*(mu + sigma + 1));
+            break;
+    }
+    return variance;
 }
 
 double ActorCritic::getVariance() {
@@ -390,7 +414,7 @@ void ActorCritic::computeMultActionGradient(vector<double> &gradLog) {
                 }
             }
             break;
-        case Beta:
+        case BetaMult:
             for (int i = 0; i < (int)oldTiles.size(); i++) {
                 if (SPLIT_DISTRIBUTION && decreaseRate) {
                     //grad log for k
@@ -415,20 +439,47 @@ void ActorCritic::computeMultActionGradient(vector<double> &gradLog) {
 }
 
 void ActorCritic::computeAddActionGradient(vector<double> &gradLog) {
-    for (int i = 0; i < (int)oldTiles.size(); i++) {
-        if (SPLIT_DISTRIBUTION && decreaseRate) {
-            //grad log for mu
-            gradLog[oldTiles[i] + Tilecoder::getNumTiles()*MU_SUB_ORDER] = (actionPair.second - mu)/(sigma*sigma);
-            // grad log for sigma
-            gradLog[oldTiles[i] + Tilecoder::getNumTiles()*SIGMA_SUB_ORDER] =\
-                                                (actionPair.second - mu)*(actionPair.second - mu)/(sigma*sigma) - 1;
-        } else {
-            //grad log for mu
-            gradLog[oldTiles[i] + Tilecoder::getNumTiles()*MU_ADD_ORDER] = (actionPair.second - mu)/(sigma*sigma);
-            // grad log for sigma
-            gradLog[oldTiles[i] + Tilecoder::getNumTiles()*SIGMA_ADD_ORDER] =\
-                                                (actionPair.second - mu)*(actionPair.second - mu)/(sigma*sigma) - 1;
-        }
+    switch (addMode) {
+        case Gaussian:
+            for (int i = 0; i < (int)oldTiles.size(); i++) {
+                if (SPLIT_DISTRIBUTION && decreaseRate) {
+                    //grad log for mu
+                    gradLog[oldTiles[i] + Tilecoder::getNumTiles()*MU_SUB_ORDER] =\
+                                            (actionPair.second - mu)/(sigma*sigma);
+                    // grad log for sigma
+                    gradLog[oldTiles[i] + Tilecoder::getNumTiles()*SIGMA_SUB_ORDER] =\
+                                            (actionPair.second - mu)*(actionPair.second - mu)/(sigma*sigma) - 1;
+                } else {
+                    //grad log for mu
+                    gradLog[oldTiles[i] + Tilecoder::getNumTiles()*MU_ADD_ORDER] =\
+                                            (actionPair.second - mu)/(sigma*sigma);
+                    // grad log for sigma
+                    gradLog[oldTiles[i] + Tilecoder::getNumTiles()*SIGMA_ADD_ORDER] =\
+                                            (actionPair.second - mu)*(actionPair.second - mu)/(sigma*sigma) - 1;
+                }
+            }
+            break;
+        case BetaAdd:
+            for (int i = 0; i < (int)oldTiles.size(); i++) {
+                if (SPLIT_DISTRIBUTION && decreaseRate) {
+                    //grad log for mu
+                    gradLog[oldTiles[i] + Tilecoder::getNumTiles()*MU_SUB_ORDER] =\
+                        (mu - 1)*(log(actionPair.first) + boost::math::digamma(mu + sigma) - boost::math::digamma(mu));
+                    // grad log for sigma
+                    gradLog[oldTiles[i] + Tilecoder::getNumTiles()*SIGMA_SUB_ORDER] =\
+                        (sigma - 1)*(log(1 - actionPair.first) + boost::math::digamma(mu + sigma) -\
+                        boost::math::digamma(sigma));
+                } else {
+                    //grad log for mu
+                    gradLog[oldTiles[i] + Tilecoder::getNumTiles()*MU_ADD_ORDER] =\
+                        (mu - 1)*(log(actionPair.first) + boost::math::digamma(mu + sigma) - boost::math::digamma(mu));
+                    // grad log for sigma
+                    gradLog[oldTiles[i] + Tilecoder::getNumTiles()*SIGMA_ADD_ORDER] =\
+                        (sigma - 1)*(log(1 - actionPair.first) + boost::math::digamma(mu + sigma) -\
+                        boost::math::digamma(sigma));
+                }
+            }
+            break;
     }
 }
 
@@ -568,34 +619,57 @@ pair<double, double> ActorCritic::step(double state, double reward, double &rate
         printf(" action: multi: %f add: %f\n", actionPair.first, actionPair.second);// action
     }
 
+    //Transform actions from values chosen in distributions to values used to control flow
+    double multAction = actionPair.first;
+    if (multMode == BetaMult) {
+        multAction *= BETA_MULT_SCALE;
+        //TODO: BETA_MULT_SCALE sets the upper bound, do we want to shift so the lower bound is above zero?
+    }
+    if (SPLIT_DISTRIBUTION) {
+        multAction++; // Change range from (0, inf) to (1, inf) so it is always increasing
+        if (decreaseRate) {
+            multAction = 1/multAction; // If a decrease is needed, invert it
+        }
+    }
+    double addAction = actionPair.second;
+    if (SPLIT_DISTRIBUTION) {
+        if (decreaseRate) {
+            if (addMode == BetaAdd) {
+                addAction *= -BETA_ADD_SCALE;
+            } else {
+                addAction = min(addAction, 0.0);
+            }
+        } else {
+            if (addMode == BetaAdd) {
+                addAction *= BETA_ADD_SCALE;
+            } else {
+                addAction = max(addAction, 0.0);
+            }
+        }
+    } else {
+        if (addMode == BetaAdd) {
+            addAction -= 0.5; // Range is now (-0.5, 0.5)
+            addAction *= 2*BETA_ADD_SCALE; //Range is now (-BETA_ADD_SCALE, BETA_ADD_SCALE)
+        }
+    }
     // TODO: should this be if statement, it would remove duplicated code in case Both, but it might be better
     //          to keep it as a switch since it is going over the values of an enum
     switch (mode) {
         case Mult:
-            rate *= actionPair.first;
-            if (multMode == Beta) {
-                rate *= BETA_MULT_SCALE;
-                //TODO: BETA_MULT_SCALE sets the upper bound, do we want to shift so the lower bound is above zero?
-            }
+            rate *= multAction;
             break;
         case Add:
-            rate += actionPair.second;
+            rate += addAction;
             break;
         case Both:
-            rate *= actionPair.first;
-            if (multMode == Beta) {
-                rate *= BETA_MULT_SCALE;
-            }
-            rate += actionPair.second;
+            rate *= multAction;
+            rate += addAction;
             break;
         case Choose:
-            if (actionPair.first == 0) {
-                rate += actionPair.second;
+            if (multAction == 0) {
+                rate += addAction;
             } else {
-                rate *= actionPair.first;
-                if (multMode == Beta) {
-                    rate *= BETA_MULT_SCALE;
-                }
+                rate *= multAction;
             }
             break;
     }
@@ -613,13 +687,24 @@ pair<double, double> ActorCritic::getMultMeanStdev() {
         case Gamma:
             mean = k * phi;
             break;
-        case Beta:
+        case BetaMult:
             mean = k/(k + phi);
+            break;
     }
 
     return pair<double, double>(mean, stdev);;
 }
 
 pair<double, double> ActorCritic::getAddMeanStdev() {
-    return pair<double, double>(mu, sigma);
+    double mean;
+    double stdev = sqrt(getAddVariance());
+    switch (addMode) {
+        case Gaussian:
+            mean = mu;
+            break;
+        case BetaAdd:
+            mean = mu/(mu + sigma);
+            break;
+    }
+    return pair<double, double>(mean, stdev);
 }

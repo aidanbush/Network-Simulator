@@ -27,9 +27,15 @@ class ActorCritic: public Agent {
         enum MultMode {
             Gamma,
             GaussianTanh,
-            Beta,
+            BetaMult,
         };
         MultMode multMode;
+
+        enum AddMode {
+            Gaussian,
+            BetaAdd,
+        };
+        AddMode addMode;
 
         mt19937 generator;
 
