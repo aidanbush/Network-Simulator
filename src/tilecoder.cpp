@@ -43,9 +43,12 @@ Tilecoder::Tilecoder(int numDimensions, vector<pair<double, double>> dimensionRa
     this->numTilings = numTilings;
 
     // calculate tileWidths, and offsets
+    this->tileWidths.resize(tilecodingPatterns.size());
+    this->offsets.resize(tilecodingPatterns.size());
+
     for (int i = 0; i < int(tilecodingPatterns.size()); i++) {
-        this->tileWidths.push_back(1 / double(tilesPerDimTiling[i] - 1));
-        this->offsets.push_back(tileWidths[i] / numTilings[i]);
+        this->tileWidths[i] = 1 / double(tilesPerDimTiling[i] - 1);
+        this->offsets[i] = tileWidths[i] / numTilings[i];
     }
 
     calculateNumTiles();
