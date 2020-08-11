@@ -464,18 +464,20 @@ void ActorCritic::computeAddActionGradient(vector<double> &gradLog) {
                 if (SPLIT_DISTRIBUTION && decreaseRate) {
                     //grad log for mu
                     gradLog[oldTiles[i] + Tilecoder::getNumTiles()*MU_SUB_ORDER] =\
-                        (mu - 1)*(log(actionPair.first) + boost::math::digamma(mu + sigma) - boost::math::digamma(mu));
+                        (mu - 1)*(log(actionPair.second) + boost::math::digamma(mu + sigma) -\
+                        boost::math::digamma(mu));
                     // grad log for sigma
                     gradLog[oldTiles[i] + Tilecoder::getNumTiles()*SIGMA_SUB_ORDER] =\
-                        (sigma - 1)*(log(1 - actionPair.first) + boost::math::digamma(mu + sigma) -\
+                        (sigma - 1)*(log(1 - actionPair.second) + boost::math::digamma(mu + sigma) -\
                         boost::math::digamma(sigma));
                 } else {
                     //grad log for mu
                     gradLog[oldTiles[i] + Tilecoder::getNumTiles()*MU_ADD_ORDER] =\
-                        (mu - 1)*(log(actionPair.first) + boost::math::digamma(mu + sigma) - boost::math::digamma(mu));
+                        (mu - 1)*(log(actionPair.second) + boost::math::digamma(mu + sigma) -\
+                        boost::math::digamma(mu));
                     // grad log for sigma
                     gradLog[oldTiles[i] + Tilecoder::getNumTiles()*SIGMA_ADD_ORDER] =\
-                        (sigma - 1)*(log(1 - actionPair.first) + boost::math::digamma(mu + sigma) -\
+                        (sigma - 1)*(log(1 - actionPair.second) + boost::math::digamma(mu + sigma) -\
                         boost::math::digamma(sigma));
                 }
             }
