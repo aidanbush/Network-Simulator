@@ -29,7 +29,7 @@ using namespace std;
 #define DEFAULT_INITIAL_PHI_PARAMETERS -1
 #define DEFAULT_INITIAL_MU_PARAMETERS 0
 #define DEFAULT_INITIAL_SIGMA_PARAMETERS 0
-#define NUM_PARAMS 6
+#define NUM_PARAMS 7
 #define CHOOSE_EPSILON 0.1
 #define MODE Mult //Add, Mult, Both, or Choose
 #define MULT_MODE Gamma
@@ -92,8 +92,9 @@ ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initial
         //TODO: ensure this cast works
         inac = params[4];
         s = params[5];
-        man.getInitialWeights(&initialWeights);
+        initialWeights = params[6];
     }
+
     alphaU = (double)initialAlphaU / tilecoder->getNumTotalTilings();
     alphaV = (double)initialAlphaV / tilecoder->getNumTotalTilings();
     lambda = 1 - 1.0/tau;
