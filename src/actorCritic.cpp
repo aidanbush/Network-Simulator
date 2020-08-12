@@ -149,6 +149,7 @@ ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initial
     multMode = MULT_MODE;
 
     generator = mt19937();
+    generator.seed(man.random());
 
     if ((mode == Both || mode ==Choose) && s) {
         //TODO: add support for this, see Williams, R. 1992. Simple Statistical Gradient-Following
@@ -174,10 +175,6 @@ string ActorCritic::getName() {
         default:
             return "AC";
     }
-}
-
-void ActorCritic::seed(int seed) {
-    generator.seed(seed);
 }
 
 double ActorCritic::selectActionMult() {

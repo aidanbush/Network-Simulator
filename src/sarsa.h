@@ -12,7 +12,6 @@ class Sarsa: public Agent {
         pair<double, double> step(vector<double> state, double reward, double &rate);
 
         string getName();
-        void seed(int seed);
 
     private:
         pair<int, double> selectAction();

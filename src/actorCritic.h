@@ -13,7 +13,6 @@ class ActorCritic: public Agent {
         pair<double, double> step(vector<double> state, double reward, double &rate);
 
         string getName();
-        void seed(int seed);
 
         pair<double, double> getMultMeanStdev();
         pair<double, double> getAddMeanStdev();

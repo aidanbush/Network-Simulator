@@ -159,10 +159,6 @@ Flow::Flow(json &flowConfig):
     this->rewardType = DEFAULT_REWARD_TYPE;
 }
 
-void Flow::seed(int seed) {
-    agent->seed(seed);
-}
-
 Flow::~Flow() {
     for (auto it : packets) {
         delete it.second;
