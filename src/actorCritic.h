@@ -78,6 +78,8 @@ class ActorCritic: public Agent {
 
         int stepnum = 0;
 
+        bool splitDistributionDecrease;
+
         double initialAlphaU;
         double initialAlphaV;
         double alphaU;

@@ -33,6 +33,7 @@ using namespace std;
 #define CHOOSE_EPSILON 0.1
 #define MODE Mult //Add, Mult, Both, or Choose
 #define MULT_MODE Gamma
+#define GAUSSIAN_TANH_SCALE 1
 #define REPORT_FLOW 1 // -1 for all flows
 
 #define TILECODE_NUM_DIMS 1
@@ -40,15 +41,28 @@ using namespace std;
 #define TILECODE_PATTERNS {{0}}
 #define TILESCODE_TILES_PER_DIM_TILING {11}
 #define TILECODE_NUM_TILIGS {1}
+
+#define SPLIT_DISTRIBUTION 1
+#define DEC_THRESHOLD 0.1
 #endif // __has_include
 
-
+#if SPLIT_DISTRIBUTION > 0
+#define TILE_MULTIPLE 8
+#else
 #define TILE_MULTIPLE 4
+#endif
+
 //TODO: better names for these constants
-#define K_ORDER 0
-#define PHI_ORDER 1
-#define MU_ORDER 2
-#define SIGMA_ORDER 3
+#define K_MUL_ORDER 0
+#define PHI_MUL_ORDER 1
+#define MU_ADD_ORDER 2
+#define SIGMA_ADD_ORDER 3
+#define K_DIV_ORDER 4
+#define PHI_DIV_ORDER 5
+#define MU_SUB_ORDER 6
+#define SIGMA_SUB_ORDER 7
+#define CHOOSE_MUL_ORDER 0
+#define CHOOSE_ADD_ORDER 1
 
 ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initialRBar) {
     this->flowId = flowId;
@@ -87,26 +101,42 @@ ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initial
     parameters = vector<double>(tilecoder->getNumTiles() * TILE_MULTIPLE, 0);
     for (int i = 0; i < (int)parameters.size(); i++) {
         switch (i / tilecoder->getNumTiles()) {
-            case K_ORDER:
+            case K_MUL_ORDER:
                 parameters[i] = DEFAULT_INITIAL_K_PARAMETERS / tilecoder->getNumTotalTilings();
                 break;
-            case PHI_ORDER:
+            case PHI_MUL_ORDER:
                 parameters[i] = DEFAULT_INITIAL_PHI_PARAMETERS / tilecoder->getNumTotalTilings();
                 break;
-            case MU_ORDER:
+            case MU_ADD_ORDER:
                 parameters[i] = DEFAULT_INITIAL_MU_PARAMETERS / tilecoder->getNumTotalTilings();
                 break;
-            case SIGMA_ORDER:
+            case SIGMA_ADD_ORDER:
+                parameters[i] = DEFAULT_INITIAL_SIGMA_PARAMETERS / tilecoder->getNumTotalTilings();
+                break;
+            case K_DIV_ORDER:
+                parameters[i] = DEFAULT_INITIAL_K_PARAMETERS / tilecoder->getNumTotalTilings();
+                break;
+            case PHI_DIV_ORDER:
+                parameters[i] = DEFAULT_INITIAL_PHI_PARAMETERS / tilecoder->getNumTotalTilings();
+                break;
+            case MU_SUB_ORDER:
+                parameters[i] = DEFAULT_INITIAL_MU_PARAMETERS / tilecoder->getNumTotalTilings();
+                break;
+            case SIGMA_SUB_ORDER:
                 parameters[i] = DEFAULT_INITIAL_SIGMA_PARAMETERS / tilecoder->getNumTotalTilings();
                 break;
         }
     }
 
-    this->criticWeights = vector<double>(tilecoder->getNumTiles() * TILE_MULTIPLE, initialWeights);
+    if (mode == Choose) {
+        this->criticWeights = vector<double>(tilecoder->getNumTiles() * TILE_MULTIPLE * 2, initialWeights);
+    } else {
+        this->criticWeights = vector<double>(tilecoder->getNumTiles() * TILE_MULTIPLE, initialWeights);
+    }
 
     advantageParameters = vector<double>(tilecoder->getNumTiles() * TILE_MULTIPLE, 0);
 
-    weightTrace = vector<double>(tilecoder->getNumTiles() * TILE_MULTIPLE, 0);
+    weightTrace = vector<double>(tilecoder->getNumTiles(), 0);
     parameterTrace = vector<double>(tilecoder->getNumTiles() * TILE_MULTIPLE, 0);
 
     oldState = initialState;
@@ -118,6 +148,7 @@ ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initial
     multMode = MULT_MODE;
 
     generator = mt19937();
+
     if ((mode == Both || mode ==Choose) && s) {
         //TODO: add support for this, see Williams, R. 1992. Simple Statistical Gradient-Following
         //                                  Algorithms for Connectionist Reinforcement Learning
@@ -154,32 +185,65 @@ double ActorCritic::selectActionMult() {
     switch (multMode) {
         case GaussianTanh:
             {
-                k = sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*K_ORDER);
-                phi = exp(sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*PHI_ORDER));
-                normal_distribution distribution(k, phi);
+                if (SPLIT_DISTRIBUTION && splitDistributionDecrease) {
+                    k = sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*K_DIV_ORDER);
+                    phi = exp(sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*PHI_DIV_ORDER));
+                } else {
+                    k = sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*K_MUL_ORDER);
+                    phi = exp(sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*PHI_MUL_ORDER));
+                }
 
-                action = exp(tanh(distribution(generator)));
+                normal_distribution distribution(k, phi);
+                action = exp(GAUSSIAN_TANH_SCALE*tanh(distribution(generator)));
             }
             break;
         case Gamma:
             {
-                k = exp(sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*K_ORDER)) + 1;
-                phi = exp(sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*PHI_ORDER));
+                if (SPLIT_DISTRIBUTION && splitDistributionDecrease) {
+                    k = exp(sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*K_DIV_ORDER)) + 1;
+                    phi = exp(sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*PHI_DIV_ORDER));
+                } else {
+                    k = exp(sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*K_MUL_ORDER)) + 1;
+                    phi = exp(sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*PHI_MUL_ORDER));
+                }
 
                 gamma_distribution distribution(k, phi);
+                 //TODO: Consider clipping the value to a pre defined range
                 action = distribution(generator);
             }
             break;
+    }
+
+    if (SPLIT_DISTRIBUTION) {
+        action++; // Change range from (0, inf) to (1, inf) so it is always increasing
+        if (splitDistributionDecrease) {
+            action = 1/action; // If a decrease is needed, invert it
+        }
     }
     return action;
 }
 
 double ActorCritic::selectActionAdd() {
-    mu = sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*MU_ORDER);
-    sigma = exp(sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*SIGMA_ORDER));
+    if (SPLIT_DISTRIBUTION && splitDistributionDecrease) {
+        mu = sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*MU_SUB_ORDER);
+        sigma = exp(sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*SIGMA_SUB_ORDER));
+    } else {
+        mu = sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*MU_ADD_ORDER);
+        sigma = exp(sumIndices(&parameters, &tiles, tilecoder->getNumTiles()*SIGMA_ADD_ORDER));
+    }
+
     normal_distribution distribution(mu, sigma);
+
     //TODO: Consider clipping the value to a pre defined range
-    return distribution(generator);
+    double action = distribution(generator);
+    if (SPLIT_DISTRIBUTION) {
+        if (splitDistributionDecrease) {
+            action = min(action, 0.0);
+        } else {
+            action = max(action, 0.0);
+        }
+    }
+    return action;
 }
 
 pair<double, double> ActorCritic::selectAction() {
@@ -201,10 +265,8 @@ pair<double, double> ActorCritic::selectAction() {
             } else {
                 double multValue = 0, addValue = 0;
                 for (int i = 0; i < (int)tiles.size(); i++) {
-                    multValue += criticWeights.at(tiles[i] + K_ORDER*tilecoder->getNumTiles());
-                    multValue += criticWeights.at(tiles[i] + PHI_ORDER*tilecoder->getNumTiles());
-                    addValue += criticWeights.at(tiles[i] + MU_ORDER*tilecoder->getNumTiles());
-                    addValue += criticWeights.at(tiles[i] + SIGMA_ORDER*tilecoder->getNumTiles());
+                    multValue += criticWeights.at(tiles[i] + CHOOSE_MUL_ORDER*tilecoder->getNumTiles());
+                    addValue += criticWeights.at(tiles[i] + CHOOSE_ADD_ORDER*tilecoder->getNumTiles());
                 }
                 doMultAction = multValue > addValue;
             }
@@ -222,12 +284,16 @@ pair<double, double> ActorCritic::selectAction() {
 double ActorCritic::getVariance() {
     switch (mode) {
         case Mult:
+            double variance;
             switch (multMode) {
                 case GaussianTanh:
-                    return phi*phi;
+                    variance = phi*phi;
+                    break;
                 case Gamma:
-                    return k*phi*phi;
+                    variance = k*phi*phi;
+                    break;
             }
+            return variance;
         case Add:
             return sigma*sigma;
         default:
@@ -241,22 +307,15 @@ double ActorCritic::computeDiffSum() {
         double multNew = 0, multOld = 0, addNew = 0, addOld = 0;
         for (int i = 0; i < (int)tiles.size(); i++) {
             //TODO: For multOld and addOld consider reusing the computation in the last selectAction call
-            multNew += criticWeights.at(tiles[i] + K_ORDER*tilecoder->getNumTiles());
-            multNew += criticWeights.at(tiles[i] + PHI_ORDER*tilecoder->getNumTiles());
-            multOld += criticWeights.at(oldTiles[i] + K_ORDER*tilecoder->getNumTiles());
-            multOld += criticWeights.at(oldTiles[i] + PHI_ORDER*tilecoder->getNumTiles());
-            addNew += criticWeights.at(tiles[i] + MU_ORDER*tilecoder->getNumTiles());
-            addNew += criticWeights.at(tiles[i] + SIGMA_ORDER*tilecoder->getNumTiles());
-            addOld += criticWeights.at(oldTiles[i] + MU_ORDER*tilecoder->getNumTiles());
-            addOld += criticWeights.at(oldTiles[i] + SIGMA_ORDER*tilecoder->getNumTiles());
+            multNew += criticWeights.at(tiles[i] + CHOOSE_MUL_ORDER*tilecoder->getNumTiles());
+            multOld += criticWeights.at(oldTiles[i] + CHOOSE_MUL_ORDER*tilecoder->getNumTiles());
+            addNew += criticWeights.at(tiles[i] + CHOOSE_ADD_ORDER*tilecoder->getNumTiles());
+            addOld += criticWeights.at(oldTiles[i] + CHOOSE_ADD_ORDER*tilecoder->getNumTiles());
         }
         diffSum = GAMMA*max(multNew, addNew) - max(multOld, addOld);
     } else {
         for (int i = 0; i < (int)tiles.size(); i++) {
-            for (int j = 0; j < TILE_MULTIPLE; j++) {
-                diffSum += GAMMA*criticWeights.at(tiles[i] + j*tilecoder->getNumTiles()) -
-                            criticWeights.at(oldTiles[i] + j*tilecoder->getNumTiles());
-            }
+            diffSum += GAMMA*criticWeights.at(tiles[i]) - criticWeights.at(oldTiles[i]);
         }
     }
     return diffSum;
@@ -268,9 +327,7 @@ void ActorCritic::updateWeightTrace() {
     }
 
     for (auto xi: oldTiles) {
-        for (int j = 0; j < TILE_MULTIPLE; j++) {
-            weightTrace[xi + j*tilecoder->getNumTiles()]++;
-        }
+        weightTrace[xi]++;
     }
 }
 
@@ -284,20 +341,36 @@ void ActorCritic::computeMultActionGradient(vector<double> &gradLog) {
     switch (multMode) {
         case GaussianTanh:
             for (int i = 0; i < (int)oldTiles.size(); i++) {
-                //grad log for k (mu)
-                gradLog[oldTiles[i] + tilecoder->getNumTiles()*K_ORDER] = (actionPair.first - k) / (phi * phi);
-                // grad log for phi (sigma)
-                gradLog[oldTiles[i] + tilecoder->getNumTiles()*PHI_ORDER] =\
-                                                    (actionPair.first - k)*(actionPair.first - k) / (phi * phi) - 1;
+                if (SPLIT_DISTRIBUTION && splitDistributionDecrease) {
+                    //grad log for k (mu)
+                    gradLog[oldTiles[i] + tilecoder->getNumTiles()*K_DIV_ORDER] = (actionPair.first - k)/(phi*phi);
+                    // grad log for phi (sigma)
+                    gradLog[oldTiles[i] + tilecoder->getNumTiles()*PHI_DIV_ORDER] =\
+                                                        (actionPair.first - k)*(actionPair.first - k)/(phi*phi) - 1;
+                } else {
+                    //grad log for k (mu)
+                    gradLog[oldTiles[i] + tilecoder->getNumTiles()*K_MUL_ORDER] = (actionPair.first - k)/(phi*phi);
+                    // grad log for phi (sigma)
+                    gradLog[oldTiles[i] + tilecoder->getNumTiles()*PHI_MUL_ORDER] =\
+                                                        (actionPair.first - k)*(actionPair.first - k)/(phi*phi) - 1;
+                }
             }
             break;
         case Gamma:
             for (int i = 0; i < (int)oldTiles.size(); i++) {
-                //grad log for k
-                gradLog[oldTiles[i] + tilecoder->getNumTiles()*K_ORDER] =\
-                                                    (k - 1)*(log(actionPair.first/phi) - boost::math::digamma(k));
-                // grad log for phi
-                gradLog[oldTiles[i] + tilecoder->getNumTiles()*PHI_ORDER] = actionPair.first/phi - k;
+                if (SPLIT_DISTRIBUTION && splitDistributionDecrease) {
+                    //grad log for k
+                    gradLog[oldTiles[i] + tilecoder->getNumTiles()*K_DIV_ORDER] =\
+                                                        (k - 1)*(log(actionPair.first/phi) - boost::math::digamma(k));
+                    // grad log for phi
+                    gradLog[oldTiles[i] + tilecoder->getNumTiles()*PHI_DIV_ORDER] = actionPair.first/phi - k;
+                } else {
+                    //grad log for k
+                    gradLog[oldTiles[i] + tilecoder->getNumTiles()*K_MUL_ORDER] =\
+                                                        (k - 1)*(log(actionPair.first/phi) - boost::math::digamma(k));
+                    // grad log for phi
+                    gradLog[oldTiles[i] + tilecoder->getNumTiles()*PHI_MUL_ORDER] = actionPair.first/phi - k;
+                }
             }
             break;
     }
@@ -305,11 +378,19 @@ void ActorCritic::computeMultActionGradient(vector<double> &gradLog) {
 
 void ActorCritic::computeAddActionGradient(vector<double> &gradLog) {
     for (int i = 0; i < (int)oldTiles.size(); i++) {
-        //grad log for mu
-        gradLog[oldTiles[i] + tilecoder->getNumTiles()*MU_ORDER] = (actionPair.second - mu)/(sigma*sigma);
-        // grad log for sigma
-        gradLog[oldTiles[i] + tilecoder->getNumTiles()*SIGMA_ORDER] =\
-                                            (actionPair.second - mu)*(actionPair.second - mu)/(sigma*sigma) - 1;
+        if (SPLIT_DISTRIBUTION && splitDistributionDecrease) {
+            //grad log for mu
+            gradLog[oldTiles[i] + tilecoder->getNumTiles()*MU_SUB_ORDER] = (actionPair.second - mu)/(sigma*sigma);
+            // grad log for sigma
+            gradLog[oldTiles[i] + tilecoder->getNumTiles()*SIGMA_SUB_ORDER] =\
+                                                (actionPair.second - mu)*(actionPair.second - mu)/(sigma*sigma) - 1;
+        } else {
+            //grad log for mu
+            gradLog[oldTiles[i] + tilecoder->getNumTiles()*MU_ADD_ORDER] = (actionPair.second - mu)/(sigma*sigma);
+            // grad log for sigma
+            gradLog[oldTiles[i] + tilecoder->getNumTiles()*SIGMA_ADD_ORDER] =\
+                                                (actionPair.second - mu)*(actionPair.second - mu)/(sigma*sigma) - 1;
+        }
     }
 }
 
@@ -362,6 +443,7 @@ void ActorCritic::updateParameters(double delta) {
 
 pair<double, double> ActorCritic::step(vector<double> state, double reward, double &rate) {
     totalReward += reward;
+    splitDistributionDecrease = (state[0] > DEC_THRESHOLD);
     // Tilecode
     tiles = tilecoder->tilecode(state);
 

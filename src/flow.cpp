@@ -411,10 +411,10 @@ double ECNFlow::getReward() {
         case AdvancedReward:
             {
                 // (untagged - tagged) / sqrt(rate)
-                double r = (2*packetsUntagged - packetsSent) / pow(rate, 0.5);
-                if (rate == MIN_RATE || rate == maxRate) {
-                    r -= 1;
-                }
+                double r = ((1 - averageECN)*packetsSent) / pow(rate, 0.5);
+                // if (rate == MIN_RATE || rate == maxRate) {
+                //     r -= 1;
+                // }
                 return r;
             }
         case NegativeReward:
