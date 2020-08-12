@@ -61,6 +61,10 @@ void Sarsa::seed(int seed) {
     generator.seed(seed);
 }
 
+void Sarsa::setAveragePacketSizeBytes(double size) {
+    avgPacketSizeBytes = size;
+}
+
 pair<int, double> Sarsa::selectAction() {
     if ((double)generator()/(generator.max() - generator.min()) < epsilon) {
         int ind = (int)(generator()%NUM_ACTIONS);
@@ -138,12 +142,12 @@ pair<double, double> Sarsa::step(double state, double reward, double &rate) {
             actionPair = pair<double, double>(.5, 0);
             break;
         case 2:
-            rate++;
-            actionPair = pair<double, double>(0, 1);
+            actionPair = pair<double, double>(0, avgPacketSizeBytes * 8);
+            rate += actionPair.second;
             break;
         case 3:
-            rate--;
-            actionPair = pair<double, double>(0, -1);
+            actionPair = pair<double, double>(0, -avgPacketSizeBytes * 8);
+            rate += actionPair.second;
             break;
     }
 

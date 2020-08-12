@@ -11,6 +11,8 @@ class Sarsa: public Agent {
         string getName();
         void seed(int seed);
 
+        void setAveragePacketSizeBytes(double size);
+
     private:
         pair<int, double> selectAction();
         vector<double> *weights;
@@ -31,7 +33,9 @@ class Sarsa: public Agent {
         double epsilon;
 
         double totalReward = 0;
-        
+
+        double avgPacketSizeBytes;
+
         mt19937 generator;
 };
 
