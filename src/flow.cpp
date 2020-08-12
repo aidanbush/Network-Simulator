@@ -33,6 +33,8 @@
 #define STAT_FILE_DIRECTORY "results"
 
 #define DEFAULT_REWARD_TYPE BasicReward
+
+#define INITIAL_STATE {0}
 #endif // __has_include
 
 using namespace std;
@@ -128,16 +130,19 @@ Flow::Flow(json &flowConfig):
     {
     Endpoint *end = man.getEndpoint(flowConfig["source_id"]);
     this->rate = flowConfig["start_rate"];
+
+    // TODO move agents into ECN Flow
+    vector<double> initialState = INITIAL_STATE;
     switch (end->getAgentType()) {
         case ActorCriticAgent:
             {
                 double rBar = initialAverageReward();
 
-                agent = new ActorCritic(end->getWeights(), 0, flowConfig["id"], rBar);
+                agent = new ActorCritic(initialState, flowConfig["id"], rBar);
                 break;
             }
         case SarsaAgent:
-            agent = new Sarsa(end->getWeights(), 0, flowConfig["id"]);
+            agent = new Sarsa(initialState, flowConfig["id"]);
             break;
     }
     this->sourceId = flowConfig["source_id"];
@@ -384,9 +389,8 @@ void ECNFlow::startFlow() {
     man.pushEvent(e2);
 }
 
-double ECNFlow::getState() {
-    //return packetsSent == 0 ? 0 : (double)(packetsSent - packetsUntagged) / packetsSent;
-    return averageECN;
+vector<double> ECNFlow::getState() {
+    return {averageECN};
 }
 
 double ECNFlow::getReward() {
@@ -403,10 +407,10 @@ double ECNFlow::getReward() {
         case AdvancedReward:
             {
                 // (untagged - tagged) / sqrt(rate)
-                double r = (2*packetsUntagged - packetsSent) / pow(rate, 0.5);
-                if (rate == MIN_RATE || rate == maxRate) {
-                    r -= 1;
-                }
+                double r = ((1 - averageECN)*packetsSent) / pow(rate, 0.5);
+                // if (rate == MIN_RATE || rate == maxRate) {
+                //     r -= 1;
+                // }
                 return r;
             }
         case NegativeReward:
@@ -482,7 +486,7 @@ void ECNFlow::printCSV(string filename, vector<double> vec) {
 }
 
 void ECNFlow::stepAgent() {
-    double state = getState();
+    vector<double> state = getState();
     double reward = getReward();
     totalReward += reward;
 

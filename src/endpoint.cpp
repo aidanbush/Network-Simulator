@@ -24,10 +24,7 @@ Endpoint::Endpoint(json &endpointConfig): PacketHandler(validateEndpointConfig(e
     agentType = AGENT_TYPE;
     switch (agentType) {
         case ActorCriticAgent:
-            weights = ActorCritic::initializeWeights();
-            break;
         case SarsaAgent:
-            weights = Sarsa::initializeWeights();
             break;
     }
 }
