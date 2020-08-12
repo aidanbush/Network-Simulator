@@ -275,25 +275,15 @@ bool Manager::startSimulator() {
     return true;
 }
 
-void Manager::setParameters(vector<double> params, double initialWeights) {
+void Manager::setParameters(vector<double> params) {
     parametersSet = true;
     this->params = params;
-    this->initialWeights = initialWeights;
 }
 
 bool Manager::getParameters(vector<double> *params, int numParams) {
     if (parametersSet && numParams == (int)this->params.size()) {
         // TODO: print warning if incorrect number of parameters
         *params = this->params;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-bool Manager::getInitialWeights(double *initialWeights) {
-    if (parametersSet) {
-        *initialWeights = this->initialWeights;
         return true;
     } else {
         return false;

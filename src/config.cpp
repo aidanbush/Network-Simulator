@@ -150,12 +150,11 @@ void loadParams(string filename) {
     double nextParam;
 
     ifs >> numParams;
-    for (int i = 0; i < numParams - 1; i++) {
+    for (int i = 0; i < numParams; i++) {
         ifs >> nextParam;
         params.push_back(nextParam);
     }
-    ifs >> nextParam; // Last parameter is always initialWeights
-    man.setParameters(params, nextParam);
+    man.setParameters(params);
 }
 
 bool loadConfig(string filename) {

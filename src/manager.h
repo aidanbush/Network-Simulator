@@ -95,9 +95,8 @@ class Manager {
         bool setCSVDir(string filename);
         string getCSVDir();
 
-        void setParameters(vector<double> params, double initialWeights);
+        void setParameters(vector<double> params);
         bool getParameters(vector<double> *params, int numParams);
-        bool getInitialWeights(double *initialWeights);
 
         void setSuppressOutput(int value);
         int getSuppressOutput(LogLevel level);
