@@ -39,8 +39,8 @@ using namespace std;
 #define TILECODE_NUM_DIMS 1
 #define TILECODE_DIM_RANGES {{0,1}}
 #define TILECODE_PATTERNS {{0}}
-#define TILESCODE_TILES_PER_DIM_TILING {11}
-#define TILECODE_NUM_TILIGS {1}
+#define TILECODE_TILES_PER_DIM_TILING {11}
+#define TILECODE_NUM_TILINGS {1}
 
 #define SPLIT_DISTRIBUTION 1
 #define DEC_THRESHOLD 0.1
@@ -69,7 +69,7 @@ ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initial
     this->rBar = initialRBar;
 
     tilecoder = new Tilecoder(TILECODE_NUM_DIMS, TILECODE_DIM_RANGES, TILECODE_PATTERNS,
-            TILESCODE_TILES_PER_DIM_TILING, TILECODE_NUM_TILIGS);
+            TILECODE_TILES_PER_DIM_TILING, TILECODE_NUM_TILINGS);
 
     stepnum = 0;
 
