@@ -18,7 +18,7 @@ using namespace std;
 #define DEFAULT_GAMMA 0.9
 #define DEFAULT_EPSILON 0.01
 #define DEFAULT_INITIAL_WEIGHTS 0.1
-#define NUM_PARAMS 4
+#define NUM_PARAMS 5
 
 #define TILECODE_NUM_DIMS 1
 #define TILECODE_DIM_RANGES {{0,1}}
@@ -49,7 +49,7 @@ Sarsa::Sarsa(vector<double> initialState, int flowId) {
         lambda = params[1];
         gamma = params[2];
         epsilon = params[3];
-        man.getInitialWeights(&initialWeights);
+        initialWeights = params[4];
     }
 
     this->weights = vector<double>(tilecoder->getNumTiles() * NUM_ACTIONS, initialWeights);
@@ -57,15 +57,12 @@ Sarsa::Sarsa(vector<double> initialState, int flowId) {
     alpha = (double)initialAlpha / tilecoder->getNumTotalTilings();
     trace = vector<double>(tilecoder->getNumTiles() * NUM_ACTIONS, 0);
     oldState = initialState;
+    generator.seed(man.random());
     oldTiles = tilecoder->tilecode(initialState);
 }
 
 string Sarsa::getName() {
     return "Sarsa";
-}
-
-void Sarsa::seed(int seed) {
-    generator.seed(seed);
 }
 
 pair<int, double> Sarsa::selectAction() {

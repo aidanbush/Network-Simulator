@@ -22,6 +22,10 @@ plotRange = None
 if "-r" in sys.argv:
     plotRange = tuple(map(int, sys.argv[sys.argv.index("-r") + 1].split('-')))
 
+titlePostfix = ""
+if "-t" in sys.argv:
+    titlePostfix = sys.argv[sys.argv.index("-t") + 1]
+
 log = True
 if "--no-log" in sys.argv:
     log = False
@@ -49,7 +53,11 @@ with open(csvFile) as f:
 # make plots
 for dataType in data.keys():
     plt.figure(figsize=FIGSIZE)
-    plt.title(dataType)
+
+    if titlePostfix != "":
+        plt.title(dataType + " " + titlePostfix)
+    else:
+        plt.title(dataType)
 
     for flow in sorted(data[dataType].keys()):
         flowData = data[dataType][flow]
