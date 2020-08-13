@@ -22,6 +22,13 @@ plotRange = None
 if "-r" in sys.argv:
     plotRange = tuple(map(int, sys.argv[sys.argv.index("-r") + 1].split('-')))
 
+log = True
+if "--no-log" in sys.argv:
+    log = False
+
+if not os.path.isdir(outputDir):
+    os.mkdir(outputDir)
+
 # data type {flow [mean, std]}
 data = defaultdict(lambda: defaultdict(lambda: [[],[]]))
 
@@ -55,7 +62,7 @@ for dataType in data.keys():
         # plot line with stdev
         plt.plot(flowData[0], label=flow)
         plt.fill_between(range(len(flowData[0])), flowData[0]-flowData[1], flowData[0]+flowData[1], alpha=1/3)
-        if (dataType in ["Rates", "MultActions", "MultMean", "MultStd"]):
+        if (dataType in ["Rates", "MultActions", "MultMean", "MultStd"]) and log:
             plt.yscale("log")
         plt.legend()
 
