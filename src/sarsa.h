@@ -14,6 +14,13 @@ class Sarsa: public Agent {
         string getName();
 
     private:
+        enum RewardMode {
+            averageReward,
+            discountedReward,
+        };
+
+        RewardMode rewardMode;
+
         pair<int, double> selectAction();
 
         vector<double> weights;
@@ -32,6 +39,9 @@ class Sarsa: public Agent {
         double lambda;
         double gamma;
         double epsilon;
+        double beta;
+
+        double rBar;
 
         double totalReward = 0;
 
