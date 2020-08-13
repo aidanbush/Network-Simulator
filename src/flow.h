@@ -36,8 +36,6 @@ class Flow: public NetworkObject {
 
         bool validate();
 
-        void seed(int seed);
-
         double getTotalReward();
 
         virtual double getAveragePacketSizeBytes() = 0;
@@ -161,7 +159,7 @@ class ECNFlow: public Flow {
         int totalPacketsSent;
         vector<double> averageECNList;
 
-        double getState();
+        vector<double> getState();
         double getReward();
         void resetState();
 

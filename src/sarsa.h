@@ -3,22 +3,25 @@
 
 #include <random>
 
+#include "tilecoder.h"
+
 class Sarsa: public Agent {
     public:
-        Sarsa(vector<double> *weights, double initialState, int flowId);
-        pair<double, double> step(double state, double reward, double &rate);
-        static vector<double> initializeWeights();
+        Sarsa(vector<double> initialState, int flowId);
+
+        pair<double, double> step(vector<double> state, double reward, double &rate);
+
         string getName();
-        void seed(int seed);
 
         void setAveragePacketSizeBytes(double size);
 
     private:
         pair<int, double> selectAction();
-        vector<double> *weights;
+
+        vector<double> weights;
         vector<double> trace;
         double oldValue = 0;
-        double oldState;
+        vector<double> oldState;
         /*TODO: this sets what the agent considers to be its previous action at the start of the episode
                 it should be changed to choose the first action during setup (outside of the loop over time steps)
         */
@@ -35,6 +38,8 @@ class Sarsa: public Agent {
         double totalReward = 0;
 
         double avgPacketSizeBytes;
+
+        Tilecoder *tilecoder;
 
         mt19937 generator;
 };

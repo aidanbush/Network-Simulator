@@ -130,9 +130,6 @@ static bool parseConfig(json& config) {
             if (!man.addFlow(flow)) {
                 delete flow;
                 success = false;
-            } else {
-                // ensure each flow has a separate seep but still reproducible
-                flow->seed(man.random());
             }
         } catch (const runtime_error &e) {
             cerr << e.what() << endl;
@@ -150,12 +147,11 @@ void loadParams(string filename) {
     double nextParam;
 
     ifs >> numParams;
-    for (int i = 0; i < numParams - 1; i++) {
+    for (int i = 0; i < numParams; i++) {
         ifs >> nextParam;
         params.push_back(nextParam);
     }
-    ifs >> nextParam; // Last parameter is always initialWeights
-    man.setParameters(params, nextParam);
+    man.setParameters(params);
 }
 
 bool loadConfig(string filename) {

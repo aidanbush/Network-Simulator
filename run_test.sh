@@ -71,8 +71,8 @@ echo python combineData.py $tempResultsDir ${resultsDir}/results.csv
 time python combineData.py $tempResultsDir ${resultsDir}/results.csv
 
 # plot data
-echo python plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat}
-time python plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat}
+echo python plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat} -t $testName
+time python plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat} -t $testName
 
 # clean up
 rm -r $tempResultsDir
