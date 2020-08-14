@@ -13,6 +13,8 @@ class Sarsa: public Agent {
 
         string getName();
 
+        void setAveragePacketSizeBytes(double size);
+
     private:
         pair<int, double> selectAction();
 
@@ -34,6 +36,8 @@ class Sarsa: public Agent {
         double epsilon;
 
         double totalReward = 0;
+
+        double avgPacketSizeBytes;
 
         Tilecoder *tilecoder;
 

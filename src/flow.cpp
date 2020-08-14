@@ -324,6 +324,10 @@ void BasicFlow::txPacketEvent() {
     man.pushEvent(e);
 }
 
+double BasicFlow::getAveragePacketSizeBytes() {
+    return double(headSize + bodySize);
+}
+
 /* Explicit congestion notification flow */
 
 ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
@@ -334,6 +338,11 @@ ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
     this->bodySize = PACKET_BODY_SIZE;
     this->ttl = 15;
     this->maxRate = getMaxRate();
+
+    Sarsa *agent = dynamic_cast<Sarsa *>(this->agent);
+    if (agent != NULL) {
+        agent->setAveragePacketSizeBytes(getAveragePacketSizeBytes());
+    }
 }
 
 json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
@@ -564,6 +573,10 @@ void ECNFlow::txPacketEvent() {
     }
     man.logEvent("ECNFlow", this->id, "Flow Packet Tx", "Sent packet " + to_string(p->getId()) + 
                     " from flow " + to_string(this->id));
+}
+
+double ECNFlow::getAveragePacketSizeBytes() {
+    return double(headSize + bodySize);
 }
 
 void ECNFlow::packetArrived(Packet *p) {
