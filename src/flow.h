@@ -38,6 +38,8 @@ class Flow: public NetworkObject {
 
         double getTotalReward();
 
+        virtual double getAveragePacketSizeBytes() = 0;
+
     protected:
         // TODO move out of Flow into ECNFlow
         enum RewardType {
@@ -109,6 +111,8 @@ class BasicFlow: public Flow {
         void stepAgent();
         void txPacketEvent();
 
+        double getAveragePacketSizeBytes();
+
     private:
         BasicFlow(json &flowConfig);
 
@@ -131,6 +135,8 @@ class ECNFlow: public Flow {
         void startFlow();
         void stepAgent();
         void txPacketEvent();
+
+        double getAveragePacketSizeBytes();
 
     private:
         ECNFlow(json &flowConfig);

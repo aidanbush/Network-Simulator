@@ -13,6 +13,8 @@ class Sarsa: public Agent {
 
         string getName();
 
+        void setAveragePacketSizeBytes(double size);
+
     private:
         enum RewardMode {
             averageReward,
@@ -44,6 +46,8 @@ class Sarsa: public Agent {
         double rBar;
 
         double totalReward = 0;
+
+        double avgPacketSizeBytes;
 
         Tilecoder *tilecoder;
 
