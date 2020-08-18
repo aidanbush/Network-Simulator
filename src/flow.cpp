@@ -102,6 +102,7 @@ double Flow::initialAverageReward() {
             rBar = expectedPackets;
             break;
         case AdvancedReward:
+        case AdvancedPenaltyReward:
         case RateReward:
             rBar = expectedPackets / pow(this->rate, 0.5);
             break;
@@ -405,15 +406,21 @@ double ECNFlow::getReward() {
             }
             return log(packetsUntagged) + 1;
         case AdvancedReward:
+            return ((1 - averageECN)*packetsSent) / pow(rate, 0.5);
+            /*
+            // (untagged - tagged) / sqrt(rate)
+            return (2*packetsUntagged - packetsSent) / pow(rate, 0.5);
+            */
+        case AdvancedPenaltyReward:
             {
-                // (untagged - tagged) / sqrt(rate)
                 double r = ((1 - averageECN)*packetsSent) / pow(rate, 0.5);
                 /*
+                // (untagged - tagged) / sqrt(rate)
                 double r = (2*packetsUntagged - packetsSent) / pow(rate, 0.5);
+                */
                 if (rate == MIN_RATE || rate == maxRate) {
                     r -= 1;
                 }
-                */
                 return r;
             }
         case NegativeReward:
