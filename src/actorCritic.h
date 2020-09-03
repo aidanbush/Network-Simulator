@@ -29,8 +29,15 @@ class ActorCritic: public Agent {
         enum MultMode {
             Gamma,
             GaussianTanh,
+            BetaMult,
         };
         MultMode multMode;
+
+        enum AddMode {
+            Gaussian,
+            BetaAdd,
+        };
+        AddMode addMode;
 
         Tilecoder *tilecoder;
 
@@ -40,6 +47,8 @@ class ActorCritic: public Agent {
         double selectActionMult();
         double selectActionAdd();
 
+        double getMultVariance();
+        double getAddVariance();
         double getVariance();
         double computeDiffSum();
 
