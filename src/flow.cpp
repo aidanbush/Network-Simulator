@@ -454,15 +454,18 @@ void ECNFlow::resetState() {
     packetsUntagged = 0;
     packetsSent = 0;
     averageECN = 0;
+    packetsDropped = 0;
 }
 
 void ECNFlow::updateStats() {
     totalPacketsUntagged += packetsUntagged;
     totalPacketsSent += packetsSent;
+    totalPacketsDropped += packetsDropped;
 
     rewardList.push_back(getReward());
     rateList.push_back(rate);
     averageECNList.push_back(averageECN);
+    packetsDroppedList.push_back(packetsDropped/packetsSent);
 }
 
 void ECNFlow::updateStatsPostStep(pair<double, double> action) {
@@ -551,6 +554,7 @@ void ECNFlow::stepAgent() {
         printCSV(filePathExceptSuffix + "_ECNAverages.csv", averageECNList);
         printCSV(filePathExceptSuffix + "_MultActions.csv", actionMultList);
         printCSV(filePathExceptSuffix + "_AddActions.csv", actionAddList);
+        printCSV(filePathExceptSuffix + "_DroppedPackets.csv", packetsDroppedList);
 
         if (dynamic_cast<ActorCritic*>(agent) != NULL) {
             printCSV(filePathExceptSuffix + "_MultMean.csv", multMeanList);
@@ -559,6 +563,9 @@ void ECNFlow::stepAgent() {
             printCSV(filePathExceptSuffix + "_AddMean.csv", addMeanList);
             printCSV(filePathExceptSuffix + "_AddStdev.csv", addStdevList);
         }
+
+        // print weights
+        printCSV(filePathExceptSuffix + "_Weights", agent->getWeights());
 
         man.removeFlow(id);
         delete this;

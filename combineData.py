@@ -11,9 +11,9 @@ def getFileData(path):
         data = list(map(float, f.readline().split(',')))
     return data
 
-dataPattern = re.compile("^(.+)_Flow(\d)_(ECNAverages|Rates|Rewards|MultActions|AddActions|MultMean|MultStdev|AddMean|AddStdev).csv$")
+dataPattern = re.compile("^(.+)_Flow(\d)_(ECNAverages|Rates|Rewards|MultActions|AddActions|MultMean|MultStdev|AddMean|AddStdev|DroppedPackets).csv$")
 
-DATA_TYPES = ["ECNAverages", "Rates", "Rewards", "MultActions", "AddActions", "MultMean", "MultStdev", "AddMean", "AddStdev"]
+DATA_TYPES = ["ECNAverages", "Rates", "Rewards", "MultActions", "AddActions", "MultMean", "MultStdev", "AddMean", "AddStdev", "DroppedPackets"]
 
 NUM_ELEMENTS = len(DATA_TYPES)
 

@@ -158,7 +158,9 @@ class ECNFlow: public Flow {
         double averageECN;
         int totalPacketsUntagged;
         int totalPacketsSent;
+        int totalPacketsDropped;
         vector<double> averageECNList;
+        vector<double> packetsDroppedList;
 
         vector<double> getState();
         double getReward();

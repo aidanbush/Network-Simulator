@@ -81,6 +81,10 @@ string Sarsa::getName() {
     return "Sarsa";
 }
 
+vector<double> Sarsa::getWeights() {
+    return weights;
+}
+
 void Sarsa::setAveragePacketSizeBytes(double size) {
     avgPacketSizeBytes = size;
 }

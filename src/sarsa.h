@@ -13,6 +13,8 @@ class Sarsa: public Agent {
 
         string getName();
 
+        vector<double> getWeights();
+
         void setAveragePacketSizeBytes(double size);
 
     private:

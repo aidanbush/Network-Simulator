@@ -177,6 +177,10 @@ string ActorCritic::getName() {
     }
 }
 
+vector<double> ActorCritic::getWeights() {
+    return criticWeights;
+}
+
 double ActorCritic::selectActionMult() {
     double action;
 

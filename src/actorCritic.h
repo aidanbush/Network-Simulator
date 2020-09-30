@@ -14,6 +14,8 @@ class ActorCritic: public Agent {
 
         string getName();
 
+        vector<double> getWeights();
+
         pair<double, double> getMultMeanStdev();
         pair<double, double> getAddMeanStdev();
 
