@@ -1,14 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 
 # open weights file
-weightFile = ""
-
-tiles = 11
-tilings = 1
+weightFile = sys.argv[1]
+tiles = int(sys.argv[2])
+tilings = int(sys.argv[3])
 
 # get weights
-weights = [-0.87729,-0.0399035,-0.00447566,0.00751508,0.247738,-0.00802878,0.38742,-0.00545796,0.362292,-0.0314865,0,-0.332682,1.30092,1.03629,0,0,0.0307052,0,0.254945,0.0143942,1.71139,0,4.69196,0.0262032,0.0306627,0.527858,0,0.214878,0,0,0,-0.0615549,0,-0.197671,-0.0149074,0.0255301,0,0,0.0208025,0,0,0.0136502,-0.0347894,0]
+with open(weightFile) as f:
+    weights = list(map(float, f.readline().split(',')))
 
 # get all possible values for given weights
 def getValues(tiles, tilings, weights, weightOffset):
@@ -27,6 +28,10 @@ def getValues(tiles, tilings, weights, weightOffset):
 actions = ["multiply", "divide", "add", "subtract"]
 values = []
 
+if len(weights) != tiles * tilings * len(actions):
+    print("Specified size does not match file")
+    exit()
+
 for i in range(4):
     values.append(getValues(tiles, tilings, weights, i*tiles*tilings))
 
@@ -44,8 +49,8 @@ ax.set_xticklabels([i / (len(values[0])-1) for i in range(len(values[0]))])
 for i in range(len(actions)):
     for j in range(len(values[0])):
         text = ax.text(j, i, "{:.2f}".format(values[i][j]),
-                       ha="center", va="center", color="w")
+                       ha="center", va="center", color="w", fontsize=8)
 
-ax.set_title("state values")
+ax.set_title("action values")
 fig.tight_layout()
 plt.show()
