@@ -118,6 +118,10 @@ double Flow::initialAverageReward() {
         case ExpertReward:
             rBar = 1;
             break;
+        case ThroughputReward:
+        case ThroughputDemandReward:
+            rBar = 0;
+            break;
     }
 
     return rBar;
@@ -153,6 +157,9 @@ Flow::Flow(json &flowConfig):
     this->packetsArrived = 0;
     this->packetsDropped = 0;
     this->packetsErrored = 0;
+    this->bytesArrived = 0;
+    this->throughput = 0;
+    this->oldThroughput = 0;
     this->curPId = 0;
     this->miTime = MI_TIME;
     this->maxTime = NUM_AGENT_STEPS*miTime;
@@ -176,6 +183,7 @@ bool Flow::addPacket(Packet *p) {
 }
 
 void Flow::packetArrived(Packet *p) {
+    bytesArrived += p->fullSizeBits();
     removePacket(p);
     packetsArrived++;
     delete p;
@@ -446,6 +454,31 @@ double ECNFlow::getReward() {
                 //Either ECN is low and rate decreased or ECN is high and rate increased
                 return -1.0;
             }
+        case ThroughputReward:
+            if (oldThroughput < throughput) {
+                return 1;
+            } else if (oldThroughput > throughput) {
+                return -1;
+            }
+            return 0;
+        case ThroughputDemandReward:
+            {
+                double r = 0;
+                if (oldThroughput < throughput) {
+                    r = 1;
+                } else if (oldThroughput > throughput) {
+                    r = -1;
+                } else {
+                    r = 0;
+                }
+                if (throughput > 50000) {
+                    //r -= 1;
+                    //r -= 0.5;
+                    r = -1;
+                }
+
+                return r;
+            }
     }
     throw runtime_error("Invalid reward specified\n");
 }
@@ -455,17 +488,24 @@ void ECNFlow::resetState() {
     packetsSent = 0;
     averageECN = 0;
     packetsDropped = 0;
+    bytesArrived = 0;
 }
 
 void ECNFlow::updateStats() {
     totalPacketsUntagged += packetsUntagged;
     totalPacketsSent += packetsSent;
     totalPacketsDropped += packetsDropped;
+    throughput = bytesArrived / miTime;
 
     rewardList.push_back(getReward());
     rateList.push_back(rate);
+    throughputList.push_back(throughput);
     averageECNList.push_back(averageECN);
-    packetsDroppedList.push_back(packetsDropped/packetsSent);
+    if (packetsSent == 0) {
+        packetsDroppedList.push_back(0);
+    } else {
+        packetsDroppedList.push_back(packetsDropped/packetsSent);
+    }
 }
 
 void ECNFlow::updateStatsPostStep(pair<double, double> action) {
@@ -509,14 +549,15 @@ void ECNFlow::printCSV(string filename, vector<double> vec) {
 
 void ECNFlow::stepAgent() {
     vector<double> state = getState();
+    updateStats();
+
     double reward = getReward();
     totalReward += reward;
-
-    updateStats();
 
     pair<double, double> action = agent->step(state, reward, rate);
     oldRate = rate;
     oldECN = averageECN;
+    oldThroughput = throughput;
 
     updateStatsPostStep(action);
 
@@ -555,6 +596,7 @@ void ECNFlow::stepAgent() {
         printCSV(filePathExceptSuffix + "_MultActions.csv", actionMultList);
         printCSV(filePathExceptSuffix + "_AddActions.csv", actionAddList);
         printCSV(filePathExceptSuffix + "_DroppedPackets.csv", packetsDroppedList);
+        printCSV(filePathExceptSuffix + "_Throughput.csv", throughputList);
 
         if (dynamic_cast<ActorCritic*>(agent) != NULL) {
             printCSV(filePathExceptSuffix + "_MultMean.csv", multMeanList);

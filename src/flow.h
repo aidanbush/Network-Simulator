@@ -52,6 +52,8 @@ class Flow: public NetworkObject {
             OffsetReward,
             ECNReward,
             ExpertReward,
+            ThroughputReward,
+            ThroughputDemandReward,
         };
         RewardType rewardType;
 
@@ -81,6 +83,9 @@ class Flow: public NetworkObject {
         int packetsArrived;
         int packetsDropped;
         int packetsErrored;
+        int bytesArrived;
+        double throughput;
+        double oldThroughput;
 
         Agent *agent;
         second_t miTime = 0.01; // 10 ms
@@ -92,6 +97,7 @@ class Flow: public NetworkObject {
         // TODO move out of Flow into ECNFlow
         double totalReward = 0;
         vector<double> rateList;
+        vector<double> throughputList;
         vector<double> rewardList;
         vector<double> actionMultList;
         vector<double> actionAddList;
