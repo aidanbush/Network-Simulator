@@ -29,6 +29,8 @@ class Packet: public NetworkObject {
         void drop();
         void error();
 
+        second_t getTravelTime();
+
         bool validate();
 
 #ifdef _TEST
@@ -42,6 +44,9 @@ class Packet: public NetworkObject {
         int sourceId;
         int destId;
         int flowId;
+
+        second_t createTime; // creation not send
+        second_t arrivalTime;
 };
 
 class ECNPacket: public Packet {

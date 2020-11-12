@@ -1,8 +1,8 @@
 #!/usr/local/bin/python3
 import csv
 import os, sys
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 from collections import defaultdict
 
 STATS_ELEM_TO_INDEX = {"mean": 0, "stdev": 1}

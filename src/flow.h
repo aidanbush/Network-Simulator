@@ -86,6 +86,8 @@ class Flow: public NetworkObject {
         int bytesArrived;
         double throughput;
         double oldThroughput;
+        second_t averageRTT;
+        second_t minRTT;
 
         Agent *agent;
         second_t miTime = 0.01; // 10 ms
@@ -98,7 +100,9 @@ class Flow: public NetworkObject {
         double totalReward = 0;
         vector<double> rateList;
         vector<double> throughputList;
-        vector<double> rewardList;
+        vector<double> averageRTTList;
+        vector<double> minRTTList; // TODO implement
+        vector<double> rewardList; // TODO implement
         vector<double> actionMultList;
         vector<double> actionAddList;
         vector<double> multMeanList;

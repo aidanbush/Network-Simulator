@@ -1,5 +1,6 @@
 #include "packet.h"
 #include "flow.h"
+#include "manager.h"
 
 Packet::Packet(int id, int sourceId, int destId, int flowId, int ttl,
         int headerSize, int bodySize): NetworkObject(id) {
@@ -9,6 +10,8 @@ Packet::Packet(int id, int sourceId, int destId, int flowId, int ttl,
     this->ttl = ttl;
     this->headerSize = headerSize;
     this->bodySize = bodySize;
+    this->createTime = man.time;
+    this->arrivalTime = 0;
 }
 
 Packet *Packet::clone() {
@@ -17,6 +20,7 @@ Packet *Packet::clone() {
 
 void Packet::arrive() {
     Flow *f = man.getFlow(flowId);
+    arrivalTime = man.time;
     f->packetArrived(this);
 }
 
@@ -28,6 +32,10 @@ void Packet::drop() {
 void Packet::error() {
     Flow *f = man.getFlow(flowId);
     f->packetError(this);
+}
+
+second_t Packet::getTravelTime() {
+    return arrivalTime - createTime;
 }
 
 bool Packet::validate() {

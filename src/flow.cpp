@@ -37,6 +37,8 @@
 #define INITIAL_STATE {0}
 #endif // __has_include
 
+#define MAX_RTT 1
+
 using namespace std;
 
 enum FlowType {
@@ -184,20 +186,27 @@ bool Flow::addPacket(Packet *p) {
 
 void Flow::packetArrived(Packet *p) {
     bytesArrived += p->fullSizeBits();
-    removePacket(p);
+    // TODO update to actual RTT not single direction
     packetsArrived++;
+
+    second_t packetRTT = p->getTravelTime();
+
+    averageRTT += (packetRTT - averageRTT) / packetsArrived;
+    minRTT = min(minRTT, packetRTT);
+
+    removePacket(p);
     delete p;
 }
 
 void Flow::packetDropped(Packet *p) {
-    removePacket(p);
     packetsDropped++;
+    removePacket(p);
     delete p;
 }
 
 void Flow::packetError(Packet *p) {
-    removePacket(p);
     packetsErrored++;
+    removePacket(p);
     delete p;
 }
 
@@ -342,6 +351,9 @@ double BasicFlow::getAveragePacketSizeBytes() {
 ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
     this->packetsUntagged = 0;
     this->packetsSent = 0;
+    this->throughput = 0;
+    this->averageRTT = 0;
+    this->minRTT = MAX_RTT;
     this->averageECN = 0;
     this->headSize = PACKET_HEADER_SIZE;
     this->bodySize = PACKET_BODY_SIZE;
@@ -408,7 +420,15 @@ void ECNFlow::startFlow() {
 }
 
 vector<double> ECNFlow::getState() {
-    return {averageECN};
+    double averageECNFeature = averageECN;
+    double throughputFeature = throughput / maxRate;
+    double rateFeature = rate / maxRate;
+    double dropRateFeature = packetsSent == 0 ? 0 : packetsDropped / packetsSent; // TODO figure out bug
+    double averageRTTFeature = averageRTT / MAX_RTT;
+    double queueDelayFeature = (averageRTT - minRTT) / MAX_RTT;
+
+    // average max buffer occupancy
+    return {averageECNFeature, throughputFeature, rateFeature, dropRateFeature, averageRTTFeature, queueDelayFeature};
 }
 
 double ECNFlow::getReward() {
@@ -489,6 +509,8 @@ void ECNFlow::resetState() {
     averageECN = 0;
     packetsDropped = 0;
     bytesArrived = 0;
+    averageRTT = 0;
+    minRTT = MAX_RTT;
 }
 
 void ECNFlow::updateStats() {
@@ -500,6 +522,9 @@ void ECNFlow::updateStats() {
     rewardList.push_back(getReward());
     rateList.push_back(rate);
     throughputList.push_back(throughput);
+    averageRTTList.push_back(averageRTT);
+    minRTTList.push_back(minRTT);
+
     averageECNList.push_back(averageECN);
     if (packetsSent == 0) {
         packetsDroppedList.push_back(0);
@@ -548,8 +573,8 @@ void ECNFlow::printCSV(string filename, vector<double> vec) {
 }
 
 void ECNFlow::stepAgent() {
-    vector<double> state = getState();
     updateStats();
+    vector<double> state = getState();
 
     double reward = getReward();
     totalReward += reward;
@@ -597,6 +622,8 @@ void ECNFlow::stepAgent() {
         printCSV(filePathExceptSuffix + "_AddActions.csv", actionAddList);
         printCSV(filePathExceptSuffix + "_DroppedPackets.csv", packetsDroppedList);
         printCSV(filePathExceptSuffix + "_Throughput.csv", throughputList);
+        printCSV(filePathExceptSuffix + "_AverageRTT.csv", averageRTTList);
+        printCSV(filePathExceptSuffix + "_MinRTT.csv", minRTTList);
 
         if (dynamic_cast<ActorCritic*>(agent) != NULL) {
             printCSV(filePathExceptSuffix + "_MultMean.csv", multMeanList);
