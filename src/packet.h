@@ -11,7 +11,7 @@ class Flow;
 class Packet: public NetworkObject {
     public:
         Packet(int id, int sourceId, int destId, int flowId, int ttl,
-                int headerSize, int bodySize);
+                int headerSize, int bodySize, bool sourcePacket);
         ~Packet() = default;
 
         Packet *clone();
@@ -20,6 +20,7 @@ class Packet: public NetworkObject {
         int getFlow() {return flowId; }
         int getSource() {return sourceId; }
         int getDest() {return destId; }
+        bool isSourcePacket() {return sourcePacket; }
 
         int fullSize() {return headerSize + bodySize; }
         int fullSizeBits() {return (headerSize + bodySize) * BITS_PER_BYTE; }
@@ -45,6 +46,8 @@ class Packet: public NetworkObject {
         int destId;
         int flowId;
 
+        bool sourcePacket;
+
         second_t createTime; // creation not send
         second_t arrivalTime;
 };
@@ -52,7 +55,7 @@ class Packet: public NetworkObject {
 class ECNPacket: public Packet {
     public:
         ECNPacket(int id, int sourceId, int destId, int flowId, int ttl,
-                int headerSize, int bodySize); // TODO add ack data
+                int headerSize, int bodySize, bool sourcePacket); // TODO add ack data
         ~ECNPacket() = default;
 
         void setECNBit();

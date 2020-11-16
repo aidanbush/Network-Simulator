@@ -3,7 +3,7 @@
 #include "manager.h"
 
 Packet::Packet(int id, int sourceId, int destId, int flowId, int ttl,
-        int headerSize, int bodySize): NetworkObject(id) {
+        int headerSize, int bodySize, bool sourcePacket): NetworkObject(id) {
     this->sourceId = sourceId;
     this->destId = destId;
     this->flowId = flowId;
@@ -12,10 +12,11 @@ Packet::Packet(int id, int sourceId, int destId, int flowId, int ttl,
     this->bodySize = bodySize;
     this->createTime = man.time;
     this->arrivalTime = 0;
+    this->sourcePacket = sourcePacket;
 }
 
 Packet *Packet::clone() {
-    return new Packet(id, sourceId, destId, flowId, ttl, headerSize, bodySize);
+    return new Packet(id, sourceId, destId, flowId, ttl, headerSize, bodySize, sourcePacket);
 }
 
 void Packet::arrive() {
@@ -46,8 +47,8 @@ bool Packet::validate() {
 /* explicit congestion notification packet */
 
 ECNPacket::ECNPacket(int id, int sourceId, int destId, int flowId, int ttl,
-        int headerSize, int bodySize): Packet(id, sourceId, destId, flowId, ttl,
-            headerSize, bodySize) {
+        int headerSize, int bodySize, bool sourcePacket): Packet(id, sourceId, destId, flowId, ttl,
+            headerSize, bodySize, sourcePacket) {
     ECNBit = false;
     ECNScale = 0;
 }

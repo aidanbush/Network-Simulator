@@ -63,16 +63,21 @@ class Flow: public NetworkObject {
         bool validateSource();
         bool validateDest();
 
+        virtual void sourcePacketArrived(Packet *p);
+        virtual void sinkPacketArrived(Packet *p);
+
         void removePacket(Packet *p);
         bool addPacket(Packet *p);
 
-        Packet *createPacket(int ttl, int headSize, int bodySize);
+        Packet *createPacket(int ttl, int headSize, int bodySize, bool fromSource);
 
-        int newPacketId();
+        int newPacketId(bool fromSource);
 
-        int curPId;
+        int curSourcePId;
+        int curSinkPId;
 
-        map<int, Packet *> packets;
+        map<int, Packet *> sourcePackets;
+        map<int, Packet *> sinkPackets;
         int sourceId;
         int destId;
 
@@ -151,11 +156,14 @@ class ECNFlow: public Flow {
     private:
         ECNFlow(json &flowConfig);
 
-        ECNPacket *createPacket(int ttl, int headSize, int bodySize);
+        ECNPacket *createPacket(int ttl, int headSize, int bodySize, bool fromSource);
 
         void packetArrived(Packet *p);
         void packetDropped(Packet *p);
         void packetError(Packet *p);
+
+        void sourcePacketArrived(Packet *p);
+        void sinkPacketArrived(Packet *p);
 
         static json &validateECNFlowConfig(json &flowConfig);
 

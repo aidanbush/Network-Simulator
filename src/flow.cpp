@@ -162,7 +162,8 @@ Flow::Flow(json &flowConfig):
     this->bytesArrived = 0;
     this->throughput = 0;
     this->oldThroughput = 0;
-    this->curPId = 0;
+    this->curSourcePId = 0;
+    this->curSinkPId = 0;
     this->miTime = MI_TIME;
     this->maxTime = NUM_AGENT_STEPS*miTime;
 
@@ -170,21 +171,39 @@ Flow::Flow(json &flowConfig):
 }
 
 Flow::~Flow() {
-    for (auto it : packets) {
+    for (auto it : sourcePackets) {
+        delete it.second;
+    }
+    for (auto it : sinkPackets) {
         delete it.second;
     }
     delete agent;
 }
 
 void Flow::removePacket(Packet *p) {
-    packets.erase(p->getId());
+    if (p->isSourcePacket()) {
+        sourcePackets.erase(p->getId());
+    } else {
+        sinkPackets.erase(p->getId());
+    }
 }
 
 bool Flow::addPacket(Packet *p) {
-    return packets.emplace(p->getId(), p).second;
+    if (p->isSourcePacket()) {
+        return sourcePackets.emplace(p->getId(), p).second;
+    }
+    return sinkPackets.emplace(p->getId(), p).second;
 }
 
 void Flow::packetArrived(Packet *p) {
+    if (p->isSourcePacket()) {
+        Flow::sourcePacketArrived(p);
+    } else {
+        Flow::sinkPacketArrived(p);
+    }
+}
+
+void Flow::sourcePacketArrived(Packet *p) {
     bytesArrived += p->fullSizeBits();
     // TODO update to actual RTT not single direction
     packetsArrived++;
@@ -194,6 +213,11 @@ void Flow::packetArrived(Packet *p) {
     averageRTT += (packetRTT - averageRTT) / packetsArrived;
     minRTT = min(minRTT, packetRTT);
 
+    removePacket(p);
+    delete p;
+}
+
+void Flow::sinkPacketArrived(Packet *p) {
     removePacket(p);
     delete p;
 }
@@ -210,8 +234,11 @@ void Flow::packetError(Packet *p) {
     delete p;
 }
 
-int Flow::newPacketId() {
-    return curPId++;
+int Flow::newPacketId(bool fromSource) {
+    if (fromSource) {
+        return curSourcePId++;
+    }
+    return curSinkPId++;
 }
 
 int Flow::getPacketsCreated() {
@@ -263,10 +290,10 @@ bool Flow::validate() {
     return valid;
 }
 
-Packet *Flow::createPacket(int ttl, int headSize, int bodySize) {
-    int pId = newPacketId();
+Packet *Flow::createPacket(int ttl, int headSize, int bodySize, bool fromSource) {
+    int pId = newPacketId(fromSource);
 
-    Packet *p = new Packet(pId, sourceId, destId, id, ttl, headSize, bodySize);
+    Packet *p = new Packet(pId, sourceId, destId, id, ttl, headSize, bodySize, fromSource);
 
     if (!addPacket(p)) {
         delete p;
@@ -331,7 +358,7 @@ void BasicFlow::txPacketEvent() {
     Endpoint *endpoint = man.getEndpoint(sourceId);
     // TODO test for error
 
-    Packet *p = createPacket(ttl, headSize, bodySize);
+    Packet *p = createPacket(ttl, headSize, bodySize, true); // TODO should this be true
 
     man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceId, p);
 
@@ -391,10 +418,10 @@ json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
     return flowConfig;
 }
 
-ECNPacket *ECNFlow::createPacket(int ttl, int headSize, int bodySize) {
-    int pId = newPacketId();
+ECNPacket *ECNFlow::createPacket(int ttl, int headSize, int bodySize, bool fromSource) {
+    int pId = newPacketId(fromSource);
 
-    ECNPacket *p = new ECNPacket(pId, sourceId, destId, id, ttl, headSize, bodySize);
+    ECNPacket *p = new ECNPacket(pId, sourceId, destId, id, ttl, headSize, bodySize, fromSource);
 
     if (!addPacket(p)) {
         delete p;
@@ -648,7 +675,7 @@ void ECNFlow::txPacketEvent() {
     Endpoint *endpoint = man.getEndpoint(sourceId);
 
     // create packet
-    ECNPacket *p = createPacket(ttl, headSize, bodySize);
+    ECNPacket *p = createPacket(ttl, headSize, bodySize, true); // TODO should this be true
 
     endpoint->txPacket(p);
 
@@ -666,6 +693,18 @@ double ECNFlow::getAveragePacketSizeBytes() {
 }
 
 void ECNFlow::packetArrived(Packet *p) {
+    sourcePacketArrived(p);
+    /*
+    if (p->isSourcePacket()) {
+        sourcePacketArrived(p);
+    } else {
+        sinkPacketArrived(p);
+    }
+    */
+    Flow::packetArrived(p);
+}
+
+void ECNFlow::sourcePacketArrived(Packet *p) {
     ECNPacket *ecnP = dynamic_cast<ECNPacket *>(p);
     if (ecnP != NULL) {
         if (!ecnP->getECNBit()) {
@@ -684,8 +723,10 @@ void ECNFlow::packetArrived(Packet *p) {
         man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet arrived but was null");
         // TODO oh no this is bad, really bad!
     }
+}
 
-    Flow::packetArrived(p);
+void ECNFlow::sinkPacketArrived(Packet *p) {
+    fprintf(stderr, "ecn sink packet\n");
 }
 
 void ECNFlow::packetDropped(Packet *p) {
@@ -756,7 +797,7 @@ void TestFlow::txPacketEvent() {
     Endpoint *endpoint = man.getEndpoint(sourceId);
     // todo test for error
 
-    Packet *p = createPacket(ttl, hSize, bSize);
+    Packet *p = createPacket(ttl, hSize, bSize, true);
 
     man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceId, p);
 
