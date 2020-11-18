@@ -54,6 +54,12 @@ class Packet: public NetworkObject {
 
 class ECNPacket: public Packet {
     public:
+        struct ackMetaData {
+            bool ECNBit;
+            double bufferOccupancy; // ECN Scale
+            int ackedId;
+        };
+
         ECNPacket(int id, int sourceId, int destId, int flowId, int ttl,
                 int headerSize, int bodySize, bool sourcePacket); // TODO add ack data
         ~ECNPacket() = default;
@@ -63,9 +69,14 @@ class ECNPacket: public Packet {
         void setECNScale(double scale);
         double getECNScale();
 
+        // TODO set to bool and only allow setting once
+        void setAckData(bool ECNBit, double bufferOccupancy, int ackedId);
+        ackMetaData getAckData();
+
     private:
         bool ECNBit;
         double ECNScale;
+        ackMetaData ackData;
 };
 
 #ifdef _TEST

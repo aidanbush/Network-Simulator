@@ -69,6 +69,16 @@ double ECNPacket::getECNScale() {
     return ECNScale;
 }
 
+void ECNPacket::setAckData(bool ECNBit, double bufferOccupancy, int ackedId) {
+    ackData.ECNBit = ECNBit;
+    ackData.bufferOccupancy = bufferOccupancy;
+    ackData.ackedId = ackedId;
+}
+
+ECNPacket::ackMetaData ECNPacket::getAckData() {
+    return ackData;
+}
+
 #ifdef _TEST
 #include "tests/throwAssert.h"
 

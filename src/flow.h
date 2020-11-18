@@ -86,6 +86,7 @@ class Flow: public NetworkObject {
         // stats
         int packetsCreated;
         int packetsArrived;
+        int acksArrived;
         int packetsDropped;
         int packetsErrored;
         int bytesArrived;
@@ -114,6 +115,9 @@ class Flow: public NetworkObject {
         vector<double> multStdevList;
         vector<double> addMeanList;
         vector<double> addStdevList;
+
+        vector<double> packetsArrivedList;
+        vector<double> acksArrivedList;
 
         second_t maxTime;
 };
@@ -157,6 +161,9 @@ class ECNFlow: public Flow {
         ECNFlow(json &flowConfig);
 
         ECNPacket *createPacket(int ttl, int headSize, int bodySize, bool fromSource);
+        ECNPacket *createAckPacket(ECNPacket *toAck);
+
+        void txAck(ECNPacket *toAckPacket);
 
         void packetArrived(Packet *p);
         void packetDropped(Packet *p);
@@ -169,6 +176,8 @@ class ECNFlow: public Flow {
 
         int headSize;
         int bodySize;
+        int ackHeadSize;
+        int ackBodySize;
         int ttl;
 
         int packetsUntagged;

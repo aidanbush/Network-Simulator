@@ -157,6 +157,7 @@ Flow::Flow(json &flowConfig):
 
     this->packetsCreated = 0;
     this->packetsArrived = 0;
+    this->acksArrived = 0;
     this->packetsDropped = 0;
     this->packetsErrored = 0;
     this->bytesArrived = 0;
@@ -384,6 +385,8 @@ ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
     this->averageECN = 0;
     this->headSize = PACKET_HEADER_SIZE;
     this->bodySize = PACKET_BODY_SIZE;
+    this->ackHeadSize = PACKET_HEADER_SIZE; // TODO change to be separate
+    this->ackBodySize = PACKET_BODY_SIZE;
     this->ttl = 15;
     this->maxRate = getMaxRate();
 
@@ -421,7 +424,15 @@ json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
 ECNPacket *ECNFlow::createPacket(int ttl, int headSize, int bodySize, bool fromSource) {
     int pId = newPacketId(fromSource);
 
-    ECNPacket *p = new ECNPacket(pId, sourceId, destId, id, ttl, headSize, bodySize, fromSource);
+    int packetSourceId = sourceId;
+    int packetDestId = destId;
+
+    if (!fromSource) {
+        packetSourceId = destId;
+        packetDestId = sourceId;
+    }
+
+    ECNPacket *p = new ECNPacket(pId, packetSourceId, packetDestId, id, ttl, headSize, bodySize, fromSource);
 
     if (!addPacket(p)) {
         delete p;
@@ -430,6 +441,17 @@ ECNPacket *ECNFlow::createPacket(int ttl, int headSize, int bodySize, bool fromS
     packetsCreated++;
 
     return p;
+}
+
+// TODO source and dest are backwards???
+ECNPacket *ECNFlow::createAckPacket(ECNPacket *toAck) {
+    // create packet
+    ECNPacket *ackPacket = createPacket(ttl, ackHeadSize, ackBodySize, false); // TODO refactor the source and dest are for the wrong direction
+
+    // add state
+    ackPacket->setAckData(toAck->getECNBit(), toAck->getECNScale(), toAck->getId());
+
+    return ackPacket;
 }
 
 second_t ECNFlow::nextTxTime() {
@@ -538,6 +560,9 @@ void ECNFlow::resetState() {
     bytesArrived = 0;
     averageRTT = 0;
     minRTT = MAX_RTT;
+
+    packetsArrived = 0;
+    acksArrived = 0;
 }
 
 void ECNFlow::updateStats() {
@@ -551,6 +576,9 @@ void ECNFlow::updateStats() {
     throughputList.push_back(throughput);
     averageRTTList.push_back(averageRTT);
     minRTTList.push_back(minRTT);
+
+    packetsArrivedList.push_back(packetsArrived);
+    acksArrivedList.push_back(acksArrived);
 
     averageECNList.push_back(averageECN);
     if (packetsSent == 0) {
@@ -652,6 +680,9 @@ void ECNFlow::stepAgent() {
         printCSV(filePathExceptSuffix + "_AverageRTT.csv", averageRTTList);
         printCSV(filePathExceptSuffix + "_MinRTT.csv", minRTTList);
 
+        printCSV(filePathExceptSuffix + "_PacketsArrived.csv", packetsArrivedList);
+        printCSV(filePathExceptSuffix + "_AcksArrived.csv", acksArrivedList);
+
         if (dynamic_cast<ActorCritic*>(agent) != NULL) {
             printCSV(filePathExceptSuffix + "_MultMean.csv", multMeanList);
             printCSV(filePathExceptSuffix + "_MultStdev.csv", multStdevList);
@@ -688,19 +719,29 @@ void ECNFlow::txPacketEvent() {
                     " from flow " + to_string(this->id));
 }
 
+void ECNFlow::txAck(ECNPacket *toAckPacket) {
+    Endpoint *endpoint = man.getEndpoint(destId);
+
+    // create
+    ECNPacket *ackPacket = createAckPacket(toAckPacket);
+
+    // send
+    endpoint->txPacket(ackPacket);
+
+    man.logEvent("ECNFlow", this->id, "Flow Ack Tx", "Sent Ack " + to_string(ackPacket->getId()) +
+                    " from flow " + to_string(this->id));
+}
+
 double ECNFlow::getAveragePacketSizeBytes() {
     return double(headSize + bodySize);
 }
 
 void ECNFlow::packetArrived(Packet *p) {
-    sourcePacketArrived(p);
-    /*
     if (p->isSourcePacket()) {
         sourcePacketArrived(p);
     } else {
         sinkPacketArrived(p);
     }
-    */
     Flow::packetArrived(p);
 }
 
@@ -717,24 +758,31 @@ void ECNFlow::sourcePacketArrived(Packet *p) {
             averageECN = ecnP->getECNScale();
         }
         packetsSent++;
-        man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet " + to_string(p->getId()) + 
+        man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Source packet " + to_string(p->getId()) +
                         " arrived at destination.");
     } else {
         man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet arrived but was null");
         // TODO oh no this is bad, really bad!
     }
+
+    // create and send ack packet
+    txAck(ecnP);
 }
 
 void ECNFlow::sinkPacketArrived(Packet *p) {
-    fprintf(stderr, "ecn sink packet\n");
+    // TODO update stats
+    man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Ack packet " + to_string(p->getId()) +
+                    " arrived at destination.");
 }
 
 void ECNFlow::packetDropped(Packet *p) {
+    // TODO track acks separatly
     packetsSent++;
     Flow::packetDropped(p);
 }
 
 void ECNFlow::packetError(Packet *p) {
+    // TODO track acks separatly
     packetsSent++;
     Flow::packetError(p);
 }

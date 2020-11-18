@@ -63,7 +63,7 @@ for dataType in data.keys():
         # plot line with stdev
         plt.plot(flowData[0], label=flow)
         plt.fill_between(range(len(flowData[0])), flowData[0]-flowData[1], flowData[0]+flowData[1], alpha=1/3)
-        if (dataType in ["Rates", "MultActions", "MultMean", "MultStd", "Throughput"]):
+        if (dataType in ["Rates", "MultActions", "MultMean", "MultStd"]):#, "Throughput"]):
             plt.yscale("log")
         plt.legend()
 
