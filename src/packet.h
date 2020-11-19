@@ -30,13 +30,22 @@ class Packet: public NetworkObject {
         void drop();
         void error();
 
-        second_t getTravelTime();
+        second_t getSendTime(); // creation not send time
+
+        second_t getAckedSendTime();
+        int getAckedFullSizeBits() {return ackedSizeBytes * BITS_PER_BYTE; }
+        int getAckedFullSizeBytes() {return ackedSizeBytes; }
+
 
         bool validate();
 
 #ifdef _TEST
         bool fullEqual(Packet *p);
 #endif /* _TEST */
+
+    protected:
+        second_t ackedSendTime;
+        int ackedSizeBytes;
 
     private:
         int headerSize;
@@ -48,16 +57,16 @@ class Packet: public NetworkObject {
 
         bool sourcePacket;
 
-        second_t createTime; // creation not send
-        second_t arrivalTime;
+        second_t createTime;
+        second_t arrivalTime; // currently not used
 };
 
 class ECNPacket: public Packet {
     public:
         struct ackMetaData {
+            int ackedId; // remove from ECNPacket
             bool ECNBit;
             double bufferOccupancy; // ECN Scale
-            int ackedId;
         };
 
         ECNPacket(int id, int sourceId, int destId, int flowId, int ttl,
@@ -70,7 +79,7 @@ class ECNPacket: public Packet {
         double getECNScale();
 
         // TODO set to bool and only allow setting once
-        void setAckData(bool ECNBit, double bufferOccupancy, int ackedId);
+        void setAckData(second_t sendTime, int sizeBytes, bool ECNBit, double bufferOccupancy, int ackedId);
         ackMetaData getAckData();
 
     private:

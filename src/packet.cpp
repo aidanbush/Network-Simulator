@@ -35,8 +35,12 @@ void Packet::error() {
     f->packetError(this);
 }
 
-second_t Packet::getTravelTime() {
-    return arrivalTime - createTime;
+second_t Packet::getSendTime() {
+    return createTime;
+}
+
+second_t Packet::getAckedSendTime() {
+    return ackedSendTime;
 }
 
 bool Packet::validate() {
@@ -44,7 +48,6 @@ bool Packet::validate() {
     return true;
 }
 
-/* explicit congestion notification packet */
 
 ECNPacket::ECNPacket(int id, int sourceId, int destId, int flowId, int ttl,
         int headerSize, int bodySize, bool sourcePacket): Packet(id, sourceId, destId, flowId, ttl,
@@ -69,7 +72,9 @@ double ECNPacket::getECNScale() {
     return ECNScale;
 }
 
-void ECNPacket::setAckData(bool ECNBit, double bufferOccupancy, int ackedId) {
+void ECNPacket::setAckData(second_t sendTime, int sizeBytes, bool ECNBit, double bufferOccupancy, int ackedId) {
+    ackedSendTime = sendTime;
+    ackedSizeBytes = sizeBytes;
     ackData.ECNBit = ECNBit;
     ackData.bufferOccupancy = bufferOccupancy;
     ackData.ackedId = ackedId;

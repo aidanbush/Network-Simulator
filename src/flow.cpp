@@ -205,20 +205,23 @@ void Flow::packetArrived(Packet *p) {
 }
 
 void Flow::sourcePacketArrived(Packet *p) {
-    bytesArrived += p->fullSizeBits();
     // TODO update to actual RTT not single direction
     packetsArrived++;
-
-    second_t packetRTT = p->getTravelTime();
-
-    averageRTT += (packetRTT - averageRTT) / packetsArrived;
-    minRTT = min(minRTT, packetRTT);
 
     removePacket(p);
     delete p;
 }
 
 void Flow::sinkPacketArrived(Packet *p) {
+    bytesArrived += p->getAckedFullSizeBits();
+
+    acksArrived++;
+
+    second_t packetRTT = man.time - p->getAckedSendTime();
+
+    averageRTT += (packetRTT - averageRTT) / acksArrived;
+    minRTT = min(minRTT, packetRTT);
+
     removePacket(p);
     delete p;
 }
@@ -449,7 +452,8 @@ ECNPacket *ECNFlow::createAckPacket(ECNPacket *toAck) {
     ECNPacket *ackPacket = createPacket(ttl, ackHeadSize, ackBodySize, false); // TODO refactor the source and dest are for the wrong direction
 
     // add state
-    ackPacket->setAckData(toAck->getECNBit(), toAck->getECNScale(), toAck->getId());
+    ackPacket->setAckData(toAck->getSendTime(), toAck->fullSize(), toAck->getECNBit(), toAck->getECNScale(),
+            toAck->getId());
 
     return ackPacket;
 }
@@ -764,7 +768,6 @@ void ECNFlow::sourcePacketArrived(Packet *p) {
 void ECNFlow::sinkPacketArrived(Packet *p) {
     ECNPacket *ecnP = dynamic_cast<ECNPacket *>(p);
     if (ecnP != NULL) {
-        acksArrived++;
         man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Ack packet " + to_string(p->getId()) +
                         " arrived at destination.");
 
