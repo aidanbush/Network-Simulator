@@ -748,15 +748,6 @@ void ECNFlow::packetArrived(Packet *p) {
 void ECNFlow::sourcePacketArrived(Packet *p) {
     ECNPacket *ecnP = dynamic_cast<ECNPacket *>(p);
     if (ecnP != NULL) {
-        if (!ecnP->getECNBit()) {
-            packetsUntagged++;
-        }
-        if (packetsSent > 0) {
-            averageECN += ecnP->getECNScale()/packetsSent;
-            averageECN *= (double)packetsSent/(packetsSent + 1);
-        } else {
-            averageECN = ecnP->getECNScale();
-        }
         packetsSent++;
         man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Source packet " + to_string(p->getId()) +
                         " arrived at destination.");
@@ -770,9 +761,27 @@ void ECNFlow::sourcePacketArrived(Packet *p) {
 }
 
 void ECNFlow::sinkPacketArrived(Packet *p) {
-    // TODO update stats
-    man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Ack packet " + to_string(p->getId()) +
-                    " arrived at destination.");
+    ECNPacket *ecnP = dynamic_cast<ECNPacket *>(p);
+    if (ecnP != NULL) {
+        acksArrived++;
+        man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Ack packet " + to_string(p->getId()) +
+                        " arrived at destination.");
+
+        ECNPacket::ackMetaData ackData = ecnP->getAckData();
+        // TODO update stats
+        if (!ackData.ECNBit) {
+            packetsUntagged++;
+        }
+        if (packetsSent > 0) {
+            averageECN += ackData.bufferOccupancy / packetsSent;
+            averageECN *= (double)packetsSent / (packetsSent + 1);
+        } else {
+            averageECN = ackData.bufferOccupancy;
+        }
+    } else {
+        man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet arrived but was null");
+        // TODO oh no this is bad, really bad!
+    }
 }
 
 void ECNFlow::packetDropped(Packet *p) {
