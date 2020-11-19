@@ -709,6 +709,8 @@ void ECNFlow::txPacketEvent() {
     ECNPacket *p = createPacket(ttl, headSize, bodySize, true); // TODO should this be true
 
     endpoint->txPacket(p);
+    // track sent packets
+    packetsSent++;
 
     second_t nextTx = nextTxTime();
     if (nextTx < maxTime) {
@@ -748,7 +750,6 @@ void ECNFlow::packetArrived(Packet *p) {
 void ECNFlow::sourcePacketArrived(Packet *p) {
     ECNPacket *ecnP = dynamic_cast<ECNPacket *>(p);
     if (ecnP != NULL) {
-        packetsSent++;
         man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Source packet " + to_string(p->getId()) +
                         " arrived at destination.");
     } else {
@@ -786,13 +787,11 @@ void ECNFlow::sinkPacketArrived(Packet *p) {
 
 void ECNFlow::packetDropped(Packet *p) {
     // TODO track acks separatly
-    packetsSent++;
     Flow::packetDropped(p);
 }
 
 void ECNFlow::packetError(Packet *p) {
     // TODO track acks separatly
-    packetsSent++;
     Flow::packetError(p);
 }
 
