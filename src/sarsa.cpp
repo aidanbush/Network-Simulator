@@ -167,11 +167,11 @@ pair<double, double> Sarsa::step(vector<double> state, double reward, double &ra
             actionPair = pair<double, double>(.5, 0);
             break;
         case 2:
-            actionPair = pair<double, double>(0, avgPacketSizeBytes * 8);
+            actionPair = pair<double, double>(1, avgPacketSizeBytes * 8);
             rate += actionPair.second;
             break;
         case 3:
-            actionPair = pair<double, double>(0, -avgPacketSizeBytes * 8);
+            actionPair = pair<double, double>(1, -avgPacketSizeBytes * 8);
             rate += actionPair.second;
             break;
     }

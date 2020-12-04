@@ -7,6 +7,7 @@
 #include "networkObject.h"
 #include "manager.h"
 #include "agent.h"
+#include "generator.h"
 
 using namespace std;
 using json = nlohmann::json;
@@ -69,7 +70,7 @@ class Flow: public NetworkObject {
         void removePacket(Packet *p);
         bool addPacket(Packet *p);
 
-        Packet *createPacket(int ttl, int headSize, int bodySize, bool fromSource);
+        Packet *getNextPacket(bool fromSource);
 
         int newPacketId(bool fromSource);
 
@@ -80,6 +81,8 @@ class Flow: public NetworkObject {
         map<int, Packet *> sinkPackets;
         int sourceId;
         int destId;
+
+        int ttl;
 
         virtual second_t nextTxTime() = 0;
 
@@ -120,6 +123,11 @@ class Flow: public NetworkObject {
         vector<double> acksArrivedList;
 
         second_t maxTime;
+
+        Generator *generator;
+
+    private:
+        void validateFlowConfig(json &flowConfig);
 };
 
 class BasicFlow: public Flow {
@@ -142,8 +150,6 @@ class BasicFlow: public Flow {
         int headSize;
         int bodySize;
 
-        int ttl;
-
         second_t nextTxTime();
 };
 
@@ -160,7 +166,7 @@ class ECNFlow: public Flow {
     private:
         ECNFlow(json &flowConfig);
 
-        ECNPacket *createPacket(int ttl, int headSize, int bodySize, bool fromSource);
+        ECNPacket *getNextPacket(bool fromSource);
         ECNPacket *createAckPacket(ECNPacket *toAck);
 
         void txAck(ECNPacket *toAckPacket);
@@ -178,7 +184,6 @@ class ECNFlow: public Flow {
         int bodySize;
         int ackHeadSize;
         int ackBodySize;
-        int ttl;
 
         int packetsUntagged;
         int packetsSent;

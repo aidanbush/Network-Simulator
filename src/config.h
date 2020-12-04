@@ -1,5 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
+
 #include <nlohmann/json.hpp>
 
 using namespace std;
@@ -13,9 +14,13 @@ enum JsonType {
     jsonArray,
 };
 
+bool checkConfigObjType(json &obj, JsonType type);
+
 bool loadConfig(string filename);
 
 void loadParams(string filename);
+
+bool hasMember(json &parent, string key);
 
 bool hasMemberOfType(json &parent, string key, JsonType type);
 

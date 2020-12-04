@@ -17,6 +17,7 @@
 #include "agent.h"
 #include "actorCritic.h"
 #include "sarsa.h"
+#include "generator.h"
 
 #define FLOW_STR        "Flow"
 #define TX_PACKET_EVENT "flow create packet event"
@@ -135,8 +136,13 @@ Flow::Flow(json &flowConfig):
     //TODO: Second parameter is initial state, should it be something other than 0?
     //,agent(new AGENT_TYPE(man.getEndpoint(flowConfig["source_id"])->getWeights(), 0))
     {
+    validateFlowConfig(flowConfig);
+
     Endpoint *end = man.getEndpoint(flowConfig["source_id"]);
     this->rate = flowConfig["start_rate"];
+
+    // create generator
+    this->generator = createGenerator(flowConfig["generator"]);
 
     // TODO move agents into ECN Flow
     vector<double> initialState = INITIAL_STATE;
@@ -167,18 +173,48 @@ Flow::Flow(json &flowConfig):
     this->curSinkPId = 0;
     this->miTime = MI_TIME;
     this->maxTime = NUM_AGENT_STEPS*miTime;
+    this->ttl = 15; // TODO use define
 
     this->rewardType = DEFAULT_REWARD_TYPE;
+}
+
+void Flow::validateFlowConfig(json &flowConfig) {
+    string message = "";
+
+    if (!hasMemberOfType(flowConfig, "source_id", jsonInt)) {
+        message += "No integer with name 'source_id'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "dest", jsonInt)) {
+        message += "No integer with name 'dest'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "start_rate", jsonDouble)) {
+        message += "No double with name 'start_rate'.\n";
+    }
+
+    // generator
+    if (!hasMember(flowConfig, "generator")) {
+        message += "No object with name 'generator'.\n";
+    }
+
+    if (!message.empty()) {
+        message = "Flow:\n" + message + flowConfig.dump(4);
+        throw runtime_error(message);
+    }
 }
 
 Flow::~Flow() {
     for (auto it : sourcePackets) {
         delete it.second;
     }
+
     for (auto it : sinkPackets) {
         delete it.second;
     }
+
     delete agent;
+    delete generator;
 }
 
 void Flow::removePacket(Packet *p) {
@@ -294,10 +330,13 @@ bool Flow::validate() {
     return valid;
 }
 
-Packet *Flow::createPacket(int ttl, int headSize, int bodySize, bool fromSource) {
+Packet *Flow::getNextPacket(bool fromSource) {
     int pId = newPacketId(fromSource);
 
-    Packet *p = new Packet(pId, sourceId, destId, id, ttl, headSize, bodySize, fromSource);
+    Generator::PacketData pData = generator->getNextPacket();
+
+    // create packet for this
+    Packet *p = new Packet(pId, sourceId, destId, id, ttl, pData.headerSize, pData.bodySize, fromSource);
 
     if (!addPacket(p)) {
         delete p;
@@ -321,7 +360,6 @@ BasicFlow::BasicFlow(json &flowConfig): Flow(validateBasicFlowConfig(flowConfig)
     this->time = 0.001;
     this->headSize = 20;
     this->bodySize = 256;
-    this->ttl = 15;
 }
 
 json &BasicFlow::validateBasicFlowConfig(json &flowConfig) {
@@ -362,7 +400,7 @@ void BasicFlow::txPacketEvent() {
     Endpoint *endpoint = man.getEndpoint(sourceId);
     // TODO test for error
 
-    Packet *p = createPacket(ttl, headSize, bodySize, true); // TODO should this be true
+    Packet *p = getNextPacket(true); // TODO should this be true
 
     man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceId, p);
 
@@ -390,7 +428,6 @@ ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
     this->bodySize = PACKET_BODY_SIZE;
     this->ackHeadSize = PACKET_HEADER_SIZE; // TODO change to be separate
     this->ackBodySize = PACKET_BODY_SIZE;
-    this->ttl = 15;
     this->maxRate = getMaxRate();
 
     Sarsa *agent = dynamic_cast<Sarsa *>(this->agent);
@@ -401,31 +438,23 @@ ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
 
 json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
     string message = "";
+
     if (!hasMemberOfType(flowConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";
     }
 
-    if (!hasMemberOfType(flowConfig, "source_id", jsonInt)) {
-        message += "No integer with name 'source_id'.\n";
-    }
-
-    if (!hasMemberOfType(flowConfig, "dest", jsonInt)) {
-        message += "No integer with name 'dest'.\n";
-    }
-
-    if (!hasMemberOfType(flowConfig, "start_rate", jsonDouble)) {
-        message += "No double with name 'start_rate'.\n";
-    }
-
     if (!message.empty()) {
-        message = "Basic Flow:\n" + message + flowConfig.dump(4);
+        message = "ECN Flow:\n" + message + flowConfig.dump(4);
         throw runtime_error(message);
     }
+
     return flowConfig;
 }
 
-ECNPacket *ECNFlow::createPacket(int ttl, int headSize, int bodySize, bool fromSource) {
+ECNPacket *ECNFlow::getNextPacket(bool fromSource) {
     int pId = newPacketId(fromSource);
+
+    Generator::PacketData pData = generator->getNextPacket();
 
     int packetSourceId = sourceId;
     int packetDestId = destId;
@@ -435,7 +464,9 @@ ECNPacket *ECNFlow::createPacket(int ttl, int headSize, int bodySize, bool fromS
         packetDestId = sourceId;
     }
 
-    ECNPacket *p = new ECNPacket(pId, packetSourceId, packetDestId, id, ttl, headSize, bodySize, fromSource);
+    // create packet for this
+    ECNPacket *p = new ECNPacket(pId, packetSourceId, packetDestId, id, ttl, pData.headerSize, pData.bodySize,
+            fromSource);
 
     if (!addPacket(p)) {
         delete p;
@@ -448,8 +479,10 @@ ECNPacket *ECNFlow::createPacket(int ttl, int headSize, int bodySize, bool fromS
 
 // TODO source and dest are backwards???
 ECNPacket *ECNFlow::createAckPacket(ECNPacket *toAck) {
+    int pId = newPacketId(false);
+
     // create packet
-    ECNPacket *ackPacket = createPacket(ttl, ackHeadSize, ackBodySize, false); // TODO refactor the source and dest are for the wrong direction
+    ECNPacket *ackPacket = new ECNPacket(pId, destId, sourceId, id, ttl, ackHeadSize, ackBodySize, false);
 
     // add state
     ackPacket->setAckData(toAck->getSendTime(), toAck->fullSize(), toAck->getECNBit(), toAck->getECNScale(),
@@ -710,7 +743,7 @@ void ECNFlow::txPacketEvent() {
     Endpoint *endpoint = man.getEndpoint(sourceId);
 
     // create packet
-    ECNPacket *p = createPacket(ttl, headSize, bodySize, true); // TODO should this be true
+    ECNPacket *p = getNextPacket(true); // TODO should this be true
 
     endpoint->txPacket(p);
     // track sent packets
@@ -856,7 +889,7 @@ void TestFlow::txPacketEvent() {
     Endpoint *endpoint = man.getEndpoint(sourceId);
     // todo test for error
 
-    Packet *p = createPacket(ttl, hSize, bSize, true);
+    Packet *p = getNextPacket(true);
 
     man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceId, p);
 
