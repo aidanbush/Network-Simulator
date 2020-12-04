@@ -331,9 +331,13 @@ bool Flow::validate() {
 }
 
 Packet *Flow::getNextPacket(bool fromSource) {
-    int pId = newPacketId(fromSource);
+    Generator::PacketData pData;
 
-    Generator::PacketData pData = generator->getNextPacket();
+    if (!generator->getNextPacket(pData)) {
+        return NULL;
+    }
+
+    int pId = newPacketId(fromSource);
 
     // create packet for this
     Packet *p = new Packet(pId, sourceId, destId, id, ttl, pData.headerSize, pData.bodySize, fromSource);
@@ -391,6 +395,8 @@ void BasicFlow::startFlow() {
     second_t nextTx = nextTxTime();
     EventI *e1 = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
     man.pushEvent(e1);
+
+    generator->startTraffic();
 }
 
 void BasicFlow::stepAgent() {
@@ -402,9 +408,12 @@ void BasicFlow::txPacketEvent() {
 
     Packet *p = getNextPacket(true); // TODO should this be true
 
-    man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceId, p);
+    // only tx if a packet exists
+    if (p != NULL) {
+        man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceId, p);
 
-    endpoint->txPacket(p);
+        endpoint->txPacket(p);
+    }
 
     second_t nextTx = nextTxTime();
     EventI *e = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
@@ -452,9 +461,14 @@ json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
 }
 
 ECNPacket *ECNFlow::getNextPacket(bool fromSource) {
-    int pId = newPacketId(fromSource);
+    Generator::PacketData pData;
 
-    Generator::PacketData pData = generator->getNextPacket();
+    if (!generator->getNextPacket(pData)) {
+        fprintf(stderr, "no packet\n");
+        return NULL;
+    }
+
+    int pId = newPacketId(fromSource);
 
     int packetSourceId = sourceId;
     int packetDestId = destId;
@@ -503,6 +517,9 @@ void ECNFlow::startFlow() {
 
     EventI *e2 = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
     man.pushEvent(e2);
+
+    // start generator
+    generator->startTraffic();
 }
 
 vector<double> ECNFlow::getState() {
@@ -745,17 +762,22 @@ void ECNFlow::txPacketEvent() {
     // create packet
     ECNPacket *p = getNextPacket(true); // TODO should this be true
 
-    endpoint->txPacket(p);
-    // track sent packets
-    packetsSent++;
+    if (p != NULL) {
+        endpoint->txPacket(p);
+        // track sent packets
+        packetsSent++;
+    }
 
     second_t nextTx = nextTxTime();
     if (nextTx < maxTime) {
         EventI *e = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
         man.pushEvent(e);
     }
-    man.logEvent("ECNFlow", this->id, "Flow Packet Tx", "Sent packet " + to_string(p->getId()) + 
-                    " from flow " + to_string(this->id));
+
+    if (p!= NULL) {
+        man.logEvent("ECNFlow", this->id, "Flow Packet Tx", "Sent packet " + to_string(p->getId()) +
+                        " from flow " + to_string(this->id));
+    }
 }
 
 void ECNFlow::txAck(ECNPacket *toAckPacket) {
@@ -869,6 +891,8 @@ void TestFlow::startFlow() {
 
     EventI *e2 = new Event<TestFlow>(man.time + miTime, &TestFlow::stepAgent, this);
     man.pushEvent(e2);
+
+    generator->startTraffic();
 }
 
 void TestFlow::stepAgent() {

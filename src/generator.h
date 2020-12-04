@@ -23,7 +23,7 @@ class Generator {
         };
 
         virtual bool startTraffic(); // return if first call
-        PacketData getNextPacket();
+        bool getNextPacket(PacketData &data);
 
         virtual void generatePacket();
 
@@ -82,6 +82,11 @@ class CycleGenerator: public Generator {
         int packetsSent;
         int cyclePos;
 };
+
+// Poisson model
+/*class PoissonGenerator: public Generator {
+
+};*/
 
 Generator *createGenerator(json &generatorConfig);
 

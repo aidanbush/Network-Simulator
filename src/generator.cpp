@@ -83,13 +83,22 @@ bool Generator::startTraffic() {
     return true;
 }
 
-Generator::PacketData Generator::getNextPacket() {
+bool Generator::getNextPacket(Generator::PacketData &data) {
+    // if has room
+    if (packetBuffer.empty()) {
+        return false;
+    }
+
     Generator::PacketData p = packetBuffer.front();
     packetBuffer.pop();
 
     bufferCurSize -= (p.headerSize + p.bodySize);
 
-    return p;
+    // copy over values
+    data.headerSize = p.headerSize;
+    data.bodySize = p.bodySize;
+
+    return true;
 }
 
 second_t Generator::nextGenTime(int size, double rate) {

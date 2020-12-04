@@ -42,12 +42,16 @@ bool hasMember(json &parent, string key) {
     if (parent.find(key) == parent.end()) {
         return false;
     }
+
+    return true;
 }
 
 bool hasMemberOfType(json &parent, string key, JsonType type) {
-    hasMember(parent, key);
+    if (hasMember(parent, key)) {
+        return checkConfigObjType(parent[key], type);
+    }
 
-    return checkConfigObjType(parent[key], type);
+    return false;
 }
 
 bool checkArrayType(json &config, JsonType type) {
