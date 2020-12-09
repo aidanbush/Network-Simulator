@@ -1,4 +1,5 @@
 #include <map>
+#include <random>
 
 #include "generator.h"
 #include "manager.h"
@@ -11,12 +12,14 @@ using namespace std;
 enum GeneratorType {
     BasicGeneratorType,
     CycleGeneratorType,
+    PoissonGeneratorType,
 };
 
 Generator *createGenerator(json &generatorConfig) {
     static map<string, GeneratorType> generatorTypeMap = {
         {"basic", BasicGeneratorType},
         {"cycle", CycleGeneratorType},
+        {"poisson", PoissonGeneratorType},
     };
 
     if (!hasMemberOfType(generatorConfig, "type", jsonString)) {
@@ -39,6 +42,9 @@ Generator *createGenerator(json &generatorConfig) {
             break;
         case CycleGeneratorType:
             generator = new CycleGenerator(generatorConfig);
+            break;
+        case PoissonGeneratorType:
+            generator = new PoissonGenerator(generatorConfig);
             break;
         default:
             throw runtime_error("Generator:\nInvalid generator type: " + generatorTypeString);
@@ -247,5 +253,77 @@ void CycleGenerator::generatePacket() {
     }
 
     EventI *e = new Event<CycleGenerator>(nextGenTime(packetSize, rate), &CycleGenerator::generatePacket, this);
+    man.pushEvent(e);
+}
+
+/* Poisson traffic generator */
+
+PoissonGenerator::PoissonGenerator(json &generatorConfig):
+    Generator(generatorConfig) {
+    validatePoissonGeneratorConfig(generatorConfig);
+
+    // get lambda
+    double lambda = generatorConfig["lambda"];
+
+    this->baseTime = generatorConfig["base_time"];
+    this->headerSize = generatorConfig["header"];
+    this->bodySize = generatorConfig["body"];
+
+    // create distribution
+    distribution = poisson_distribution(lambda);
+    // seed generator
+    generator.seed(man.random()); // use man random
+}
+
+void PoissonGenerator::validatePoissonGeneratorConfig(json &generatorConfig) {
+    string message = "";
+
+    if (!hasMemberOfType(generatorConfig, "lambda", jsonDouble)) {
+        message += "No integer with name 'lambda'.\n";
+    }
+
+    if (!hasMemberOfType(generatorConfig, "base_time", jsonDouble)) {
+        message += "No integer with name 'base_time'.\n";
+    }
+
+    if (!hasMemberOfType(generatorConfig, "header", jsonInt)) {
+        message += "No integer with name 'header'.\n";
+    }
+
+    if (!hasMemberOfType(generatorConfig, "body", jsonInt)) {
+        message += "No integer with name 'body'.\n";
+    }
+
+    if (!message.empty()) {
+        message = "PoissonGenerator:\n" + message + generatorConfig.dump(4);
+        throw runtime_error(message);
+    }
+}
+
+int PoissonGenerator::getHeaderSize() {
+    return headerSize;
+}
+
+int PoissonGenerator::getBodySize() {
+    return bodySize;
+}
+
+second_t PoissonGenerator::nextGenTime() {
+    second_t interArrivalTime = distribution(generator) * baseTime;
+    return man.time + interArrivalTime;
+}
+
+void PoissonGenerator::generatePacket() {
+    // create packet, if there is room, else wait
+    int headerSize = getHeaderSize();
+    int bodySize = getBodySize();
+
+    int packetSize = headerSize + bodySize;
+    if (bufferCurSize + packetSize <= bufferMaxSize) {
+        packetBuffer.push({headerSize, bodySize});
+        bufferCurSize += packetSize;
+    }
+
+    EventI *e = new Event<PoissonGenerator>(nextGenTime(), &PoissonGenerator::generatePacket, this);
     man.pushEvent(e);
 }

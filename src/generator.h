@@ -84,9 +84,27 @@ class CycleGenerator: public Generator {
 };
 
 // Poisson model
-/*class PoissonGenerator: public Generator {
+class PoissonGenerator: public Generator {
+    public:
+        PoissonGenerator(json &generatorConfig);
 
-};*/
+        void generatePacket();
+
+    private:
+        int getHeaderSize();
+        int getBodySize();
+        second_t nextGenTime();
+
+        double baseTime;
+
+        default_random_engine generator;
+        poisson_distribution<int> distribution;
+
+        int headerSize;
+        int bodySize;
+
+        void validatePoissonGeneratorConfig(json &generatorConfig);
+};
 
 Generator *createGenerator(json &generatorConfig);
 

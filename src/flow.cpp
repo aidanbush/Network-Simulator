@@ -464,7 +464,6 @@ ECNPacket *ECNFlow::getNextPacket(bool fromSource) {
     Generator::PacketData pData;
 
     if (!generator->getNextPacket(pData)) {
-        fprintf(stderr, "no packet\n");
         return NULL;
     }
 
