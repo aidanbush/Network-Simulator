@@ -5,6 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
+#plt.rcParams['agg.path.chunksize'] = 100000000
+
 STATS_ELEM_TO_INDEX = {"mean": 0, "stdev": 1}
 FIGSIZE=(16,9)
 

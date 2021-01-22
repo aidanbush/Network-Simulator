@@ -58,7 +58,7 @@ Generator::Generator(json &generatorConfig) {
 
     this->bufferMaxSize = generatorConfig["buffer_size"];
     this->bufferCurSize = 0;
-    this->started = false;
+    this->running = false;
 }
 
 void Generator::validateGeneratorConfig(json &generatorConfig) {
@@ -75,18 +75,25 @@ void Generator::validateGeneratorConfig(json &generatorConfig) {
 }
 
 void Generator::generatePacket() {
+    man.logEvent("Generator", 0, "generatePacket", "Generated No Packet");
 }
 
 bool Generator::startTraffic() {
-    if (started) {
+    if (running) {
         // TODO Log error
         return false;
     }
+
+    running = true;
 
     EventI *e = new Event<Generator>(man.time, &Generator::generatePacket, this);
     man.pushEvent(e);
 
     return true;
+}
+
+void Generator::stopTraffic() {
+    running = false;
 }
 
 bool Generator::getNextPacket(Generator::PacketData &data) {
@@ -144,12 +151,19 @@ void BasicGenerator::validateBasicGeneratorConfig(json &generatorConfig) {
 }
 
 void BasicGenerator::generatePacket() {
+    if (!running) {
+        return;
+    }
+
     // create packet, if there is room, else wait
     int packetSize = headerSize + bodySize;
     if (bufferCurSize + packetSize <= bufferMaxSize) {
         packetBuffer.push({headerSize, bodySize});
         bufferCurSize += packetSize;
     }
+
+    man.logEvent("BasicGenerator", 0, "generatePacket", "Generated Packet of size" + to_string(packetSize));
+
 
     EventI *e = new Event<BasicGenerator>(nextGenTime(packetSize, rate), &BasicGenerator::generatePacket, this);
     man.pushEvent(e);
@@ -233,6 +247,10 @@ int CycleGenerator::getCycleNumPackets() {
 }
 
 void CycleGenerator::generatePacket() {
+    if (!running) {
+        return;
+    }
+
     // create packet, if there is room, else wait
     int headerSize = getCycleHeaderSize();
     int bodySize = getCycleBodySize();
@@ -251,6 +269,8 @@ void CycleGenerator::generatePacket() {
             cyclePos %= cycleData.size();
         }
     }
+
+    man.logEvent("CycleGenerator", 0, "generatePacket", "Generated Packet of size" + to_string(packetSize));
 
     EventI *e = new Event<CycleGenerator>(nextGenTime(packetSize, rate), &CycleGenerator::generatePacket, this);
     man.pushEvent(e);
@@ -314,6 +334,10 @@ second_t PoissonGenerator::nextGenTime() {
 }
 
 void PoissonGenerator::generatePacket() {
+    if (!running) {
+        return;
+    }
+
     // create packet, if there is room, else wait
     int headerSize = getHeaderSize();
     int bodySize = getBodySize();
@@ -323,6 +347,8 @@ void PoissonGenerator::generatePacket() {
         packetBuffer.push({headerSize, bodySize});
         bufferCurSize += packetSize;
     }
+
+    man.logEvent("PoissonGenerator", 0, "generatePacket", "Generated Packet of size" + to_string(packetSize));
 
     EventI *e = new Event<PoissonGenerator>(nextGenTime(), &PoissonGenerator::generatePacket, this);
     man.pushEvent(e);

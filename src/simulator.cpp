@@ -11,6 +11,7 @@
 #include <iostream>
 
 #include "manager.h"
+#include "observer.h"
 #include "config.h"
 
 #define DEFAULT_CONFIG  "config.json"
@@ -21,10 +22,15 @@ using json = nlohmann::json;
 
 #ifndef _TEST
 Manager man;
+Observer observer;
 
 volatile sig_atomic_t exitSim;
 
 void sigintHandler(__attribute__((unused)) int par) {
+    if (exitSim == 1) {
+        exit(1);
+    }
+
     exitSim = 1;
 }
 
@@ -142,6 +148,8 @@ int main(int argc, char **argv) {
             getchar();
         }
     }
+
+    observer.writeData();
 
     man.deleteNetwork();
 

@@ -49,7 +49,6 @@ class Link: public NetworkObject {
         void txPacket(Packet *p, int sourceId);
 
         bool hasInterface(int interfaceId);
-        bool removeDest(int interfaceId);
 
         int getSpeed();
         second_t getTxTime();
@@ -57,6 +56,10 @@ class Link: public NetworkObject {
         set<int> getNeighbours();
 
         bool validate();
+
+#ifdef _TEST
+        bool removeDest(int interfaceId);
+#endif /* _TEST */
 
     private:
         static int validateLinkConfig(json &linkConfig);

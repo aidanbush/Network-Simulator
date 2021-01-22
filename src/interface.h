@@ -58,8 +58,8 @@ class Interface: public NetworkObject {
         int outBufTotalSize; // bytes
         int inBufTotalSize; // bytes
 
-        int outBufSize; // bytes
-        int inBufSize; // bytes
+        int outBufCurSize; // bytes
+        int inBufCurSize; // bytes
 
         queue<Packet*> outBuffer;
         queue<Packet*> inBuffer;

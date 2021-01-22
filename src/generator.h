@@ -23,6 +23,7 @@ class Generator {
         };
 
         virtual bool startTraffic(); // return if first call
+        void stopTraffic(); // return if first call
         bool getNextPacket(PacketData &data);
 
         virtual void generatePacket();
@@ -34,7 +35,7 @@ class Generator {
 
         second_t nextGenTime(int size, double rate);
 
-        bool started; // TODO initialize
+        bool running; // TODO initialize
 
     private:
         void validateGeneratorConfig(json &generatorConfig);

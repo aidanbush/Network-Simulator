@@ -28,8 +28,8 @@ using json = nlohmann::json;
 Interface::Interface(json &interfaceConfig): NetworkObject(validateInterfaceConfig(interfaceConfig)) {
     this->outBufTotalSize = interfaceConfig["out_buf_size"];
     this->inBufTotalSize = interfaceConfig["in_buf_size"];
-    this->outBufSize = interfaceConfig["out_buf_size"];
-    this->inBufSize = interfaceConfig["in_buf_size"];
+    this->outBufCurSize = interfaceConfig["out_buf_size"];
+    this->inBufCurSize = interfaceConfig["in_buf_size"];
     this->handlerId = interfaceConfig["handler_id"];
     this->ECNThreshold = DEFAULT_ECN_THRESHOLD;
 }
@@ -99,7 +99,7 @@ void Interface::txLinkEvent() {
 
     man.logTxEvent(IFACE_STR, id, TX_LINK_EVENT_STR, linkId, p);
 
-    outBufSize += p->fullSize();
+    outBufCurSize += p->fullSize();
 
     Link *netLink = man.getLink(linkId);
     netLink->txPacket(p, id);
@@ -117,7 +117,7 @@ void Interface::txHandlerEvent() {
 
     man.logTxEvent(IFACE_STR, id, TX_HANDLER_EVENT_STR, linkId, p);
 
-    inBufSize += p->fullSize();
+    inBufCurSize += p->fullSize();
 
     PacketHandler *handler = man.getHandler(handlerId);
     handler->rxPacket(p);
@@ -143,21 +143,21 @@ void Interface::tagPacket(Packet *p, int bufferCurrentSize, int bufferFullSize) 
 }
 
 void Interface::tagPacketIn(Packet *p) {
-    tagPacket(p, inBufTotalSize - inBufSize, inBufTotalSize);
+    tagPacket(p, inBufTotalSize - inBufCurSize, inBufTotalSize);
 }
 
 void Interface::tagPacketOut(Packet *p) {
-    tagPacket(p, outBufTotalSize - outBufSize, outBufTotalSize);
+    tagPacket(p, outBufTotalSize - outBufCurSize, outBufTotalSize);
 }
 
 void Interface::rxLink(Packet *p) {
-    if (inBufSize - p->fullSize() < 0) {
+    if (inBufCurSize - p->fullSize() < 0) {
         p->drop();
         man.logEvent(IFACE_STR, id, RX_LINK_EVENT_STR, "Packet dropped");
         return;
     }
     
-    inBufSize -= p->fullSize();
+    inBufCurSize -= p->fullSize();
     inBuffer.push(p);
     tagPacketIn(p);
 
@@ -174,13 +174,13 @@ void Interface::rxLink(Packet *p) {
 }
 
 void Interface::rxHandler(Packet *p) {
-    if (outBufSize - p->fullSize() < 0) {
+    if (outBufCurSize - p->fullSize() < 0) {
         p->drop();
         man.logEvent(IFACE_STR, id, RX_HANDLER_EVENT_STR, "Packet dropped");
         return;
     }
 
-    outBufSize -= p->fullSize();
+    outBufCurSize -= p->fullSize();
     outBuffer.push(p);
     tagPacketOut(p);
 
@@ -216,11 +216,11 @@ int Interface::getOutBufferTotalSize() {
 }
 
 int Interface::getInBufferCurrentSize() {
-    return inBufTotalSize - inBufSize;
+    return inBufTotalSize - inBufCurSize;
 }
 
 int Interface::getOutBufferCurrentSize() {
-    return outBufTotalSize - outBufSize;
+    return outBufTotalSize - outBufCurSize;
 }
 
 bool Interface::validateHandler() {
@@ -262,15 +262,15 @@ bool Interface::validateLink() {
 bool Interface::validateVariables() {
     bool valid = true;
 
-    if (outBufSize <= 0) {
+    if (outBufCurSize <= 0) {
         fprintf(stderr, "Interface: %d has invalid link buffer size %d\n",
-                id, outBufSize);
+                id, outBufCurSize);
         valid = false;
     }
 
-    if (inBufSize <= 0) {
+    if (inBufCurSize <= 0) {
         fprintf(stderr, "Interface: %d has invalid handler buffer size %d\n",
-                id, outBufSize);
+                id, inBufCurSize);
         valid = false;
     }
 
@@ -386,7 +386,7 @@ int Interface::interfaceToInterface() {
     i1->rxHandler(p1);
 
     // check packet is in buffer
-    throwAssert(i1->outBufSize == i1LBuf - p1->fullSize());
+    throwAssert(i1->outBufCurSize == i1LBuf - p1->fullSize());
     throwAssert(i1->outBuffer.size() == 1);
     throwAssert(i1->outBuffer.front() == p1);
 
@@ -397,7 +397,7 @@ int Interface::interfaceToInterface() {
     i1->rxHandler(p2);
 
     // check packet was added into buffer
-    throwAssert(i1->outBufSize == i1LBuf - (p1->fullSize() + p2->fullSize()));
+    throwAssert(i1->outBufCurSize == i1LBuf - (p1->fullSize() + p2->fullSize()));
     throwAssert(i1->outBuffer.size() == 2);
     throwAssert(i1->outBuffer.back() == p2);
 
@@ -413,7 +413,7 @@ int Interface::interfaceToInterface() {
     throwAssert(man.numEvents() == 2);
 
     // check that buffer only holds p2
-    throwAssert(i1->outBufSize == i1LBuf - p2->fullSize());
+    throwAssert(i1->outBufCurSize == i1LBuf - p2->fullSize());
     throwAssert(i1->outBuffer.size() == 1);
     throwAssert(i1->outBuffer.front() == p2);
 
@@ -430,7 +430,7 @@ int Interface::interfaceToInterface() {
     delete e;
 
     // check packet arrived
-    throwAssert(i2->inBufSize == i2HBuf - p1->fullSize());
+    throwAssert(i2->inBufCurSize == i2HBuf - p1->fullSize());
     throwAssert(i2->inBuffer.size() == 1);
     throwAssert(i2->inBuffer.front() == p1);
 
@@ -440,7 +440,7 @@ int Interface::interfaceToInterface() {
     delete e;
 
     // check packet arrived
-    throwAssert(i2->inBufSize == i2HBuf - (p1->fullSize() + p2->fullSize()));
+    throwAssert(i2->inBufCurSize == i2HBuf - (p1->fullSize() + p2->fullSize()));
     throwAssert(i2->inBuffer.size() == 2);
     throwAssert(i2->inBuffer.back() == p2);
 

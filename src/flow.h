@@ -58,6 +58,8 @@ class Flow: public NetworkObject {
         };
         RewardType rewardType;
 
+        bool running;
+
         double initialAverageReward();
 
         Flow(json &flowConfig);
@@ -92,8 +94,10 @@ class Flow: public NetworkObject {
         int acksArrived;
         int packetsDropped;
         int packetsErrored;
+        int bytesSent;
         int bytesArrived;
         double throughput;
+        double sentRate;
         double oldThroughput;
         second_t averageRTT;
         second_t minRTT;
@@ -107,22 +111,6 @@ class Flow: public NetworkObject {
 
         // TODO move out of Flow into ECNFlow
         double totalReward = 0;
-        vector<double> rateList;
-        vector<double> throughputList;
-        vector<double> averageRTTList;
-        vector<double> minRTTList; // TODO implement
-        vector<double> rewardList; // TODO implement
-        vector<double> actionMultList;
-        vector<double> actionAddList;
-        vector<double> multMeanList;
-        vector<double> multStdevList;
-        vector<double> addMeanList;
-        vector<double> addStdevList;
-
-        vector<double> packetsArrivedList;
-        vector<double> acksArrivedList;
-
-        second_t maxTime;
 
         Generator *generator;
 
@@ -191,8 +179,9 @@ class ECNFlow: public Flow {
         int totalPacketsUntagged;
         int totalPacketsSent;
         int totalPacketsDropped;
-        vector<double> averageECNList;
-        vector<double> packetsDroppedList;
+
+        int numSteps;
+        int maxSteps;
 
         vector<double> getState();
         double getReward();
@@ -200,10 +189,6 @@ class ECNFlow: public Flow {
 
         void updateStats();
         void updateStatsPostStep(pair<double, double> action);
-
-        void printCSV(string filename, vector<double> vec);
-
-        ECNPacket *createPacket();
 
         second_t nextTxTime();
 };

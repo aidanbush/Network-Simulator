@@ -7,6 +7,7 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <filesystem>
+#include <string>
 
 #include "flow.h"
 #include "manager.h"
@@ -18,6 +19,7 @@
 #include "actorCritic.h"
 #include "sarsa.h"
 #include "generator.h"
+#include "observer.h"
 
 #define FLOW_STR        "Flow"
 #define TX_PACKET_EVENT "flow create packet event"
@@ -138,7 +140,6 @@ Flow::Flow(json &flowConfig):
     {
     validateFlowConfig(flowConfig);
 
-    Endpoint *end = man.getEndpoint(flowConfig["source_id"]);
     this->rate = flowConfig["start_rate"];
 
     // create generator
@@ -146,7 +147,7 @@ Flow::Flow(json &flowConfig):
 
     // TODO move agents into ECN Flow
     vector<double> initialState = INITIAL_STATE;
-    switch (end->getAgentType()) {
+    switch (AGENT_TYPE) {
         case ActorCriticAgent:
             {
                 double rBar = initialAverageReward();
@@ -169,11 +170,12 @@ Flow::Flow(json &flowConfig):
     this->bytesArrived = 0;
     this->throughput = 0;
     this->oldThroughput = 0;
+    this->sentRate = this->rate;
     this->curSourcePId = 0;
     this->curSinkPId = 0;
     this->miTime = MI_TIME;
-    this->maxTime = NUM_AGENT_STEPS*miTime;
     this->ttl = 15; // TODO use define
+    this->running = false;
 
     this->rewardType = DEFAULT_REWARD_TYPE;
 }
@@ -392,17 +394,27 @@ second_t BasicFlow::nextTxTime() {
 }
 
 void BasicFlow::startFlow() {
+    if (running) {
+        return;
+    }
+
     second_t nextTx = nextTxTime();
     EventI *e1 = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
     man.pushEvent(e1);
 
     generator->startTraffic();
+
+    running = true;
 }
 
 void BasicFlow::stepAgent() {
 }
 
 void BasicFlow::txPacketEvent() {
+    if (!running) {
+        return;
+    }
+
     Endpoint *endpoint = man.getEndpoint(sourceId);
     // TODO test for error
 
@@ -429,7 +441,8 @@ double BasicFlow::getAveragePacketSizeBytes() {
 ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
     this->packetsUntagged = 0;
     this->packetsSent = 0;
-    this->throughput = 0;
+    this->bytesSent = 0;
+    this->bytesArrived = 0;
     this->averageRTT = 0;
     this->minRTT = MAX_RTT;
     this->averageECN = 0;
@@ -438,6 +451,8 @@ ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
     this->ackHeadSize = PACKET_HEADER_SIZE; // TODO change to be separate
     this->ackBodySize = PACKET_BODY_SIZE;
     this->maxRate = getMaxRate();
+    this->numSteps = 0;
+    this->maxSteps = NUM_AGENT_STEPS;
 
     Sarsa *agent = dynamic_cast<Sarsa *>(this->agent);
     if (agent != NULL) {
@@ -509,6 +524,10 @@ second_t ECNFlow::nextTxTime() {
 }
 
 void ECNFlow::startFlow() {
+    if (running) {
+        return;
+    }
+
     // create txPacket event
     second_t nextTx = nextTxTime();
     EventI *e1 = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
@@ -519,18 +538,22 @@ void ECNFlow::startFlow() {
 
     // start generator
     generator->startTraffic();
+
+    running = true;
 }
 
 vector<double> ECNFlow::getState() {
     double averageECNFeature = averageECN;
     double throughputFeature = throughput / maxRate;
-    double rateFeature = rate / maxRate;
+    double rateSelectedFeature = rate / maxRate;
     double dropRateFeature = packetsSent == 0 ? 0 : packetsDropped / packetsSent; // TODO figure out bug
     double averageRTTFeature = averageRTT / MAX_RTT;
     double queueDelayFeature = (averageRTT - minRTT) / MAX_RTT;
+    double rateSentFeature = sentRate / maxRate;
 
     // average max buffer occupancy
-    return {averageECNFeature, throughputFeature, rateFeature, dropRateFeature, averageRTTFeature, queueDelayFeature};
+    return {averageECNFeature, throughputFeature, rateSelectedFeature, dropRateFeature, averageRTTFeature,
+        queueDelayFeature, rateSentFeature};
 }
 
 double ECNFlow::getReward() {
@@ -610,6 +633,7 @@ void ECNFlow::resetState() {
     packetsSent = 0;
     averageECN = 0;
     packetsDropped = 0;
+    bytesSent = 0;
     bytesArrived = 0;
     averageRTT = 0;
     minRTT = MAX_RTT;
@@ -623,64 +647,45 @@ void ECNFlow::updateStats() {
     totalPacketsSent += packetsSent;
     totalPacketsDropped += packetsDropped;
     throughput = bytesArrived / miTime;
+    sentRate = bytesSent * BITS_PER_BYTE / miTime;
 
-    rewardList.push_back(getReward());
-    rateList.push_back(rate);
-    throughputList.push_back(throughput);
-    averageRTTList.push_back(averageRTT);
-    minRTTList.push_back(minRTT);
+    observer.logFlowData(id, "Reward", getReward());
+    observer.logFlowData(id, "Rates", rate);
+    observer.logFlowData(id, "Throughput", throughput);
+    observer.logFlowData(id, "AverageRTT", averageRTT);
+    observer.logFlowData(id, "MinRTT", minRTT);
+    observer.logFlowData(id, "SentRate", sentRate);
+    observer.logFlowData(id, "PacketsArrived", packetsArrived);
+    observer.logFlowData(id, "AcksArrived", acksArrived);
+    observer.logFlowData(id, "ECNAverages", averageECN);
 
-    packetsArrivedList.push_back(packetsArrived);
-    acksArrivedList.push_back(acksArrived);
-
-    averageECNList.push_back(averageECN);
     if (packetsSent == 0) {
-        packetsDroppedList.push_back(0);
+        observer.logFlowData(id, "DroppedPackets", 0);
     } else {
-        packetsDroppedList.push_back(packetsDropped/packetsSent);
+        observer.logFlowData(id, "DroppedPackets", packetsDropped/packetsSent);
     }
 }
 
 void ECNFlow::updateStatsPostStep(pair<double, double> action) {
-    actionMultList.push_back(action.first);
-    actionAddList.push_back(action.second);
+    observer.logFlowData(id, "MultActions", action.first);
+    observer.logFlowData(id, "AddAction", action.second);
 
     // Add distribution data
     ActorCritic *actorCriticAgent = dynamic_cast<ActorCritic*>(agent);
     if (actorCriticAgent != NULL) {
         pair<double, double> multMeanStdev = actorCriticAgent->getMultMeanStdev();
-        multMeanList.push_back(multMeanStdev.first);
-        multStdevList.push_back(multMeanStdev.second);
+        observer.logFlowData(id, "MultMean", multMeanStdev.first);
+        observer.logFlowData(id, "MultStdev", multMeanStdev.second);
 
         pair<double, double> addMeanStdev = actorCriticAgent->getAddMeanStdev();
-        addMeanList.push_back(addMeanStdev.first);
-        addStdevList.push_back(addMeanStdev.second);
+        observer.logFlowData(id, "AddMean", addMeanStdev.first);
+        observer.logFlowData(id, "AddStdev", addMeanStdev.second);
     }
-}
-
-void ECNFlow::printCSV(string filename, vector<double> vec) {
-    if (man.getSuppressOutput(CSV)) {
-        //Don't create CSV files if in q mode
-        return;
-    }
-
-    // TODO clean up placement of setting path
-    if (!filesystem::exists(STAT_FILE_DIRECTORY)) {
-        filesystem::create_directory(STAT_FILE_DIRECTORY);
-    }
-
-    ofstream ofs;
-    ofs.open(filename, ofstream::trunc);
-    if (vec.size() >= 1) {
-        ofs << vec[0];
-        for (int i = 1; i < (int)vec.size(); i++) {
-            ofs << "," << vec[i];
-        }
-    }
-    ofs.close();
 }
 
 void ECNFlow::stepAgent() {
+    numSteps++;
+
     updateStats();
     vector<double> state = getState();
 
@@ -697,65 +702,30 @@ void ECNFlow::stepAgent() {
     resetState();
 
     rate = min(maxRate, max(MIN_RATE, rate));
-    if (man.time + miTime <= maxTime) {
+    if (numSteps < maxSteps) {
         EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
         man.pushEvent(e);
     } else {
         man.logEvent("ECNFlow", this->id, "End of program", "Acheived reward " + to_string(totalReward) +\
                         " with final rate of " + to_string(rate) + " and " + to_string(totalPacketsUntagged) +\
                         " out of " + to_string(totalPacketsSent) + " packets untagged.");
-        time_t currentTime;
-        time(&currentTime);
-        tm *currentTm = localtime(&currentTime);
-        char date[13];
-        strftime(date, 13, "%Y%m%d%H%M", currentTm);
 
-        string fileDir = man.getCSVDir();
-        if (fileDir.empty()) {
-            fileDir = string(STAT_FILE_DIRECTORY);
-        }
+        observer.logFlowDataBulk(id, "Weights", agent->getWeights());
 
-        string filePathExceptSuffix = man.getCSVFilename();
-        if (filePathExceptSuffix.empty()) {
-            filePathExceptSuffix = fileDir + "/" + agent->getName() + "_" + date;
-        } else {
-            filePathExceptSuffix = fileDir + "/" + filePathExceptSuffix;
-        }
-        filePathExceptSuffix += "_Flow" + to_string(id);
-
-        printCSV(filePathExceptSuffix + "_Rewards.csv", rewardList);
-        printCSV(filePathExceptSuffix + "_Rates.csv", rateList);
-        printCSV(filePathExceptSuffix + "_ECNAverages.csv", averageECNList);
-        printCSV(filePathExceptSuffix + "_MultActions.csv", actionMultList);
-        printCSV(filePathExceptSuffix + "_AddActions.csv", actionAddList);
-        printCSV(filePathExceptSuffix + "_DroppedPackets.csv", packetsDroppedList);
-        printCSV(filePathExceptSuffix + "_Throughput.csv", throughputList);
-        printCSV(filePathExceptSuffix + "_AverageRTT.csv", averageRTTList);
-        printCSV(filePathExceptSuffix + "_MinRTT.csv", minRTTList);
-
-        printCSV(filePathExceptSuffix + "_PacketsArrived.csv", packetsArrivedList);
-        printCSV(filePathExceptSuffix + "_AcksArrived.csv", acksArrivedList);
-
-        if (dynamic_cast<ActorCritic*>(agent) != NULL) {
-            printCSV(filePathExceptSuffix + "_MultMean.csv", multMeanList);
-            printCSV(filePathExceptSuffix + "_MultStdev.csv", multStdevList);
-
-            printCSV(filePathExceptSuffix + "_AddMean.csv", addMeanList);
-            printCSV(filePathExceptSuffix + "_AddStdev.csv", addStdevList);
-        }
-
-        // print weights
-        printCSV(filePathExceptSuffix + "_Weights", agent->getWeights());
-
-        man.removeFlow(id);
-        delete this;
+        generator->stopTraffic();
+        // TODO stop sending new packets
+        running = false;
     }
-    // man.logEvent("ECNFlow", this->id, "Agent Step", "Agent called with state " + to_string(state) + " and reward "
-    //                 + to_string(reward) + " and took action " + to_string(action)
-    //                     + ", setting rate to " +to_string(rate));
+    man.logEvent("ECNFlow", this->id, "Agent Step", "Agent called with state " + string (state.begin(), state.end())
+            + " and reward " + to_string(reward) + " and took action " + to_string(action.first) + ", "
+            + to_string(action.second) + ", setting rate to " + to_string(rate));
 }
 
 void ECNFlow::txPacketEvent() {
+    if (!running) {
+        return;
+    }
+
     Endpoint *endpoint = man.getEndpoint(sourceId);
 
     // create packet
@@ -765,13 +735,13 @@ void ECNFlow::txPacketEvent() {
         endpoint->txPacket(p);
         // track sent packets
         packetsSent++;
+        bytesSent += p->fullSize();
     }
 
     second_t nextTx = nextTxTime();
-    if (nextTx < maxTime) {
-        EventI *e = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
-        man.pushEvent(e);
-    }
+
+    EventI *e = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
+    man.pushEvent(e);
 
     if (p!= NULL) {
         man.logEvent("ECNFlow", this->id, "Flow Packet Tx", "Sent packet " + to_string(p->getId()) +
@@ -830,7 +800,7 @@ void ECNFlow::sinkPacketArrived(Packet *p) {
         if (!ackData.ECNBit) {
             packetsUntagged++;
         }
-        if (packetsSent > 0) {
+        if (packetsSent > 0) { // TODO shouldnt use packetsSent
             averageECN += ackData.bufferOccupancy / packetsSent;
             averageECN *= (double)packetsSent / (packetsSent + 1);
         } else {
@@ -884,6 +854,10 @@ second_t TestFlow::nextTxTime() {
 }
 
 void TestFlow::startFlow() {
+    if (running) {
+        return;
+    }
+
     second_t nextTx = nextTxTime();
     EventI *e1 = new Event<TestFlow>(nextTx, &TestFlow::txPacketEvent, this);
     man.pushEvent(e1);
@@ -892,6 +866,8 @@ void TestFlow::startFlow() {
     man.pushEvent(e2);
 
     generator->startTraffic();
+
+    running = true;
 }
 
 void TestFlow::stepAgent() {
@@ -902,6 +878,10 @@ void TestFlow::stepAgent() {
 }
 
 void TestFlow::txPacketEvent() {
+    if (!running) {
+        return;
+    }
+
     static const int hMin = 10, hMax = 50;
     static const int bMin = 40, bMax = 120;
     static const int ttl = 15;

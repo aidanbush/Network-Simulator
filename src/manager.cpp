@@ -10,6 +10,7 @@
 #include "link.h"
 #include "packet.h"
 #include "flow.h"
+#include "observer.h"
 
 Manager::Manager() {
     time = 0;
@@ -130,17 +131,6 @@ void Manager::removeFlow(int id) {
     Flow *f = getFlow(id);
     totalReward += f->getTotalReward();
     flows.erase(id);
-    if (flows.size() == 0) {
-        // All flows finished, end simulation
-        if (!getSuppressOutput(PARAMS)) {
-            for (auto p: params) {
-                cout << p << ",";
-            }
-            cout << initialWeights << ",";
-        }
-        cout << totalReward << endl;
-        exit(0);
-    }
 }
 
 Flow *Manager::getFlow(int id) {
@@ -272,6 +262,8 @@ bool Manager::startSimulator() {
         it.second->startFlow();
     }
 
+    observer.initializeObserver();
+
     return true;
 }
 
@@ -300,6 +292,8 @@ int Manager::getSuppressOutput(LogLevel level) {
 
 bool Manager::setLogFile(string filename) {
     FILE *newLog = fopen(filename.c_str(), (char *)"w");
+
+    // TODO check if the old log file is not the default stdout
 
     if (newLog == NULL) {
         perror("fopen");

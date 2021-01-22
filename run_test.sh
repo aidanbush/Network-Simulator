@@ -73,8 +73,8 @@ echo python combineData.py $tempResultsDir ${resultsDir}/results.csv
 time python combineData.py $tempResultsDir ${resultsDir}/results.csv
 
 # copy weights
-echo cp ${tempResultsDir}/*_Weights ${resultsDir}/weights/
-cp ${tempResultsDir}/*_Weights ${resultsDir}/weights/
+echo cp ${tempResultsDir}/*_Weights.csv ${resultsDir}/weights/
+cp ${tempResultsDir}/*_Weights.csv ${resultsDir}/weights/
 
 # plot data
 echo python plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat} -t $testName

@@ -6,27 +6,17 @@
 #include "packet.h"
 #include "packetHandler.h"
 #include "config.h"
-#include "agent.h"
-#include "actorCritic.h"
-#include "sarsa.h"
 
 // All following defines can be overridden in endpointDefines.h, which can be modified for local testing
 #if __has_include("endpointDefines.h")
 #include "endpointDefines.h"
 #else
-#define AGENT_TYPE ActorCriticAgent // SarsaAgent or ActorCriticAgent
 #endif // __has_include
 
 using namespace std;
 using json = nlohmann::json;
 
 Endpoint::Endpoint(json &endpointConfig): PacketHandler(validateEndpointConfig(endpointConfig)) {
-    agentType = AGENT_TYPE;
-    switch (agentType) {
-        case ActorCriticAgent:
-        case SarsaAgent:
-            break;
-    }
 }
 
 json &Endpoint::validateEndpointConfig(json &endpointConfig) {
@@ -71,14 +61,6 @@ bool Endpoint::validate() {
     }
 
     return valid;
-}
-
-AgentType Endpoint::getAgentType() {
-    return agentType;
-}
-
-vector<double> *Endpoint::getWeights() {
-    return &weights;
 }
 
 #ifdef _TEST

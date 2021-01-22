@@ -6,7 +6,7 @@ CXXFLAGS=-std=c++2a -Wall -Wextra -Wconversion -pedantic -g
 BUILD_DIR=../build/
 TARGETS=$(addprefix $(BUILD_DIR), simulator.o networkObject.o packetHandler.o\
 	switch.o endpoint.o interface.o flow.o link.o packet.o manager.o config.o\
-	agent.o sarsa.o actorCritic.o tilecoder.o generator.o)
+	agent.o sarsa.o actorCritic.o tilecoder.o generator.o observer.o)
 
 .PHONY: all clean test test_clean
 
@@ -44,7 +44,7 @@ $(BUILD_DIR)link.o: link.cpp link.h networkObject.h manager.h packet.h interface
 
 $(BUILD_DIR)packet.o: packet.cpp packet.h networkObject.h flow.h
 
-$(BUILD_DIR)manager.o: manager.cpp manager.h packetHandler.h switch.h endpoint.h
+$(BUILD_DIR)manager.o: manager.cpp manager.h packetHandler.h switch.h endpoint.h observer.h
 
 $(BUILD_DIR)agent.o: agent.cpp agent.h
 
@@ -55,6 +55,8 @@ $(BUILD_DIR)actorCritic.o: actorCritic.cpp actorCritic.h agent.h tilecoder.h act
 $(BUILD_DIR)tilecoder.o: tilecoder.cpp tilecoder.h tilecoderDefines.h
 
 $(BUILD_DIR)generator.o: generator.cpp generator.h manager.h
+
+$(BUILD_DIR)observer.o: observer.cpp observer.h manager.h
 
 clean:
 	$(RM) $(TARGETS)
