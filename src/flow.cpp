@@ -34,6 +34,7 @@
 #define PACKET_HEADER_SIZE 20
 #define PACKET_BODY_SIZE 236
 #define STAT_FILE_DIRECTORY "results"
+#define NO_PACKET_WAIT 0.01
 
 #define DEFAULT_REWARD_TYPE BasicReward
 
@@ -446,8 +447,6 @@ ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
     this->averageRTT = 0;
     this->minRTT = MAX_RTT;
     this->averageECN = 0;
-    this->headSize = PACKET_HEADER_SIZE;
-    this->bodySize = PACKET_BODY_SIZE;
     this->ackHeadSize = PACKET_HEADER_SIZE; // TODO change to be separate
     this->ackBodySize = PACKET_BODY_SIZE;
     this->maxRate = getMaxRate();
@@ -519,8 +518,11 @@ ECNPacket *ECNFlow::createAckPacket(ECNPacket *toAck) {
     return ackPacket;
 }
 
-second_t ECNFlow::nextTxTime() {
-    return man.time + ((headSize + bodySize) * BITS_PER_BYTE / rate);
+second_t ECNFlow::nextTxTime(Packet *p) {
+    if (p == NULL) {
+        return NO_PACKET_WAIT;
+    }
+    return man.time + (p->fullSizeBits() / rate);
 }
 
 void ECNFlow::startFlow() {
@@ -529,7 +531,7 @@ void ECNFlow::startFlow() {
     }
 
     // create txPacket event
-    second_t nextTx = nextTxTime();
+    second_t nextTx = nextTxTime(NULL);
     EventI *e1 = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
     man.pushEvent(e1);
 
@@ -738,7 +740,7 @@ void ECNFlow::txPacketEvent() {
         bytesSent += p->fullSize();
     }
 
-    second_t nextTx = nextTxTime();
+    second_t nextTx = nextTxTime(p);
 
     EventI *e = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
     man.pushEvent(e);

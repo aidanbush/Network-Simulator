@@ -168,8 +168,6 @@ class ECNFlow: public Flow {
 
         static json &validateECNFlowConfig(json &flowConfig);
 
-        int headSize;
-        int bodySize;
         int ackHeadSize;
         int ackBodySize;
 
@@ -190,7 +188,7 @@ class ECNFlow: public Flow {
         void updateStats();
         void updateStatsPostStep(pair<double, double> action);
 
-        second_t nextTxTime();
+        second_t nextTxTime(Packet *p);
 };
 
 #ifdef _TEST
