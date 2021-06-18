@@ -150,6 +150,10 @@ void BasicGenerator::validateBasicGeneratorConfig(json &generatorConfig) {
     }
 }
 
+double BasicGenerator::getAveragePacketSizeBytes() {
+    return headerSize + bodySize;
+}
+
 void BasicGenerator::generatePacket() {
     if (!running) {
         return;
@@ -175,6 +179,8 @@ CycleGenerator::CycleGenerator(json &generatorConfig):
     Generator(generatorConfig) {
     validateCycleGeneratorConfig(generatorConfig);
 
+    double averagePacketSizeBytes = 0;
+
     // go though cycles and store them
     for (auto it: generatorConfig["cycle"].items()) {
         // go through cycle elements
@@ -185,11 +191,22 @@ CycleGenerator::CycleGenerator(json &generatorConfig):
             it.value()[3], // number of packets
         };
 
+        averagePacketSizeBytes += elem.headerSize + elem.bodySize;
+
         cycleData.push_back(elem);
     }
 
+    averagePacketSizeBytes /= double(cycleData.size());
+
+    this->averagePacketSizeBytes = averagePacketSizeBytes;
     this->packetsSent = 0;
     this->cyclePos = 0;
+}
+
+
+// TODO test
+double CycleGenerator::getAveragePacketSizeBytes() {
+    return averagePacketSizeBytes;
 }
 
 void CycleGenerator::validateCycleGeneratorConfig(json &generatorConfig) {
@@ -266,7 +283,7 @@ void CycleGenerator::generatePacket() {
         // if done cycle go to next
         if (packetsSent >= getCycleNumPackets()) {
             cyclePos++;
-            cyclePos %= cycleData.size();
+            cyclePos %= int(cycleData.size());
         }
     }
 
@@ -352,4 +369,8 @@ void PoissonGenerator::generatePacket() {
 
     EventI *e = new Event<PoissonGenerator>(nextGenTime(), &PoissonGenerator::generatePacket, this);
     man.pushEvent(e);
+}
+
+double PoissonGenerator::getAveragePacketSizeBytes() {
+    return headerSize + bodySize;
 }

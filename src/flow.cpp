@@ -128,6 +128,15 @@ double Flow::initialAverageReward() {
         case ThroughputDemandReward:
             rBar = 0;
             break;
+        case LogThroughput:
+            rBar = log(rate);
+            break;
+        case REMY1:
+            rBar = log(rate); // ignore RTT for now, average reward should increase
+            break;
+        case REMY2:
+            rBar = -1/rate;
+            break;
     }
 
     return rBar;
@@ -390,7 +399,7 @@ json &BasicFlow::validateBasicFlowConfig(json &flowConfig) {
     return flowConfig;
 }
 
-second_t BasicFlow::nextTxTime() {
+second_t BasicFlow::nextTxTime(Packet *p) {
     return man.time + time;
 }
 
@@ -399,7 +408,7 @@ void BasicFlow::startFlow() {
         return;
     }
 
-    second_t nextTx = nextTxTime();
+    second_t nextTx = nextTxTime(NULL);
     EventI *e1 = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
     man.pushEvent(e1);
 
@@ -428,13 +437,13 @@ void BasicFlow::txPacketEvent() {
         endpoint->txPacket(p);
     }
 
-    second_t nextTx = nextTxTime();
+    second_t nextTx = nextTxTime(NULL);
     EventI *e = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
     man.pushEvent(e);
 }
 
 double BasicFlow::getAveragePacketSizeBytes() {
-    return double(headSize + bodySize);
+    return generator->getAveragePacketSizeBytes();
 }
 
 /* Explicit congestion notification flow */
@@ -520,8 +529,9 @@ ECNPacket *ECNFlow::createAckPacket(ECNPacket *toAck) {
 
 second_t ECNFlow::nextTxTime(Packet *p) {
     if (p == NULL) {
-        return NO_PACKET_WAIT;
+        return man.time + NO_PACKET_WAIT;
     }
+
     return man.time + (p->fullSizeBits() / rate);
 }
 
@@ -626,6 +636,12 @@ double ECNFlow::getReward() {
 
                 return r;
             }
+        case LogThroughput:
+            return log(throughput);
+        case REMY1:
+            return log(throughput) - log(averageRTT);
+        case REMY2:
+            return -1/throughput;
     }
     throw runtime_error("Invalid reward specified\n");
 }
@@ -765,7 +781,7 @@ void ECNFlow::txAck(ECNPacket *toAckPacket) {
 }
 
 double ECNFlow::getAveragePacketSizeBytes() {
-    return double(headSize + bodySize);
+    return generator->getAveragePacketSizeBytes();
 }
 
 void ECNFlow::packetArrived(Packet *p) {
@@ -849,7 +865,7 @@ json &TestFlow::validateTestFlowConfig(json &flowConfig) {
     return flowConfig;
 }
 
-second_t TestFlow::nextTxTime() {
+second_t TestFlow::nextTxTime(Packet *p) {
     static const second_t min = 0.001, max = 0.01;
 
     return man.time + min + (float)rand() / (RAND_MAX / (max - min));
@@ -860,7 +876,7 @@ void TestFlow::startFlow() {
         return;
     }
 
-    second_t nextTx = nextTxTime();
+    second_t nextTx = nextTxTime(NULL);
     EventI *e1 = new Event<TestFlow>(nextTx, &TestFlow::txPacketEvent, this);
     man.pushEvent(e1);
 
@@ -901,7 +917,7 @@ void TestFlow::txPacketEvent() {
     endpoint->txPacket(p);
 
     // set up next
-    second_t nextTx = nextTxTime();
+    second_t nextTx = nextTxTime(NULL);
     EventI *e = new Event<TestFlow>(nextTx, &TestFlow::txPacketEvent, this);
     man.pushEvent(e);
 }

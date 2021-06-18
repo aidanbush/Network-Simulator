@@ -15,6 +15,7 @@
 #include "config.h"
 
 #define DEFAULT_CONFIG  "config.json"
+#define DEFAULT_TIMEOUT 50000
 
 using namespace std;
 
@@ -70,6 +71,7 @@ int main(int argc, char **argv) {
     int c;
     bool step = false;
     char const *configFile = DEFAULT_CONFIG;
+    second_t exitTime = DEFAULT_TIMEOUT;
 
     srand((int)time(0));
 
@@ -146,6 +148,10 @@ int main(int argc, char **argv) {
 
         if (step) {
             getchar();
+        }
+
+        if (man.time >= exitTime) {
+            exitSim = 1;
         }
     }
 

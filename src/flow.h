@@ -55,6 +55,9 @@ class Flow: public NetworkObject {
             ExpertReward,
             ThroughputReward,
             ThroughputDemandReward,
+            LogThroughput,
+            REMY1,
+            REMY2,
         };
         RewardType rewardType;
 
@@ -86,7 +89,7 @@ class Flow: public NetworkObject {
 
         int ttl;
 
-        virtual second_t nextTxTime() = 0;
+        virtual second_t nextTxTime(Packet *p) = 0;
 
         // stats
         int packetsCreated;
@@ -96,7 +99,7 @@ class Flow: public NetworkObject {
         int packetsErrored;
         int bytesSent;
         int bytesArrived;
-        double throughput;
+        double throughput; // bytes/s
         double sentRate;
         double oldThroughput;
         second_t averageRTT;
@@ -104,7 +107,7 @@ class Flow: public NetworkObject {
 
         Agent *agent;
         second_t miTime = 0.01; // 10 ms
-        double rate = 0;
+        double rate = 0; // bits/s
         double oldRate = 0;
         double oldECN = 0;
         double maxRate;
@@ -138,7 +141,7 @@ class BasicFlow: public Flow {
         int headSize;
         int bodySize;
 
-        second_t nextTxTime();
+        second_t nextTxTime(Packet *p);
 };
 
 class ECNFlow: public Flow {
@@ -204,7 +207,7 @@ class TestFlow: public Flow {
     private:
         static json &validateTestFlowConfig(json &flowConfig);
 
-        second_t nextTxTime();
+        second_t nextTxTime(Packet *p);
 };
 #endif /* _TEST */
 

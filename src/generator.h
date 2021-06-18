@@ -28,6 +28,8 @@ class Generator {
 
         virtual void generatePacket();
 
+        virtual double getAveragePacketSizeBytes() = 0;
+
     protected:
         int bufferMaxSize; // bytes
         int bufferCurSize; // bytes
@@ -48,6 +50,8 @@ class BasicGenerator: public Generator {
 
         void generatePacket();
 
+        double getAveragePacketSizeBytes();
+
     private:
         double rate;
         int headerSize;
@@ -62,6 +66,8 @@ class CycleGenerator: public Generator {
         CycleGenerator(json &generatorConfig);
 
         void generatePacket();
+
+        double getAveragePacketSizeBytes();
 
     private:
         void validateCycleGeneratorConfig(json &generatorConfig);
@@ -82,6 +88,7 @@ class CycleGenerator: public Generator {
         vector<cycleElement> cycleData;
         int packetsSent;
         int cyclePos;
+        double averagePacketSizeBytes;
 };
 
 // Poisson model
@@ -90,6 +97,8 @@ class PoissonGenerator: public Generator {
         PoissonGenerator(json &generatorConfig);
 
         void generatePacket();
+
+        double getAveragePacketSizeBytes();
 
     private:
         int getHeaderSize();
