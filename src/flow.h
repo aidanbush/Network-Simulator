@@ -89,7 +89,7 @@ class Flow: public NetworkObject {
 
         int ttl;
 
-        virtual second_t nextTxTime(Packet *p) = 0;
+        second_t nextTxTime(Packet *p);
 
         // stats
         int packetsCreated;
@@ -140,8 +140,6 @@ class BasicFlow: public Flow {
 
         int headSize;
         int bodySize;
-
-        second_t nextTxTime(Packet *p);
 };
 
 class ECNFlow: public Flow {
@@ -190,8 +188,6 @@ class ECNFlow: public Flow {
 
         void updateStats();
         void updateStatsPostStep(pair<double, double> action);
-
-        second_t nextTxTime(Packet *p);
 };
 
 #ifdef _TEST

@@ -363,6 +363,14 @@ Packet *Flow::getNextPacket(bool fromSource) {
     return p;
 }
 
+second_t Flow::nextTxTime(Packet *p) {
+    if (p == NULL) {
+        return man.time + NO_PACKET_WAIT;
+    }
+
+    return man.time + (p->fullSizeBits() / rate);
+}
+
 double Flow::getMaxRate() {
     Endpoint *e = man.getEndpoint(sourceId);
     return e->getMaxOutputRate();
@@ -397,10 +405,6 @@ json &BasicFlow::validateBasicFlowConfig(json &flowConfig) {
         throw runtime_error(message);
     }
     return flowConfig;
-}
-
-second_t BasicFlow::nextTxTime(Packet *p) {
-    return man.time + time;
 }
 
 void BasicFlow::startFlow() {
@@ -525,14 +529,6 @@ ECNPacket *ECNFlow::createAckPacket(ECNPacket *toAck) {
             toAck->getId());
 
     return ackPacket;
-}
-
-second_t ECNFlow::nextTxTime(Packet *p) {
-    if (p == NULL) {
-        return man.time + NO_PACKET_WAIT;
-    }
-
-    return man.time + (p->fullSizeBits() / rate);
 }
 
 void ECNFlow::startFlow() {
