@@ -68,5 +68,7 @@ for dataType in data.keys():
         if (dataType in ["Rates", "MultActions", "MultMean", "MultStd"]):#, "Throughput"]):
             plt.yscale("log")
         plt.legend()
-
-    plt.savefig(os.path.join(outputDir, "{}.{}".format(dataType, plotFormat)), format=plotFormat)
+    try:
+        plt.savefig(os.path.join(outputDir, "{}.{}".format(dataType, plotFormat)), format=plotFormat)
+    except:
+        print("failed to plot", dataType)
