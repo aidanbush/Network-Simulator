@@ -135,11 +135,6 @@ class BasicFlow: public Flow {
         BasicFlow(json &flowConfig);
 
         static json &validateBasicFlowConfig(json &flowConfig);
-
-        second_t time;
-
-        int headSize;
-        int bodySize;
 };
 
 class ECNFlow: public Flow {

@@ -381,9 +381,6 @@ double Flow::getTotalReward() {
 }
 
 BasicFlow::BasicFlow(json &flowConfig): Flow(validateBasicFlowConfig(flowConfig)) {
-    this->time = 0.001;
-    this->headSize = 20;
-    this->bodySize = 256;
 }
 
 json &BasicFlow::validateBasicFlowConfig(json &flowConfig) {
