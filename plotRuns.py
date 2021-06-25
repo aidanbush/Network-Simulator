@@ -28,6 +28,10 @@ titlePostfix = ""
 if "-t" in sys.argv:
     titlePostfix = sys.argv[sys.argv.index("-t") + 1]
 
+combine = 1
+if "-c" in sys.argv:
+    combine = int(sys.argv[sys.argv.index("-c") + 1])
+
 # data type {flow [mean, std]}
 data = defaultdict(lambda: defaultdict(lambda: [[],[]]))
 
@@ -37,13 +41,17 @@ with open(csvFile) as f:
     c = 0
 
     for row in reader:
-        c += 1
         if plotRange != None and (c < plotRange[0] or c > plotRange[1]):
             continue
         for key in row.keys():
             flow, dataType, statsElem = key.split()
 
-            data[dataType][flow][STATS_ELEM_TO_INDEX[statsElem]].append(float(row[key]))
+            if c % combine == 0:
+                data[dataType][flow][STATS_ELEM_TO_INDEX[statsElem]].append(float(row[key]))
+            else:
+                oldVal = data[dataType][flow][STATS_ELEM_TO_INDEX[statsElem]][-1]
+                data[dataType][flow][STATS_ELEM_TO_INDEX[statsElem]][-1] = oldVal + (float(row[key]) - oldVal) / ((c % combine) + 1)
+        c += 1
 
 # make plots
 for dataType in data.keys():
@@ -63,7 +71,7 @@ for dataType in data.keys():
             flowData[1] = np.array(flowData[1])
 
         # plot line with stdev
-        plt.plot(flowData[0], label=flow)
+        plt.plot(flowData[0], label=flow, alpha = 0.7)
         plt.fill_between(range(len(flowData[0])), flowData[0]-flowData[1], flowData[0]+flowData[1], alpha=1/3)
         if (dataType in ["Rates", "MultActions", "MultMean", "MultStd"]):#, "Throughput"]):
             plt.yscale("log")
