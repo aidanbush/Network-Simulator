@@ -20,7 +20,9 @@ class Flow: public NetworkObject {
     public:
         ~Flow();
 
+        virtual void initializeFlow() = 0;
         virtual void startFlow() = 0;
+        virtual void stopFlow() = 0;
         virtual void stepAgent() = 0;
         virtual void txPacketEvent() = 0;
 
@@ -124,6 +126,9 @@ class Flow: public NetworkObject {
 
         Generator *generator;
 
+        second_t startTime;
+        second_t endTime;
+
     private:
         void validateFlowConfig(json &flowConfig);
 };
@@ -132,7 +137,9 @@ class BasicFlow: public Flow {
     friend Flow *createFlow(json &flowConfig);
     public:
 
+        void initializeFlow();
         void startFlow();
+        void stopFlow();
         void stepAgent();
         void txPacketEvent();
 
@@ -157,7 +164,9 @@ class ECNFlow: public Flow {
     friend Flow *createFlow(json &flowConfig);
     public:
 
+        void initializeFlow();
         void startFlow();
+        void stopFlow();
         void stepAgent();
         void txPacketEvent();
 

@@ -259,7 +259,7 @@ bool Manager::startSimulator() {
     }
 
     for (auto& it : flows) {
-        it.second->startFlow();
+        it.second->initializeFlow();
     }
 
     observer.initializeObserver();

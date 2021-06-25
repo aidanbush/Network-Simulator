@@ -152,6 +152,9 @@ Flow::Flow(json &flowConfig):
 
     this->rate = flowConfig["start_rate"];
 
+    this->startTime = flowConfig["start_time"];
+    this->endTime = flowConfig["end_time"];
+
     // create generator
     this->generator = createGenerator(flowConfig["generator"]);
 
@@ -205,6 +208,14 @@ void Flow::validateFlowConfig(json &flowConfig) {
 
     if (!hasMemberOfType(flowConfig, "start_rate", jsonDouble)) {
         message += "No double with name 'start_rate'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "start_time", jsonDouble)) {
+        message += "No double with name 'start_time'\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "end_time", jsonDouble)) {
+        message += "No double with name 'end_time'\n";
     }
 
     // generator
@@ -384,6 +395,16 @@ double Flow::getTotalReward() {
 BasicFlow::BasicFlow(json &flowConfig): Flow(validateBasicFlowConfig(flowConfig)) {
 }
 
+void BasicFlow::initializeFlow() {
+    EventI *e = new Event<BasicFlow>(startTime, &BasicFlow::startFlow, this);
+    man.pushEvent(e);
+
+    if (endTime != 0) {
+        EventI *e = new Event<BasicFlow>(endTime, &BasicFlow::stopFlow, this);
+        man.pushEvent(e);
+    }
+}
+
 json &BasicFlow::validateBasicFlowConfig(json &flowConfig) {
     string message = "";
     if (!hasMemberOfType(flowConfig, "id", jsonInt)) {
@@ -423,6 +444,10 @@ void BasicFlow::startFlow() {
     second_t nextRecord = man.time + miTime;
     EventI *e = new Event<BasicFlow>(nextRecord, &BasicFlow::recordData, this);
     man.pushEvent(e);
+}
+
+void BasicFlow::stopFlow() {
+    running = false;
 }
 
 void BasicFlow::stepAgent() {
@@ -522,11 +547,15 @@ void BasicFlow::recordData() {
         observer.logFlowData(id, "DroppedPackets", packetsDropped/packetsSent);
     }
 
+    resetData();
+
+    if (!running) {
+        return;
+    }
+
     second_t nextRecord = man.time + miTime;
     EventI *e = new Event<BasicFlow>(nextRecord, &BasicFlow::recordData, this);
     man.pushEvent(e);
-
-    resetData();
 }
 
 /* Explicit congestion notification flow */
@@ -607,6 +636,16 @@ ECNPacket *ECNFlow::createAckPacket(ECNPacket *toAck) {
     return ackPacket;
 }
 
+void ECNFlow::initializeFlow() {
+    EventI *e = new Event<ECNFlow>(startTime, &ECNFlow::startFlow, this);
+    man.pushEvent(e);
+
+    if (endTime != 0) {
+        EventI *e = new Event<ECNFlow>(endTime, &ECNFlow::stopFlow, this);
+        man.pushEvent(e);
+    }
+}
+
 void ECNFlow::startFlow() {
     if (running) {
         return;
@@ -624,6 +663,10 @@ void ECNFlow::startFlow() {
     generator->startTraffic();
 
     running = true;
+}
+
+void ECNFlow::stopFlow() {
+    running = false;
 }
 
 vector<double> ECNFlow::getState() {
@@ -792,7 +835,7 @@ void ECNFlow::stepAgent() {
     resetState();
 
     rate = min(maxRate, max(MIN_RATE, rate));
-    if (numSteps < maxSteps) {
+    if (numSteps < maxSteps && running) {
         EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
         man.pushEvent(e);
     } else {
