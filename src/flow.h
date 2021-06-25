@@ -69,6 +69,9 @@ class Flow: public NetworkObject {
         bool validateSource();
         bool validateDest();
 
+        int ackHeadSize;
+        int ackBodySize;
+
         virtual void sourcePacketArrived(Packet *p);
         virtual void sinkPacketArrived(Packet *p);
 
@@ -96,6 +99,7 @@ class Flow: public NetworkObject {
         int packetsArrived;
         int acksArrived;
         int packetsDropped;
+        int packetsSent;
         int packetsErrored;
         int bytesSent;
         int bytesArrived;
@@ -104,6 +108,9 @@ class Flow: public NetworkObject {
         double oldThroughput;
         second_t averageRTT;
         second_t minRTT;
+
+        int totalPacketsSent;
+        int totalPacketsDropped;
 
         Agent *agent;
         second_t miTime = 0.01; // 10 ms
@@ -135,6 +142,15 @@ class BasicFlow: public Flow {
         BasicFlow(json &flowConfig);
 
         static json &validateBasicFlowConfig(json &flowConfig);
+
+        void recordData();
+        void resetData();
+
+        Packet *createAckPacket(Packet *p);
+
+        void txAck(Packet *p);
+        void packetArrived(Packet *p);
+        void sourcePacketArrived(Packet *p);
 };
 
 class ECNFlow: public Flow {
@@ -164,15 +180,9 @@ class ECNFlow: public Flow {
 
         static json &validateECNFlowConfig(json &flowConfig);
 
-        int ackHeadSize;
-        int ackBodySize;
-
         int packetsUntagged;
-        int packetsSent;
         double averageECN;
         int totalPacketsUntagged;
-        int totalPacketsSent;
-        int totalPacketsDropped;
 
         int numSteps;
         int maxSteps;

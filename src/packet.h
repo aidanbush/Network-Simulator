@@ -36,6 +36,7 @@ class Packet: public NetworkObject {
         int getAckedFullSizeBits() {return ackedSizeBytes * BITS_PER_BYTE; }
         int getAckedFullSizeBytes() {return ackedSizeBytes; }
 
+        void setAckData(second_t sendTime, int sizeBytes, int ackedId);
 
         bool validate();
 
@@ -57,6 +58,8 @@ class Packet: public NetworkObject {
 
         bool sourcePacket;
 
+        int ackedId;
+
         second_t createTime;
         second_t arrivalTime; // currently not used
 };
@@ -64,7 +67,6 @@ class Packet: public NetworkObject {
 class ECNPacket: public Packet {
     public:
         struct ackMetaData {
-            int ackedId; // remove from ECNPacket
             bool ECNBit;
             double bufferOccupancy; // ECN Scale
         };

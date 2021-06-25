@@ -186,6 +186,8 @@ Flow::Flow(json &flowConfig):
     this->miTime = MI_TIME;
     this->ttl = 15; // TODO use define
     this->running = false;
+    this->ackHeadSize = ACK_HEADER_SIZE;
+    this->ackBodySize = ACK_BODY_SIZE;
 
     this->rewardType = DEFAULT_REWARD_TYPE;
 }
@@ -253,7 +255,8 @@ void Flow::packetArrived(Packet *p) {
 }
 
 void Flow::sourcePacketArrived(Packet *p) {
-    // TODO update to actual RTT not single direction
+    bytesArrived += p->fullSize();
+
     packetsArrived++;
 
     removePacket(p);
@@ -261,8 +264,6 @@ void Flow::sourcePacketArrived(Packet *p) {
 }
 
 void Flow::sinkPacketArrived(Packet *p) {
-    bytesArrived += p->getAckedFullSizeBits();
-
     acksArrived++;
 
     second_t packetRTT = man.time - p->getAckedSendTime();
@@ -409,13 +410,19 @@ void BasicFlow::startFlow() {
         return;
     }
 
-    second_t nextTx = nextTxTime(NULL);
-    EventI *e1 = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
-    man.pushEvent(e1);
+    resetData();
 
     generator->startTraffic();
 
     running = true;
+
+    second_t nextTx = nextTxTime(NULL);
+    EventI *e1 = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
+    man.pushEvent(e1);
+
+    second_t nextRecord = man.time + miTime;
+    EventI *e = new Event<BasicFlow>(nextRecord, &BasicFlow::recordData, this);
+    man.pushEvent(e);
 }
 
 void BasicFlow::stepAgent() {
@@ -436,6 +443,9 @@ void BasicFlow::txPacketEvent() {
         man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceId, p);
 
         endpoint->txPacket(p);
+
+        packetsSent++;
+        bytesSent += p->fullSize();
     }
 
     second_t nextTx = nextTxTime(NULL);
@@ -443,8 +453,80 @@ void BasicFlow::txPacketEvent() {
     man.pushEvent(e);
 }
 
+Packet *BasicFlow::createAckPacket(Packet *toAck) {
+    int pId = newPacketId(false);
+
+    // create packet
+    Packet *ackPacket = new Packet(pId, destId, sourceId, id, ttl, ackHeadSize, ackBodySize, false);
+
+    // add state
+    ackPacket->setAckData(toAck->getSendTime(), toAck->fullSize(), toAck->getId());
+
+    return ackPacket;
+}
+
+void BasicFlow::txAck(Packet *toAckPacket) {
+    Endpoint *endpoint = man.getEndpoint(destId);
+
+    // create
+    Packet *ackPacket = createAckPacket(toAckPacket);
+
+    // send
+    endpoint->txPacket(ackPacket);
+
+    man.logEvent("ECNFlow", this->id, "Flow Ack Tx", "Sent Ack " + to_string(ackPacket->getId()) +
+                    " from flow " + to_string(this->id));
+}
+
+void BasicFlow::packetArrived(Packet *p) {
+    if (p->isSourcePacket()) {
+        sourcePacketArrived(p);
+    }
+    Flow:: packetArrived(p);
+}
+
+void BasicFlow::sourcePacketArrived(Packet *p) {
+    txAck(p);
+}
+
 double BasicFlow::getAveragePacketSizeBytes() {
     return generator->getAveragePacketSizeBytes();
+}
+
+void BasicFlow::resetData() {
+    packetsSent = 0;
+    packetsDropped = 0;
+    bytesSent = 0;
+    bytesArrived = 0;
+    averageRTT = 0;
+    minRTT = MAX_RTT;
+
+    packetsArrived = 0;
+    acksArrived = 0;
+}
+
+void BasicFlow::recordData() {
+    throughput = bytesArrived / miTime;
+    sentRate = bytesSent * BITS_PER_BYTE / miTime;
+
+    observer.logFlowData(id, "Throughput", throughput);
+    observer.logFlowData(id, "AverageRTT", averageRTT);
+    observer.logFlowData(id, "MinRTT", minRTT);
+    observer.logFlowData(id, "SentRate", sentRate);
+    observer.logFlowData(id, "PacketsArrived", packetsArrived);
+    observer.logFlowData(id, "AcksArrived", acksArrived);
+
+    if (packetsSent == 0) {
+        observer.logFlowData(id, "DroppedPackets", 0);
+    } else {
+        observer.logFlowData(id, "DroppedPackets", packetsDropped/packetsSent);
+    }
+
+    second_t nextRecord = man.time + miTime;
+    EventI *e = new Event<BasicFlow>(nextRecord, &BasicFlow::recordData, this);
+    man.pushEvent(e);
+
+    resetData();
 }
 
 /* Explicit congestion notification flow */
@@ -457,8 +539,6 @@ ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
     this->averageRTT = 0;
     this->minRTT = MAX_RTT;
     this->averageECN = 0;
-    this->ackHeadSize = PACKET_HEADER_SIZE; // TODO change to be separate
-    this->ackBodySize = PACKET_BODY_SIZE;
     this->maxRate = getMaxRate();
     this->numSteps = 0;
     this->maxSteps = NUM_AGENT_STEPS;
@@ -514,7 +594,6 @@ ECNPacket *ECNFlow::getNextPacket(bool fromSource) {
     return p;
 }
 
-// TODO source and dest are backwards???
 ECNPacket *ECNFlow::createAckPacket(ECNPacket *toAck) {
     int pId = newPacketId(false);
 

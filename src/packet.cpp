@@ -43,6 +43,12 @@ second_t Packet::getAckedSendTime() {
     return ackedSendTime;
 }
 
+void Packet::setAckData(second_t sendTime, int sizeBytes, int ackedId) {
+    ackedSendTime = sendTime;
+    ackedSizeBytes = sizeBytes;
+    ackedId = ackedId;
+}
+
 bool Packet::validate() {
     // TODO implement
     return true;
@@ -75,9 +81,9 @@ double ECNPacket::getECNScale() {
 void ECNPacket::setAckData(second_t sendTime, int sizeBytes, bool ECNBit, double bufferOccupancy, int ackedId) {
     ackedSendTime = sendTime;
     ackedSizeBytes = sizeBytes;
+    ackedId = ackedId;
     ackData.ECNBit = ECNBit;
     ackData.bufferOccupancy = bufferOccupancy;
-    ackData.ackedId = ackedId;
 }
 
 ECNPacket::ackMetaData ECNPacket::getAckData() {
