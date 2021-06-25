@@ -396,13 +396,18 @@ BasicFlow::BasicFlow(json &flowConfig): Flow(validateBasicFlowConfig(flowConfig)
 }
 
 void BasicFlow::initializeFlow() {
-    EventI *e = new Event<BasicFlow>(startTime, &BasicFlow::startFlow, this);
-    man.pushEvent(e);
+    EventI *e1 = new Event<BasicFlow>(startTime, &BasicFlow::startFlow, this);
+    man.pushEvent(e1);
 
     if (endTime != 0) {
-        EventI *e = new Event<BasicFlow>(endTime, &BasicFlow::stopFlow, this);
-        man.pushEvent(e);
+        EventI *e2 = new Event<BasicFlow>(endTime, &BasicFlow::stopFlow, this);
+        man.pushEvent(e2);
     }
+
+    // TODO move to start flow
+    second_t nextRecord = man.time + miTime;
+    EventI *e3 = new Event<BasicFlow>(nextRecord, &BasicFlow::recordData, this);
+    man.pushEvent(e3);
 }
 
 json &BasicFlow::validateBasicFlowConfig(json &flowConfig) {
@@ -440,10 +445,6 @@ void BasicFlow::startFlow() {
     second_t nextTx = nextTxTime(NULL);
     EventI *e1 = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
     man.pushEvent(e1);
-
-    second_t nextRecord = man.time + miTime;
-    EventI *e = new Event<BasicFlow>(nextRecord, &BasicFlow::recordData, this);
-    man.pushEvent(e);
 }
 
 void BasicFlow::stopFlow() {
@@ -531,7 +532,7 @@ void BasicFlow::resetData() {
 }
 
 void BasicFlow::recordData() {
-    throughput = bytesArrived / miTime;
+    throughput = bytesArrived * BITS_PER_BYTE / miTime;
     sentRate = bytesSent * BITS_PER_BYTE / miTime;
 
     observer.logFlowData(id, "Throughput", throughput);
@@ -548,10 +549,6 @@ void BasicFlow::recordData() {
     }
 
     resetData();
-
-    if (!running) {
-        return;
-    }
 
     second_t nextRecord = man.time + miTime;
     EventI *e = new Event<BasicFlow>(nextRecord, &BasicFlow::recordData, this);
@@ -637,12 +634,12 @@ ECNPacket *ECNFlow::createAckPacket(ECNPacket *toAck) {
 }
 
 void ECNFlow::initializeFlow() {
-    EventI *e = new Event<ECNFlow>(startTime, &ECNFlow::startFlow, this);
-    man.pushEvent(e);
+    EventI *e1 = new Event<ECNFlow>(startTime, &ECNFlow::startFlow, this);
+    man.pushEvent(e1);
 
     if (endTime != 0) {
-        EventI *e = new Event<ECNFlow>(endTime, &ECNFlow::stopFlow, this);
-        man.pushEvent(e);
+        EventI *e2 = new Event<ECNFlow>(endTime, &ECNFlow::stopFlow, this);
+        man.pushEvent(e2);
     }
 }
 
@@ -779,7 +776,7 @@ void ECNFlow::updateStats() {
     totalPacketsUntagged += packetsUntagged;
     totalPacketsSent += packetsSent;
     totalPacketsDropped += packetsDropped;
-    throughput = bytesArrived / miTime;
+    throughput = bytesArrived * BITS_PER_BYTE / miTime;
     sentRate = bytesSent * BITS_PER_BYTE / miTime;
 
     observer.logFlowData(id, "Reward", getReward());
