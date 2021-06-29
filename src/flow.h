@@ -20,7 +20,7 @@ class Flow: public NetworkObject {
     public:
         ~Flow();
 
-        virtual void initializeFlow() = 0;
+        virtual void initializeFlow();
         virtual void startFlow() = 0;
         virtual void stopFlow() = 0;
         virtual void stepAgent() = 0;
@@ -43,6 +43,8 @@ class Flow: public NetworkObject {
 
         virtual double getAveragePacketSizeBytes() = 0;
 
+        virtual void packetGenerationNotification() = 0;
+
     protected:
         // TODO move out of Flow into ECNFlow
         enum RewardType {
@@ -64,6 +66,8 @@ class Flow: public NetworkObject {
         RewardType rewardType;
 
         bool running;
+
+        Packet *sendingPacket;
 
         double initialAverageReward();
 
@@ -145,6 +149,8 @@ class BasicFlow: public Flow {
 
         double getAveragePacketSizeBytes();
 
+        void packetGenerationNotification();
+
     private:
         BasicFlow(json &flowConfig);
 
@@ -172,6 +178,8 @@ class ECNFlow: public Flow {
 
         double getAveragePacketSizeBytes();
 
+        void packetGenerationNotification();
+
     private:
         ECNFlow(json &flowConfig);
 
@@ -188,6 +196,8 @@ class ECNFlow: public Flow {
         void sinkPacketArrived(Packet *p);
 
         static json &validateECNFlowConfig(json &flowConfig);
+
+        ECNPacket *sendingPacket;
 
         int packetsUntagged;
         double averageECN;

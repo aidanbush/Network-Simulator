@@ -17,6 +17,8 @@ class Generator {
     public:
         Generator(json &generatorConfig);
 
+        bool setFlowId(int id);
+
         struct PacketData {
             int headerSize;
             int bodySize;
@@ -38,6 +40,8 @@ class Generator {
         second_t nextGenTime(int size, double rate);
 
         bool running; // TODO initialize
+
+        int flowId;
 
     private:
         void validateGeneratorConfig(json &generatorConfig);

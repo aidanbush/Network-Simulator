@@ -57,8 +57,18 @@ Generator::Generator(json &generatorConfig) {
     validateGeneratorConfig(generatorConfig);
 
     this->bufferMaxSize = generatorConfig["buffer_size"];
+    this->flowId = -1;
     this->bufferCurSize = 0;
     this->running = false;
+}
+
+bool Generator::setFlowId(int id) {
+    if (flowId == -1) {
+        flowId = id;
+        return true;
+    }
+
+    return false;
 }
 
 void Generator::validateGeneratorConfig(json &generatorConfig) {
@@ -75,7 +85,8 @@ void Generator::validateGeneratorConfig(json &generatorConfig) {
 }
 
 void Generator::generatePacket() {
-    man.logEvent("Generator", 0, "generatePacket", "Generated No Packet");
+    Flow *f = man.getFlow(flowId);
+    f->packetGenerationNotification();
 }
 
 bool Generator::startTraffic() {
@@ -167,7 +178,7 @@ void BasicGenerator::generatePacket() {
     }
 
     man.logEvent("BasicGenerator", 0, "generatePacket", "Generated Packet of size" + to_string(packetSize));
-
+    Generator::generatePacket();
 
     EventI *e = new Event<BasicGenerator>(nextGenTime(packetSize, rate), &BasicGenerator::generatePacket, this);
     man.pushEvent(e);
@@ -288,6 +299,7 @@ void CycleGenerator::generatePacket() {
     }
 
     man.logEvent("CycleGenerator", 0, "generatePacket", "Generated Packet of size" + to_string(packetSize));
+    Generator::generatePacket();
 
     EventI *e = new Event<CycleGenerator>(nextGenTime(packetSize, rate), &CycleGenerator::generatePacket, this);
     man.pushEvent(e);
@@ -366,6 +378,7 @@ void PoissonGenerator::generatePacket() {
     }
 
     man.logEvent("PoissonGenerator", 0, "generatePacket", "Generated Packet of size" + to_string(packetSize));
+    Generator::generatePacket();
 
     EventI *e = new Event<PoissonGenerator>(nextGenTime(), &PoissonGenerator::generatePacket, this);
     man.pushEvent(e);
