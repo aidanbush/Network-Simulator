@@ -15,6 +15,10 @@ class Link;
 class Packet;
 class Flow;
 
+class Manager;
+
+extern Manager man;
+
 using namespace std;
 
 typedef double second_t;
@@ -39,12 +43,6 @@ template <typename T> struct Event: EventI {
     }
 };
 
-struct EventQueueComparator {
-    bool operator()(const EventI *lhs, const EventI *rhs) const {
-        return lhs->time > rhs->time; // Lower time is higher priority
-    }
-};
-
 enum LogLevel {
     CSV=1,
     PARAMS=2,
@@ -55,6 +53,15 @@ enum LogLevel {
 class Manager {
     public:
         Manager();
+
+        struct EventQueueComparator {
+            bool operator()(const EventI *lhs, const EventI *rhs) const {
+                if (lhs->time == rhs->time) {
+                    return man.random() % 2;
+                }
+                return lhs->time > rhs->time; // Lower time is higher priority
+            }
+        };
 
         second_t time;
         // global stats
@@ -140,7 +147,5 @@ class Manager {
 
         mt19937 generator;
 };
-
-extern Manager man;
 
 #endif // MANAGER_H
