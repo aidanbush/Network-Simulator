@@ -2,12 +2,15 @@
 #define SARSA_H
 
 #include <random>
+#include <nlohmann/json.hpp>
 
 #include "tilecoder.h"
 
+using json = nlohmann::json;
+
 class Sarsa: public Agent {
     public:
-        Sarsa(vector<double> initialState, int flowId);
+        Sarsa(vector<double> initialState, int flowId, json agentConfig);
 
         pair<double, double> step(vector<double> state, double reward, double &rate);
 

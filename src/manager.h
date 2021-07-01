@@ -102,9 +102,6 @@ class Manager {
         bool setCSVDir(string filename);
         string getCSVDir();
 
-        void setParameters(vector<double> params);
-        bool getParameters(vector<double> *params, int numParams);
-
         void setSuppressOutput(int value);
         int getSuppressOutput(LogLevel level);
 
@@ -112,6 +109,9 @@ class Manager {
         void logEvent(string objName, int objId, string eventName, string message);
 
         bool startSimulator();
+
+        void setExitTime(second_t time);
+        bool checkExitTime();
 
         void seed(int seed);
         int random();
@@ -127,7 +127,6 @@ class Manager {
         void deleteEvents();
 
         bool parametersSet = false;
-        vector<double> params;
         double initialWeights;
 
         double totalReward = 0;
@@ -146,6 +145,8 @@ class Manager {
         string CSVDir;
 
         mt19937 generator;
+
+        second_t exitTime;
 };
 
 #endif // MANAGER_H

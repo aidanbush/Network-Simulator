@@ -53,7 +53,26 @@ enum FlowType {
 #endif /* _TEST */
 };
 
-Flow *createFlow(json &flowConfig) {
+void combineFlowConfigs(json &flowNetConfig, json &flowTestConfig) {
+    // check net has Id
+    if (!hasMemberOfType(flowNetConfig, "id", jsonInt)) {
+        return;
+    }
+
+    // find flowTest with corresponding if exists
+    for (json::iterator it = flowTestConfig.begin(); it != flowTestConfig.end(); ++it) {
+        if (hasMemberOfType(it.value(), "id", jsonInt)) {
+            // if match
+            if (int(flowNetConfig["id"]) == int(it.value()["id"])) {
+                // add it to flowNetConfig
+                flowNetConfig.merge_patch(it.value());
+                return;
+            }
+        }
+    }
+}
+
+Flow *createFlow(json &flowNetConfig, json &flowTestConfig) {
     static map<string, FlowType> flowTypeMap = {
         {"basic", BasicFlowType},
         {"ecn", ECNFlowType},
@@ -63,11 +82,11 @@ Flow *createFlow(json &flowConfig) {
     };
 
 
-    if (!hasMemberOfType(flowConfig, "type", jsonString)) {
-        throw runtime_error("Flow:\nNo string with name 'type'\n" + flowConfig.dump(4));
+    if (!hasMemberOfType(flowNetConfig, "type", jsonString)) {
+        throw runtime_error("Flow:\nNo string with name 'type'\n" + flowNetConfig.dump(4));
     }
 
-    string flowTypeString = flowConfig["type"];
+    string flowTypeString = flowNetConfig["type"];
     FlowType flowType;
     try {
         flowType = flowTypeMap.at(flowTypeString);
@@ -75,18 +94,21 @@ Flow *createFlow(json &flowConfig) {
         throw runtime_error("Flow:\nInvalid flow type: " + flowTypeString);
     }
 
+    // combine with test object
+    combineFlowConfigs(flowNetConfig, flowTestConfig);
+
     Flow *flow;
 
     switch (flowType) {
         case BasicFlowType:
-            flow = new BasicFlow(flowConfig);
+            flow = new BasicFlow(flowNetConfig);
             break;
         case ECNFlowType:
-            flow = new ECNFlow(flowConfig);
+            flow = new ECNFlow(flowNetConfig);
             break;
 #ifdef _TEST
         case TestFlowType:
-            flow = new TestFlow(flowConfig);
+            flow = new TestFlow(flowNetConfig);
             break;
 #endif /* _TEST */
         default:
@@ -168,11 +190,11 @@ Flow::Flow(json &flowConfig):
             {
                 double rBar = initialAverageReward();
 
-                agent = new ActorCritic(initialState, flowConfig["id"], rBar);
+                agent = new ActorCritic(initialState, flowConfig["id"], rBar, flowConfig["agent"]);
                 break;
             }
         case SarsaAgent:
-            agent = new Sarsa(initialState, flowConfig["id"]);
+            agent = new Sarsa(initialState, flowConfig["id"], flowConfig["agent"]);
             break;
     }
     this->sourceId = flowConfig["source_id"];
@@ -225,6 +247,11 @@ void Flow::validateFlowConfig(json &flowConfig) {
     // generator
     if (!hasMember(flowConfig, "generator")) {
         message += "No object with name 'generator'.\n";
+    }
+
+    // agent
+    if (!hasMember(flowConfig, "agent")) {
+        message += "No object with name 'agent'.\n";
     }
 
     if (!message.empty()) {

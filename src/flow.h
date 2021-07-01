@@ -138,7 +138,7 @@ class Flow: public NetworkObject {
 };
 
 class BasicFlow: public Flow {
-    friend Flow *createFlow(json &flowConfig);
+    friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
     public:
 
         void initializeFlow();
@@ -167,7 +167,7 @@ class BasicFlow: public Flow {
 };
 
 class ECNFlow: public Flow {
-    friend Flow *createFlow(json &flowConfig);
+    friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
     public:
 
         void initializeFlow();
@@ -216,7 +216,7 @@ class ECNFlow: public Flow {
 
 #ifdef _TEST
 class TestFlow: public Flow {
-    friend Flow *createFlow(json &flowConfig);
+    friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
     public:
         TestFlow(json &flowConfig);
 
@@ -231,6 +231,6 @@ class TestFlow: public Flow {
 };
 #endif /* _TEST */
 
-Flow *createFlow(json &flowConfig);
+Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
 
 #endif /* FLOW_H */

@@ -3,12 +3,15 @@
 
 #include <vector>
 #include <random>
+#include <nlohmann/json.hpp>
 
 #include "tilecoder.h"
 
+using json = nlohmann::json;
+
 class ActorCritic: public Agent {
     public:
-        ActorCritic(vector<double> initialState, int flowId, double initialRBar);
+        ActorCritic(vector<double> initialState, int flowId, double initialRBar, json agentConfig);
 
         pair<double, double> step(vector<double> state, double reward, double &rate);
 

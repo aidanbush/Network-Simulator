@@ -1,13 +1,17 @@
 #include <vector>
 #include <stdlib.h>
 #include <iostream>
+#include <nlohmann/json.hpp>
 
 #include "agent.h"
 #include "sarsa.h"
 #include "tilecoder.h"
 #include "manager.h"
+#include "config.h"
 
 using namespace std;
+
+using json = nlohmann::json;
 
 // All following defines can be overridden in sarsaDefines.h, which can be modified for local testing
 #if __has_include("sarsaDefines.h")
@@ -33,7 +37,7 @@ using namespace std;
 
 #define NUM_ACTIONS 4
 
-Sarsa::Sarsa(vector<double> initialState, int flowId) {
+Sarsa::Sarsa(vector<double> initialState, int flowId, json agentConfig) {
     this->flowId = flowId;
 
     tilecoder = new Tilecoder(TILECODE_NUM_DIMS, TILECODE_DIM_RANGES, TILECODE_PATTERNS,
@@ -44,20 +48,35 @@ Sarsa::Sarsa(vector<double> initialState, int flowId) {
     vector<double> params;
     double initialWeights;
 
-    if (!man.getParameters(&params, NUM_PARAMS)) {
-        initialAlpha = DEFAULT_ALPHA;
-        lambda = DEFAULT_LAMBDA;
-        gamma = DEFAULT_GAMMA;
-        epsilon = DEFAULT_EPSILON;
-        initialWeights = DEFAULT_INITIAL_WEIGHTS;
-        beta = DEFAULT_BETA;
-    } else {
-        initialAlpha = params[0];
-        lambda = params[1];
-        gamma = params[2];
-        epsilon = params[3];
-        initialWeights = params[4];
-        beta = params[5];
+    initialAlpha = DEFAULT_ALPHA;
+    lambda = DEFAULT_LAMBDA;
+    gamma = DEFAULT_GAMMA;
+    epsilon = DEFAULT_EPSILON;
+    initialWeights = DEFAULT_INITIAL_WEIGHTS;
+    beta = DEFAULT_BETA;
+
+    if (hasMemberOfType(agentConfig, "alpha", jsonDouble)) {
+        initialAlpha = agentConfig["alpha"];
+    }
+
+    if (hasMemberOfType(agentConfig, "lambda", jsonDouble)) {
+        lambda = agentConfig["lambda"];
+    }
+
+    if (hasMemberOfType(agentConfig, "gamma", jsonDouble)) {
+        gamma = agentConfig["gamma"];
+    }
+
+    if (hasMemberOfType(agentConfig, "epsilon", jsonDouble)) {
+        epsilon = agentConfig["epsilon"];
+    }
+
+    if (hasMemberOfType(agentConfig, "initial_weights", jsonDouble)) {
+        initialWeights = agentConfig["initial_weights"];
+    }
+
+    if (hasMemberOfType(agentConfig, "beta", jsonDouble)) {
+        beta = agentConfig["beta"];
     }
 
     this->weights = vector<double>(tilecoder->getNumTiles() * NUM_ACTIONS, initialWeights);

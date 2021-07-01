@@ -12,9 +12,12 @@
 #include "flow.h"
 #include "observer.h"
 
+#define DEFAULT_EXIT_TIME   5000
+
 Manager::Manager() {
     time = 0;
     logFile = stdout;
+    exitTime = DEFAULT_EXIT_TIME;
 }
 
 bool Manager::addHandler(PacketHandler *handler) {
@@ -267,19 +270,12 @@ bool Manager::startSimulator() {
     return true;
 }
 
-void Manager::setParameters(vector<double> params) {
-    parametersSet = true;
-    this->params = params;
+void Manager::setExitTime(second_t time) {
+    exitTime = time;
 }
 
-bool Manager::getParameters(vector<double> *params, int numParams) {
-    if (parametersSet && numParams == (int)this->params.size()) {
-        // TODO: print warning if incorrect number of parameters
-        *params = this->params;
-        return true;
-    } else {
-        return false;
-    }
+bool Manager::checkExitTime() {
+    return time >= exitTime;
 }
 
 void Manager::setSuppressOutput(int value) {

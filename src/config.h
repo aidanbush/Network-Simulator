@@ -16,7 +16,7 @@ enum JsonType {
 
 bool checkConfigObjType(json &obj, JsonType type);
 
-bool loadConfig(string filename);
+bool loadConfig(string netFilename, string testFilename);
 
 void loadParams(string filename);
 
