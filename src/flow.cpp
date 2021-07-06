@@ -595,10 +595,14 @@ void BasicFlow::recordData() {
     observer.logFlowData(id, "PacketsArrived", packetsArrived);
     observer.logFlowData(id, "AcksArrived", acksArrived);
 
+    observer.logFlowData(id, "SentPackets", packetsSent);
+
     if (packetsSent == 0) {
         observer.logFlowData(id, "DroppedPackets", 0);
+        observer.logFlowData(id, "ErroredPackets", 0);
     } else {
-        observer.logFlowData(id, "DroppedPackets", packetsDropped/packetsSent);
+        observer.logFlowData(id, "DroppedPackets", packetsDropped / double(packetsSent));
+        observer.logFlowData(id, "ErroredPackets", packetsErrored / double(packetsSent));
     }
 
     resetData();
@@ -847,10 +851,14 @@ void ECNFlow::updateStats() {
     observer.logFlowData(id, "AcksArrived", acksArrived);
     observer.logFlowData(id, "ECNAverages", averageECN);
 
+    observer.logFlowData(id, "SentPackets", packetsSent);
+
     if (packetsSent == 0) {
         observer.logFlowData(id, "DroppedPackets", 0);
+        observer.logFlowData(id, "ErroredPackets", 0);
     } else {
-        observer.logFlowData(id, "DroppedPackets", packetsDropped/packetsSent);
+        observer.logFlowData(id, "DroppedPackets", packetsDropped / double(packetsSent));
+        observer.logFlowData(id, "ErroredPackets", packetsErrored / double(packetsSent));
     }
 }
 
