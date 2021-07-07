@@ -842,14 +842,14 @@ void ECNFlow::updateStats() {
     sentRate = bytesSent * BITS_PER_BYTE / miTime;
 
     observer.logFlowData(id, "Reward", getReward());
-    observer.logFlowData(id, "Rates", rate);
+    observer.logFlowData(id, "Rate", rate);
     observer.logFlowData(id, "Throughput", throughput);
     observer.logFlowData(id, "AverageRTT", averageRTT);
     observer.logFlowData(id, "MinRTT", minRTT);
     observer.logFlowData(id, "SentRate", sentRate);
     observer.logFlowData(id, "PacketsArrived", packetsArrived);
     observer.logFlowData(id, "AcksArrived", acksArrived);
-    observer.logFlowData(id, "ECNAverages", averageECN);
+    observer.logFlowData(id, "ECNAverage", averageECN);
 
     observer.logFlowData(id, "SentPackets", packetsSent);
 
@@ -863,7 +863,7 @@ void ECNFlow::updateStats() {
 }
 
 void ECNFlow::updateStatsPostStep(pair<double, double> action) {
-    observer.logFlowData(id, "MultActions", action.first);
+    observer.logFlowData(id, "MultAction", action.first);
     observer.logFlowData(id, "AddAction", action.second);
 
     // Add distribution data
