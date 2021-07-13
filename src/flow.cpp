@@ -866,6 +866,8 @@ void ECNFlow::updateStatsPostStep(pair<double, double> action) {
     observer.logFlowData(id, "MultAction", action.first);
     observer.logFlowData(id, "AddAction", action.second);
 
+    observer.logFlowData(id, "RateChange", rate - oldRate);
+
     // Add distribution data
     ActorCritic *actorCriticAgent = dynamic_cast<ActorCritic*>(agent);
     if (actorCriticAgent != NULL) {
@@ -879,6 +881,16 @@ void ECNFlow::updateStatsPostStep(pair<double, double> action) {
     }
 }
 
+void ECNFlow::takeAction(pair<double, double> action) {
+    //
+
+    rate *= action.first;
+    rate += action.second;
+
+    rate = min(maxRate, max(MIN_RATE, rate));
+    rate = min(sentRate * 2, rate);
+}
+
 void ECNFlow::stepAgent() {
     numSteps++;
 
@@ -888,16 +900,19 @@ void ECNFlow::stepAgent() {
     double reward = getReward();
     totalReward += reward;
 
-    pair<double, double> action = agent->step(state, reward, rate);
     oldRate = rate;
     oldECN = averageECN;
     oldThroughput = throughput;
+
+    pair<double, double> action = agent->step(state, reward);
+
+    // take action
+    takeAction(action);
 
     updateStatsPostStep(action);
 
     resetState();
 
-    rate = min(maxRate, max(MIN_RATE, rate));
     if (numSteps < maxSteps && running) {
         EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
         man.pushEvent(e);

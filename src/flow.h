@@ -173,6 +173,7 @@ class ECNFlow: public Flow {
         void initializeFlow();
         void startFlow();
         void stopFlow();
+        void takeAction(pair<double, double> action);
         void stepAgent();
         void txPacketEvent();
 

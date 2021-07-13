@@ -35,7 +35,7 @@ using json = nlohmann::json;
 #endif // __has_include
 
 
-#define NUM_ACTIONS 4
+#define NUM_ACTIONS 5
 
 Sarsa::Sarsa(vector<double> initialState, int flowId, json agentConfig) {
     this->flowId = flowId;
@@ -128,7 +128,7 @@ pair<int, double> Sarsa::selectAction() {
     }
 }
 
-pair<double, double> Sarsa::step(vector<double> state, double reward, double &rate) {
+pair<double, double> Sarsa::step(vector<double> state, double reward) {
     totalReward += reward;
     // Tilecode
     tiles = tilecoder->tilecode(state);
@@ -178,20 +178,19 @@ pair<double, double> Sarsa::step(vector<double> state, double reward, double &ra
     //update rate
     switch (action) {
         case 0:
-            rate *= 2;
             actionPair = pair<double, double>(2, 0);
             break;
         case 1:
-            rate /= 2;
             actionPair = pair<double, double>(.5, 0);
             break;
         case 2:
             actionPair = pair<double, double>(1, avgPacketSizeBytes * 8);
-            rate += actionPair.second;
             break;
         case 3:
             actionPair = pair<double, double>(1, -avgPacketSizeBytes * 8);
-            rate += actionPair.second;
+            break;
+        case 4:
+            actionPair = pair<double, double>(1, 0);
             break;
     }
 

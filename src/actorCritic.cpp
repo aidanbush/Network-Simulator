@@ -463,7 +463,7 @@ void ActorCritic::updateParameters(double delta) {
     }
 }
 
-pair<double, double> ActorCritic::step(vector<double> state, double reward, double &rate) {
+pair<double, double> ActorCritic::step(vector<double> state, double reward) {
     totalReward += reward;
     splitDistributionDecrease = (state[0] > DEC_THRESHOLD);
     // Tilecode
@@ -556,20 +556,20 @@ pair<double, double> ActorCritic::step(vector<double> state, double reward, doub
     //          to keep it as a switch since it is going over the values of an enum
     switch (mode) {
         case Mult:
-            rate *= actionPair.first;
+            actionPair.second = 0;
             break;
         case Add:
-            rate += actionPair.second;
+            actionPair.first = 1;
             break;
         case Both:
-            rate *= actionPair.first;
-            rate += actionPair.second;
             break;
         case Choose:
             if (actionPair.first == 0) {
-                rate += actionPair.second;
+                // if 0 then not taking a multiplicative action
+                actionPair.first = 1;
             } else {
-                rate *= actionPair.first;
+                // else not taking addative action
+                actionPair.second = 0;
             }
             break;
     }

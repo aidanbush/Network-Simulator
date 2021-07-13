@@ -12,7 +12,7 @@ class Sarsa: public Agent {
     public:
         Sarsa(vector<double> initialState, int flowId, json agentConfig);
 
-        pair<double, double> step(vector<double> state, double reward, double &rate);
+        pair<double, double> step(vector<double> state, double reward);
 
         string getName();
 

@@ -13,7 +13,7 @@ class ActorCritic: public Agent {
     public:
         ActorCritic(vector<double> initialState, int flowId, double initialRBar, json agentConfig);
 
-        pair<double, double> step(vector<double> state, double reward, double &rate);
+        pair<double, double> step(vector<double> state, double reward);
 
         string getName();
 
