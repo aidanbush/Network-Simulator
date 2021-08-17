@@ -399,12 +399,13 @@ Packet *Flow::getNextPacket(bool fromSource) {
     int pId = newPacketId(fromSource);
 
     // create packet for this
-    Packet *p = new Packet(pId, sourceId, destId, id, ttl, pData.headerSize, pData.bodySize, fromSource);
+    Packet *p = new Packet(pId, sourceId, destId, id, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource);
 
     if (!addPacket(p)) {
         delete p;
         return NULL;
     }
+
     packetsCreated++;
 
     return p;
@@ -415,7 +416,7 @@ second_t Flow::nextTxTime(Packet *p) {
         return -1;
     }
 
-    return man.time + (p->fullSizeBits() / maxRate);
+    return man.time + (p->fullSizeBits() / rate);
 }
 
 double Flow::getMaxRate() {
@@ -445,6 +446,9 @@ void BasicFlow::initializeFlow() {
     man.pushEvent(e3);
 
     Flow::initializeFlow();
+
+    // set the basic flow to send as fast as possible
+    this->rate = maxRate;
 }
 
 json &BasicFlow::validateBasicFlowConfig(json &flowConfig) {
@@ -524,7 +528,7 @@ Packet *BasicFlow::createAckPacket(Packet *toAck) {
     int pId = newPacketId(false);
 
     // create packet
-    Packet *ackPacket = new Packet(pId, destId, sourceId, id, ttl, ackHeadSize, ackBodySize, false);
+    Packet *ackPacket = new Packet(pId, destId, sourceId, id, NULL_DATA_ID, ttl, ackHeadSize, ackBodySize, false);
 
     // add state
     ackPacket->setAckData(toAck->getSendTime(), toAck->fullSize(), toAck->getId());
@@ -612,9 +616,292 @@ void BasicFlow::recordData() {
     man.pushEvent(e);
 }
 
+/* Data Queue */
+
+DataQueue::DataQueue(int flowId) {
+    this->curUId = 1;
+    this->flowId = flowId;
+}
+
+int DataQueue::newUId() {
+    return curUId++;
+}
+
+void DataQueue::push_back(Packet *p, int timeoutTime) {
+    // check if data id in lookupTable
+    if (lookupTable.find(p->getDataId()) != lookupTable.end()) {
+        throw runtime_error("DataQueue:\npush_back dataId already in lookupTable\n");
+    }
+
+    int uId = newUId();
+
+    // insert into queue
+    queuePacket qp = {
+        timeoutTime,
+        uId
+    };
+
+    dataElem de = {
+        {p->getHeaderSize(), p->getBodySize()},
+        p->getDataId(),
+        false
+    };
+
+    lookupElem le = {
+        uId
+    };
+
+    untimedoutQueue.emplace(qp);
+
+    dataTable.emplace(uId, de);
+
+    lookupTable.emplace(p->getDataId(), le);
+
+    // create event if only element in untimedoutQueue
+    if (untimedoutQueue.size() == 1) {
+        EventI *e = new Event<DataQueue>(timeoutTime, &DataQueue::timeoutEvent, this);
+        man.pushEvent(e);
+    }
+}
+
+void DataQueue::timeoutEvent() {
+    // grab top element from the untimedoutQueue
+    queuePacket top = untimedoutQueue.top();
+    // check time
+    if (top.timeoutTime > man.time) {
+        throw runtime_error("DataQueue:\ntimeoutEvent top element time is in the future\n");
+    }
+
+    // pop top element
+    untimedoutQueue.pop();
+
+    // check if deleted
+    auto it = dataTable.find(top.uniqueId);
+    if (it == dataTable.end()) {
+        throw runtime_error("DataQueue:\ntimeoutEvent provided dataId does not exist in the dataTable\n");
+    }
+
+    // if deleted remove it
+    if (it->second.deleted == true) {
+        dataTable.erase(it);
+    } else {
+        Flow *f = man.getFlow(flowId);
+        DataFlow *df = dynamic_cast<DataFlow*>(f);
+
+        if (df != NULL) {
+            df->notifyPacketTimeout();
+        }
+
+        // otherwise move to timedout
+        timedoutQueue.emplace(top);
+    }
+
+    // create new event if untimed is not empty using top time
+    if (!untimedoutQueue.empty()) {
+        top = untimedoutQueue.top();
+
+        EventI *e = new Event<DataQueue>(top.timeoutTime, &DataQueue::timeoutEvent, this);
+        man.pushEvent(e);
+    }
+}
+
+bool DataQueue::pop(Generator::PacketData &pData, int &dataId) {
+    while (!timedoutQueue.empty()) {
+        queuePacket top = timedoutQueue.top();
+
+        // pop element
+        timedoutQueue.pop();
+
+        auto it = dataTable.find(top.uniqueId);
+        if (it == dataTable.end()) {
+            throw runtime_error("DataQueue:\npop provided dataId does not exist in the dataTable\n");
+        }
+        dataElem data = it->second;
+
+        // if deleted, clean up and continue
+        if (data.deleted) {
+            dataTable.erase(it);
+            continue;
+        } else {
+            // delete data and lookup table elements
+            lookupTable.erase(data.dataId);
+            dataTable.erase(it);
+
+            // copy over
+            pData.headerSize = data.pData.headerSize;
+            pData.bodySize = data.pData.bodySize;
+            dataId = data.dataId;
+
+            return true;
+        }
+    }
+    return false;
+}
+
+bool DataQueue::removeData(int dataId) {
+    // find data elem and set to deleted
+    // need uId first
+    auto lookupIt = lookupTable.find(dataId);
+    if (lookupIt == lookupTable.end()) {
+        return false;
+    }
+
+    auto dataIt = dataTable.find(lookupIt->second.uniqueId);
+    dataIt->second.deleted = true;
+
+    // remove lookup elem
+    lookupTable.erase(lookupIt);
+
+    return true;
+}
+
+/* Data Flow */
+DataFlow::DataFlow(json &flowConfig): Flow(flowConfig) {
+    this->curDataPId = 0;
+    this->retransmitTimeout = 1; // TODO use define or config
+    this->queue = new DataQueue(id);
+}
+
+DataFlow::~DataFlow() {
+    delete queue;
+}
+
+int DataFlow::newDataId() {
+    return curDataPId++;
+}
+
+/*
+bool DataFlow::nextRetransmitionPacket(DataQueue::transitPacket &p) {
+    // check time of top transit Packet and return if it is past the current time
+    if (retransmitPackets.size() <= 0) {
+        return false;
+    }
+
+    if (man.time >= retransmitPackets.front().timeout) {
+        // return packet and remove it
+        p = retransmitPackets.front();
+        retransmitPackets.pop();
+        return true;
+    }
+
+    return false;
+}
+*/
+
+/*
+void DataFlow::addRetransmitPacket(Packet *p) {
+    second_t timeoutTime = man.time + retransmitTimeout;
+
+    DataQueue::transitPacket t = {
+        {p->getHeaderSize(), p->getBodySize()},
+        p->getDataId(),
+        timeoutTime
+    };
+
+    transitPackets.emplace(t);
+
+    if (!timeoutEventScheduled) {
+        EventI *e = new Event<DataFlow>(timeoutTime, &DataFlow::packetTimeoutEvent, this);
+        man.pushEvent(e);
+        timeoutEventScheduled = true;
+    }
+}
+*/
+
+/*
+void DataFlow::packetTimeoutEvent() {
+    timeoutEventScheduled = false;
+
+    if (!transitPackets.empty()) {
+        if (transitPackets.front().timeout <= man.time) {
+            // record timeout event
+            // move into retransmit Packets
+            retransmitPackets.emplace(transitPackets.front());
+            transitPackets.pop();
+        }
+
+        second_t nextTimeout = transitPackets.front().timeout;
+
+        // create event
+        EventI *e = new Event<DataFlow>(nextTimeout, &DataFlow::packetTimeoutEvent, this);
+        man.pushEvent(e);
+        timeoutEventScheduled = true;
+    }
+}
+*/
+
+Packet *DataFlow::getNextPacket(bool fromSource) {
+    // TODO if there is a packet to be retransmitted retransmit
+    Packet *p;
+    Generator::PacketData pData;
+    int dId;
+    bool retransmit = false;
+
+    if (fromSource) {
+        retransmit = queue->pop(pData, dId);
+    }
+
+    // go here if from fromSource = false or when retransmit = true, retransmit is false if from sourceis false
+    if (!retransmit) {
+        Generator::PacketData pData;
+
+        if (!generator->getNextPacket(pData)) {
+            return NULL;
+        }
+
+        int pId = newPacketId(fromSource);
+
+        dId = NULL_DATA_ID;
+        int packetSourceId = destId;
+        int packetDestId = sourceId;
+
+        if (fromSource) {
+            dId = newDataId();
+            packetSourceId = sourceId;
+            packetDestId = destId;
+        }
+
+        // create packet for this
+        p = new Packet(pId, packetSourceId, packetDestId, id, dId, ttl, pData.headerSize, pData.bodySize, fromSource);
+    } else { // only when fromSource = true and retransmit = true
+        // create packet from tPacket
+        int pId = newPacketId(fromSource);
+        int packetSourceId = sourceId;
+        int packetDestId = destId;
+        p = new Packet(pId, sourceId, destId, id, dId, ttl, pData.headerSize, pData.bodySize, fromSource);
+    }
+
+    if (!addPacket(p)) {
+        delete p;
+        return NULL;
+    }
+    packetsCreated++;
+
+    // add packet to transitPackets
+    second_t timeoutTime = man.time + retransmitTimeout;
+    queue->push_back(p, timeoutTime);
+
+    return p;
+}
+
+void DataFlow::packetArrived(Packet *p) {
+    if (p->isSourcePacket()) {
+        sourcePacketArrived(p);
+    }
+
+    Flow::packetArrived(p);
+}
+
+void DataFlow::sourcePacketArrived(Packet *p) {
+    // delete element from queue
+    queue->removeData(p->getDataId());
+
+    Flow::sourcePacketArrived(p);
+}
+
 /* Explicit congestion notification flow */
 
-ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
+ECNFlow::ECNFlow(json &flowConfig): DataFlow(validateECNFlowConfig(flowConfig)) {
     this->packetsUntagged = 0;
     this->packetsSent = 0;
     this->bytesSent = 0;
@@ -647,31 +934,54 @@ json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
 }
 
 ECNPacket *ECNFlow::getNextPacket(bool fromSource) {
+    ECNPacket *p;
     Generator::PacketData pData;
+    int dId;
+    bool retransmit = false;
 
-    if (!generator->getNextPacket(pData)) {
-        return NULL;
+    if (fromSource) {
+        retransmit = queue->pop(pData, dId);
     }
 
-    int pId = newPacketId(fromSource);
+    if (!retransmit) {
+        Generator::PacketData pData;
 
-    int packetSourceId = sourceId;
-    int packetDestId = destId;
+        if (!generator->getNextPacket(pData)) {
+            return NULL;
+        }
 
-    if (!fromSource) {
-        packetSourceId = destId;
-        packetDestId = sourceId;
+        int pId = newPacketId(fromSource);
+
+        int dId = NULL_DATA_ID;
+        int packetSourceId = destId;
+        int packetDestId = sourceId;
+
+        if (fromSource) {
+            dId = newDataId();
+            packetSourceId = sourceId;
+            packetDestId = destId;
+        }
+
+        // create packet for this
+        p = new ECNPacket(pId, packetSourceId, packetDestId, id, dId, ttl, pData.headerSize, pData.bodySize,
+                fromSource);
+    } else { // only when fromSource = true and retransmit = true
+        int pId = newPacketId(fromSource);
+        int packetSourceId = sourceId;
+        int packetDestId = destId;
+        p = new ECNPacket(pId, packetSourceId, packetDestId, id, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize,
+                fromSource);
     }
-
-    // create packet for this
-    ECNPacket *p = new ECNPacket(pId, packetSourceId, packetDestId, id, ttl, pData.headerSize, pData.bodySize,
-            fromSource);
 
     if (!addPacket(p)) {
         delete p;
         return NULL;
     }
     packetsCreated++;
+
+    // add packet to transitPackets
+    second_t timeoutTime = man.time + retransmitTimeout;
+    queue->push_back(p, timeoutTime);
 
     return p;
 }
@@ -680,7 +990,7 @@ ECNPacket *ECNFlow::createAckPacket(ECNPacket *toAck) {
     int pId = newPacketId(false);
 
     // create packet
-    ECNPacket *ackPacket = new ECNPacket(pId, destId, sourceId, id, ttl, ackHeadSize, ackBodySize, false);
+    ECNPacket *ackPacket = new ECNPacket(pId, destId, sourceId, id, NULL_DATA_ID, ttl, ackHeadSize, ackBodySize, false);
 
     // add state
     ackPacket->setAckData(toAck->getSendTime(), toAck->fullSize(), toAck->getECNBit(), toAck->getECNScale(),
@@ -991,7 +1301,7 @@ void ECNFlow::packetArrived(Packet *p) {
     } else {
         sinkPacketArrived(p);
     }
-    Flow::packetArrived(p);
+    DataFlow::packetArrived(p);
 }
 
 void ECNFlow::sourcePacketArrived(Packet *p) {

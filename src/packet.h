@@ -2,6 +2,7 @@
 #define PACKET_H
 
 #define BITS_PER_BYTE   8
+#define NULL_DATA_ID    -1
 
 #include "networkObject.h"
 #include "flow.h"
@@ -10,7 +11,7 @@ class Flow;
 
 class Packet: public NetworkObject {
     public:
-        Packet(int id, int sourceId, int destId, int flowId, int ttl,
+        Packet(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
                 int headerSize, int bodySize, bool sourcePacket);
         ~Packet() = default;
 
@@ -20,6 +21,9 @@ class Packet: public NetworkObject {
         int getFlow() {return flowId; }
         int getSource() {return sourceId; }
         int getDest() {return destId; }
+        int getDataId() {return dataId; }
+        int getHeaderSize() {return headerSize; }
+        int getBodySize() {return bodySize; }
         bool isSourcePacket() {return sourcePacket; }
 
         int fullSize() {return headerSize + bodySize; }
@@ -56,6 +60,8 @@ class Packet: public NetworkObject {
         int destId;
         int flowId;
 
+        int dataId;
+
         bool sourcePacket;
 
         int ackedId;
@@ -71,7 +77,7 @@ class ECNPacket: public Packet {
             double bufferOccupancy; // ECN Scale
         };
 
-        ECNPacket(int id, int sourceId, int destId, int flowId, int ttl,
+        ECNPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
                 int headerSize, int bodySize, bool sourcePacket); // TODO add ack data
         ~ECNPacket() = default;
 

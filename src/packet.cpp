@@ -2,11 +2,12 @@
 #include "flow.h"
 #include "manager.h"
 
-Packet::Packet(int id, int sourceId, int destId, int flowId, int ttl,
+Packet::Packet(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
         int headerSize, int bodySize, bool sourcePacket): NetworkObject(id) {
     this->sourceId = sourceId;
     this->destId = destId;
     this->flowId = flowId;
+    this->dataId = dataId;
     this->ttl = ttl;
     this->headerSize = headerSize;
     this->bodySize = bodySize;
@@ -16,7 +17,7 @@ Packet::Packet(int id, int sourceId, int destId, int flowId, int ttl,
 }
 
 Packet *Packet::clone() {
-    return new Packet(id, sourceId, destId, flowId, ttl, headerSize, bodySize, sourcePacket);
+    return new Packet(id, sourceId, destId, dataId, flowId, ttl, headerSize, bodySize, sourcePacket);
 }
 
 void Packet::arrive() {
@@ -55,8 +56,8 @@ bool Packet::validate() {
 }
 
 
-ECNPacket::ECNPacket(int id, int sourceId, int destId, int flowId, int ttl,
-        int headerSize, int bodySize, bool sourcePacket): Packet(id, sourceId, destId, flowId, ttl,
+ECNPacket::ECNPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
+        int headerSize, int bodySize, bool sourcePacket): Packet(id, sourceId, destId, flowId, dataId, ttl,
             headerSize, bodySize, sourcePacket) {
     ECNBit = false;
     ECNScale = 0;

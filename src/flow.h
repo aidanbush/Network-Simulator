@@ -63,6 +63,7 @@ class Flow: public NetworkObject {
             REMY1,
             REMY2,
         };
+
         RewardType rewardType;
 
         bool running;
@@ -166,7 +167,89 @@ class BasicFlow: public Flow {
         void sourcePacketArrived(Packet *p);
 };
 
-class ECNFlow: public Flow {
+class DataQueue {
+    public:
+        DataQueue(int flowId);
+
+        void push_back(Packet *p, int timeoutTime);
+        bool pop(Generator::PacketData &pData, int &dataId);
+        bool removeData(int dataId);
+
+        struct transitPacket {
+            Generator::PacketData pData;
+            int dataId;
+            second_t timeout;
+        };
+
+    private:
+        struct queuePacket {
+            second_t timeoutTime;
+            int uniqueId;
+        };
+
+        struct queuePacketComparator {
+            bool operator ()(const queuePacket lhs, const queuePacket rhs) const {
+                return lhs.timeoutTime > rhs.timeoutTime;
+            }
+        };
+
+        struct lookupElem {
+            int uniqueId;
+        };
+
+        struct dataElem {
+            Generator::PacketData pData;
+            int dataId;
+            bool deleted;
+        };
+
+        // queue for packets not timed out
+        priority_queue<queuePacket, vector<queuePacket>, queuePacketComparator> untimedoutQueue;
+        // queue for packets timed out
+        priority_queue<queuePacket, vector<queuePacket>, queuePacketComparator> timedoutQueue;
+
+        unordered_map<int, dataElem> dataTable; // uId is the key
+        unordered_map<int, lookupElem> lookupTable; // dataId is the key
+
+        int curUId;
+
+        int flowId;
+
+        int newUId();
+
+        void timeoutEvent();
+};
+
+class DataFlow: public Flow {
+    public:
+        DataFlow(json &flowConfig);
+
+        ~DataFlow();
+
+        void notifyPacketTimeout(); // TODO implement
+
+    protected:
+        int curDataPId;
+
+        int newDataId();
+
+        DataQueue *queue;
+
+        second_t retransmitTimeout;
+        bool timeoutEventScheduled;
+
+        bool nextRetransmitionPacket(DataQueue::transitPacket &p);
+        void addRetransmitPacket(Packet *p);
+
+        void packetTimeoutEvent();
+
+        Packet *getNextPacket(bool fromSource);
+
+        void packetArrived(Packet *p);
+        void sourcePacketArrived(Packet *p);
+};
+
+class ECNFlow: public DataFlow {
     friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
     public:
 
