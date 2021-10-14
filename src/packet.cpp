@@ -16,6 +16,24 @@ Packet::Packet(int id, int sourceId, int destId, int flowId, int dataId, int ttl
     this->sourcePacket = sourcePacket;
 }
 
+Packet::Packet(const Packet &p): NetworkObject(p.id) {
+    this->sourceId = p.sourceId;
+    this->destId = p.destId;
+    this->flowId = p.flowId;
+    this->dataId = p.dataId;
+    this->ttl = p.ttl;
+    this->headerSize = p.headerSize;
+    this->bodySize = p.bodySize;
+    this->createTime = p.createTime;
+    this->arrivalTime = p.arrivalTime;
+    this->sourcePacket = p.sourcePacket;
+
+    // non create parameters
+    this->ackedSendTime = p.ackedSendTime;
+    this->ackedSizeBytes = p.ackedSizeBytes;
+    this->ackedId = p.ackedId;
+}
+
 Packet *Packet::clone() {
     return new Packet(id, sourceId, destId, dataId, flowId, ttl, headerSize, bodySize, sourcePacket);
 }
@@ -59,6 +77,11 @@ bool Packet::validate() {
 ECNPacket::ECNPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
         int headerSize, int bodySize, bool sourcePacket): Packet(id, sourceId, destId, flowId, dataId, ttl,
             headerSize, bodySize, sourcePacket) {
+    ECNBit = false;
+    ECNScale = 0;
+}
+
+ECNPacket::ECNPacket(const Packet &p): Packet(p) {
     ECNBit = false;
     ECNScale = 0;
 }

@@ -627,7 +627,7 @@ int DataQueue::newUId() {
     return curUId++;
 }
 
-void DataQueue::push_back(Packet *p, int timeoutTime) {
+void DataQueue::push_back(Packet *p, second_t timeoutTime) {
     // check if data id in lookupTable
     if (lookupTable.find(p->getDataId()) != lookupTable.end()) {
         throw runtime_error("DataQueue:\npush_back dataId already in lookupTable\n");
@@ -830,45 +830,44 @@ void DataFlow::packetTimeoutEvent() {
 }
 */
 
-Packet *DataFlow::getNextPacket(bool fromSource) {
-    // TODO if there is a packet to be retransmitted retransmit
-    Packet *p;
-    Generator::PacketData pData;
-    int dId;
-    bool retransmit = false;
-
-    if (fromSource) {
-        retransmit = queue->pop(pData, dId);
+Packet *DataFlow::createNextPacket(bool fromSource) {
+    if (!fromSource) {
+        throw runtime_error("DataFlow:\ncreateNextPacket: fromSource=false not supported");
     }
 
-    // go here if from fromSource = false or when retransmit = true, retransmit is false if from sourceis false
-    if (!retransmit) {
-        Generator::PacketData pData;
+    Packet *p = NULL;
+    Generator::PacketData pData;
+    int dId = NULL_DATA_ID;
+    int pId = newPacketId(fromSource);
+    int packetSourceId = sourceId;
+    int packetDestId = destId;
 
+    bool retransmit = queue->pop(pData, dId);
+
+    // retransmit == false => transmit new packet
+    if (!retransmit) {
         if (!generator->getNextPacket(pData)) {
             return NULL;
         }
 
-        int pId = newPacketId(fromSource);
-
-        dId = NULL_DATA_ID;
-        int packetSourceId = destId;
-        int packetDestId = sourceId;
-
-        if (fromSource) {
-            dId = newDataId();
-            packetSourceId = sourceId;
-            packetDestId = destId;
-        }
+        dId = newDataId();
 
         // create packet for this
         p = new Packet(pId, packetSourceId, packetDestId, id, dId, ttl, pData.headerSize, pData.bodySize, fromSource);
-    } else { // only when fromSource = true and retransmit = true
-        // create packet from tPacket
-        int pId = newPacketId(fromSource);
-        int packetSourceId = sourceId;
-        int packetDestId = destId;
-        p = new Packet(pId, sourceId, destId, id, dId, ttl, pData.headerSize, pData.bodySize, fromSource);
+    } else { // retransmit == true, pData and did are filled by queue->pop
+        p = new Packet(pId, packetSourceId, packetDestId, id, dId, ttl, pData.headerSize, pData.bodySize, fromSource);
+    }
+
+    return p;
+}
+
+// reutrns NULL if there is no packet to send
+Packet *DataFlow::getNextPacket(bool fromSource) {
+    Packet *p = createNextPacket(fromSource);
+
+    // if NULL there is no packet to send
+    if (p == NULL) {
+        return NULL;
     }
 
     if (!addPacket(p)) {
@@ -934,56 +933,30 @@ json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
 }
 
 ECNPacket *ECNFlow::getNextPacket(bool fromSource) {
-    ECNPacket *p;
-    Generator::PacketData pData;
-    int dId;
-    bool retransmit = false;
+    // call DataFlow's function and create an ECNPacket that is it
+    Packet *p = DataFlow::createNextPacket(fromSource);
 
-    if (fromSource) {
-        retransmit = queue->pop(pData, dId);
+    // if NULL there is no packet to send
+    if (p == NULL) {
+        return NULL;
     }
 
-    if (!retransmit) {
-        Generator::PacketData pData;
+    // create ecn packet
+    ECNPacket *ep = new ECNPacket(*p);
+    delete p;
+    // TODO: ensure everything is tracked properly
 
-        if (!generator->getNextPacket(pData)) {
-            return NULL;
-        }
-
-        int pId = newPacketId(fromSource);
-
-        int dId = NULL_DATA_ID;
-        int packetSourceId = destId;
-        int packetDestId = sourceId;
-
-        if (fromSource) {
-            dId = newDataId();
-            packetSourceId = sourceId;
-            packetDestId = destId;
-        }
-
-        // create packet for this
-        p = new ECNPacket(pId, packetSourceId, packetDestId, id, dId, ttl, pData.headerSize, pData.bodySize,
-                fromSource);
-    } else { // only when fromSource = true and retransmit = true
-        int pId = newPacketId(fromSource);
-        int packetSourceId = sourceId;
-        int packetDestId = destId;
-        p = new ECNPacket(pId, packetSourceId, packetDestId, id, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize,
-                fromSource);
-    }
-
-    if (!addPacket(p)) {
-        delete p;
+    if (!addPacket(ep)) {
+        delete ep;
         return NULL;
     }
     packetsCreated++;
 
     // add packet to transitPackets
     second_t timeoutTime = man.time + retransmitTimeout;
-    queue->push_back(p, timeoutTime);
+    queue->push_back(ep, timeoutTime);
 
-    return p;
+    return ep;
 }
 
 ECNPacket *ECNFlow::createAckPacket(ECNPacket *toAck) {
@@ -1293,6 +1266,10 @@ void ECNFlow::packetGenerationNotification() {
             man.pushEvent(e);
         }
     }
+}
+
+void ECNFlow::notifyPacketTimeout() {
+    // do nothing, is not used here
 }
 
 void ECNFlow::packetArrived(Packet *p) {

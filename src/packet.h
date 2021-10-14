@@ -13,6 +13,7 @@ class Packet: public NetworkObject {
     public:
         Packet(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
                 int headerSize, int bodySize, bool sourcePacket);
+        Packet(const Packet &p);
         ~Packet() = default;
 
         Packet *clone();
@@ -79,6 +80,7 @@ class ECNPacket: public Packet {
 
         ECNPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
                 int headerSize, int bodySize, bool sourcePacket); // TODO add ack data
+        ECNPacket(const Packet &p);
         ~ECNPacket() = default;
 
         void setECNBit();

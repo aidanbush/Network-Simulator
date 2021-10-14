@@ -171,7 +171,7 @@ class DataQueue {
     public:
         DataQueue(int flowId);
 
-        void push_back(Packet *p, int timeoutTime);
+        void push_back(Packet *p, second_t timeoutTime);
         bool pop(Generator::PacketData &pData, int &dataId);
         bool removeData(int dataId);
 
@@ -226,7 +226,7 @@ class DataFlow: public Flow {
 
         ~DataFlow();
 
-        void notifyPacketTimeout(); // TODO implement
+        virtual void notifyPacketTimeout() = 0;
 
     protected:
         int curDataPId;
@@ -243,6 +243,7 @@ class DataFlow: public Flow {
 
         void packetTimeoutEvent();
 
+        Packet *createNextPacket(bool fromSource);
         Packet *getNextPacket(bool fromSource);
 
         void packetArrived(Packet *p);
@@ -263,6 +264,8 @@ class ECNFlow: public DataFlow {
         double getAveragePacketSizeBytes();
 
         void packetGenerationNotification();
+
+        void notifyPacketTimeout();
 
     private:
         ECNFlow(json &flowConfig);
