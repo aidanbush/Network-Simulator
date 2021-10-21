@@ -886,16 +886,25 @@ Packet *DataFlow::getNextPacket(bool fromSource) {
 void DataFlow::packetArrived(Packet *p) {
     if (p->isSourcePacket()) {
         sourcePacketArrived(p);
+    } else {
+        sinkPacketArrived(p);
     }
-
-    Flow::packetArrived(p);
 }
 
 void DataFlow::sourcePacketArrived(Packet *p) {
-    // delete element from queue
-    queue->removeData(p->getDataId());
-
     Flow::sourcePacketArrived(p);
+}
+
+void DataFlow::sinkPacketArrived(Packet *p) {
+    int ackedId = p->getAckedId();
+    if (ackedId == NULL_DATA_ID) {
+        throw runtime_error("DataFlow: sinkPacketArrival acked data id NULL_DATA_ID\n");
+    }
+
+    queue->removeData(p->getAckedId());
+    man.logEvent("DataFlow", id, "sinkPacketArrived", "Packet " + to_string(p->getAckedId()) + " Ack arrived");
+
+    Flow::sinkPacketArrived(p);
 }
 
 /* Explicit congestion notification flow */
@@ -967,7 +976,7 @@ ECNPacket *ECNFlow::createAckPacket(ECNPacket *toAck) {
 
     // add state
     ackPacket->setAckData(toAck->getSendTime(), toAck->fullSize(), toAck->getECNBit(), toAck->getECNScale(),
-            toAck->getId());
+            toAck->getDataId());
 
     return ackPacket;
 }
@@ -1222,8 +1231,7 @@ void ECNFlow::txPacketEvent() {
 
     Endpoint *endpoint = man.getEndpoint(sourceId);
 
-    man.logEvent("ECNFlow", this->id, "Flow Packet Tx", "Sent packet " + to_string(sendingPacket->getId()) +
-                    " from flow " + to_string(this->id));
+    man.logTxEvent("ECNFlow", this->id, "Flow Packet Tx", sourceId, sendingPacket);
     endpoint->txPacket(sendingPacket);
 
     // track sent packets
@@ -1249,6 +1257,7 @@ void ECNFlow::txAck(ECNPacket *toAckPacket) {
     endpoint->txPacket(ackPacket);
 
     man.logEvent("ECNFlow", this->id, "Flow Ack Tx", "Sent Ack " + to_string(ackPacket->getId()) +
+                    " for data " + to_string(ackPacket->getAckedId()) +
                     " from flow " + to_string(this->id));
 }
 
@@ -1278,28 +1287,27 @@ void ECNFlow::packetArrived(Packet *p) {
     } else {
         sinkPacketArrived(p);
     }
-    DataFlow::packetArrived(p);
 }
 
 void ECNFlow::sourcePacketArrived(Packet *p) {
     ECNPacket *ecnP = dynamic_cast<ECNPacket *>(p);
     if (ecnP != NULL) {
-        man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Source packet " + to_string(p->getId()) +
-                        " arrived at destination.");
+        man.logTxEvent("ECNFlow", this->id, "Flow Packet Arrived", p->getDest(), p);
     } else {
         man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet arrived but was null");
-        // TODO oh no this is bad, really bad!
+        // oh no this is bad, really bad!
+        throw runtime_error("ECNFlow: sourcePacketArrived packet not ECN Packet or NULL\n");
     }
 
     // create and send ack packet
     txAck(ecnP);
+    DataFlow::sourcePacketArrived(p);
 }
 
 void ECNFlow::sinkPacketArrived(Packet *p) {
     ECNPacket *ecnP = dynamic_cast<ECNPacket *>(p);
     if (ecnP != NULL) {
-        man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Ack packet " + to_string(p->getId()) +
-                        " arrived at destination.");
+        man.logTxEvent("ECNFlow", this->id, "Flow Ack Packet Arrived", p->getDest(), p);
 
         ECNPacket::ackMetaData ackData = ecnP->getAckData();
         // TODO update stats
@@ -1315,7 +1323,10 @@ void ECNFlow::sinkPacketArrived(Packet *p) {
     } else {
         man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet arrived but was null");
         // TODO oh no this is bad, really bad!
+        throw runtime_error("ECNFlow:\nsinkPacketArrived non ECNPacket arrived");
     }
+
+    DataFlow::sinkPacketArrived(p);
 }
 
 void ECNFlow::packetDropped(Packet *p) {

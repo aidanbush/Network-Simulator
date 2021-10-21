@@ -1,8 +1,9 @@
 #ifndef PACKET_H
 #define PACKET_H
 
-#define BITS_PER_BYTE   8
-#define NULL_DATA_ID    -1
+#define BITS_PER_BYTE       8
+#define NULL_DATA_ID        -1
+#define NULL_PACKET_SIZE    -1
 
 #include "networkObject.h"
 #include "flow.h"
@@ -23,6 +24,7 @@ class Packet: public NetworkObject {
         int getSource() {return sourceId; }
         int getDest() {return destId; }
         int getDataId() {return dataId; }
+        int getAckedId() {return ackedId; }
         int getHeaderSize() {return headerSize; }
         int getBodySize() {return bodySize; }
         bool isSourcePacket() {return sourcePacket; }

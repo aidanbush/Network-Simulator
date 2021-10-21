@@ -248,6 +248,7 @@ class DataFlow: public Flow {
 
         void packetArrived(Packet *p);
         void sourcePacketArrived(Packet *p);
+        void sinkPacketArrived(Packet *p);
 };
 
 class ECNFlow: public DataFlow {

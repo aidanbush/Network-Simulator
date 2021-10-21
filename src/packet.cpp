@@ -14,6 +14,10 @@ Packet::Packet(int id, int sourceId, int destId, int flowId, int dataId, int ttl
     this->createTime = man.time;
     this->arrivalTime = 0;
     this->sourcePacket = sourcePacket;
+
+    this->ackedSendTime = NULL_TIME;
+    this->ackedSizeBytes = NULL_PACKET_SIZE;
+    this->ackedId = NULL_DATA_ID;
 }
 
 Packet::Packet(const Packet &p): NetworkObject(p.id) {
@@ -28,7 +32,6 @@ Packet::Packet(const Packet &p): NetworkObject(p.id) {
     this->arrivalTime = p.arrivalTime;
     this->sourcePacket = p.sourcePacket;
 
-    // non create parameters
     this->ackedSendTime = p.ackedSendTime;
     this->ackedSizeBytes = p.ackedSizeBytes;
     this->ackedId = p.ackedId;
@@ -63,9 +66,9 @@ second_t Packet::getAckedSendTime() {
 }
 
 void Packet::setAckData(second_t sendTime, int sizeBytes, int ackedId) {
-    ackedSendTime = sendTime;
-    ackedSizeBytes = sizeBytes;
-    ackedId = ackedId;
+    this->ackedSendTime = sendTime;
+    this->ackedSizeBytes = sizeBytes;
+    this->ackedId = ackedId;
 }
 
 bool Packet::validate() {
@@ -103,11 +106,9 @@ double ECNPacket::getECNScale() {
 }
 
 void ECNPacket::setAckData(second_t sendTime, int sizeBytes, bool ECNBit, double bufferOccupancy, int ackedId) {
-    ackedSendTime = sendTime;
-    ackedSizeBytes = sizeBytes;
-    ackedId = ackedId;
-    ackData.ECNBit = ECNBit;
-    ackData.bufferOccupancy = bufferOccupancy;
+    Packet::setAckData(sendTime, sizeBytes, ackedId);
+    this->ackData.ECNBit = ECNBit;
+    this->ackData.bufferOccupancy = bufferOccupancy;
 }
 
 ECNPacket::ackMetaData ECNPacket::getAckData() {

@@ -1,6 +1,8 @@
 #ifndef MANAGER_H
 #define MANAGER_H
 
+#define NULL_TIME   -1.0
+
 #include <queue>
 #include <map>
 #include <vector>

@@ -327,8 +327,8 @@ string Manager::getCSVDir() {
 }
 
 void Manager::logTxEvent(string objName, int objId, string eventName, int destId, Packet *p) {
-    string message = "dest: " + to_string(destId) + " packet: " + to_string(p->getId()) + " flow: "
-        + to_string(p->getFlow());
+    string message = "dest: " + to_string(destId) + " packet: " + to_string(p->getId()) + " dataId: "
+        + to_string(p->getDataId()) + " flow: " + to_string(p->getFlow());
     logEvent(objName, objId, eventName, message);
 }
 
