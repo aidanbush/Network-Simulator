@@ -16,7 +16,6 @@ class Packet: public NetworkObject {
                 int headerSize, int bodySize, bool sourcePacket);
         Packet(const Packet &p);
         ~Packet() = default;
-
         Packet *clone();
 
         int getTTL() {return ttl; }
@@ -55,7 +54,6 @@ class Packet: public NetworkObject {
         second_t ackedSendTime;
         int ackedSizeBytes;
 
-    private:
         int headerSize;
         int bodySize;
         int ttl;
@@ -84,6 +82,7 @@ class ECNPacket: public Packet {
                 int headerSize, int bodySize, bool sourcePacket); // TODO add ack data
         ECNPacket(const Packet &p);
         ~ECNPacket() = default;
+        ECNPacket *clone();
 
         void setECNBit();
         bool getECNBit();
@@ -94,7 +93,7 @@ class ECNPacket: public Packet {
         void setAckData(second_t sendTime, int sizeBytes, bool ECNBit, double bufferOccupancy, int ackedId);
         ackMetaData getAckData();
 
-    private:
+    protected:
         bool ECNBit;
         double ECNScale;
         ackMetaData ackData;

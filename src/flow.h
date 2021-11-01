@@ -173,7 +173,7 @@ class DataQueue {
 
         void push_back(Packet *p, second_t timeoutTime);
         bool pop(Generator::PacketData &pData, int &dataId);
-        bool removeData(int dataId);
+        void removeData(int dataId);
 
         struct transitPacket {
             Generator::PacketData pData;
@@ -208,8 +208,9 @@ class DataQueue {
         // queue for packets timed out
         priority_queue<queuePacket, vector<queuePacket>, queuePacketComparator> timedoutQueue;
 
-        unordered_map<int, dataElem> dataTable; // uId is the key
-        unordered_map<int, lookupElem> lookupTable; // dataId is the key
+        // uId is the key, contains the actual packets that the queues and lookup table refer to
+        unordered_map<int, dataElem> dataTable;
+        map<int, lookupElem> lookupTable; // dataId is the key
 
         int curUId;
 
@@ -237,6 +238,12 @@ class DataFlow: public Flow {
 
         second_t retransmitTimeout;
         bool timeoutEventScheduled;
+
+        // track what has been recieved for TCP style acks
+        priority_queue<int, vector<int>, greater<int>> recievedPackets;// TODO properly use this when acking
+
+        void addRecievedPacket(Packet *p);
+        int getAckDataId();
 
         bool nextRetransmitionPacket(DataQueue::transitPacket &p);
         void addRetransmitPacket(Packet *p);

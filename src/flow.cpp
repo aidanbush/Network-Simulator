@@ -738,21 +738,21 @@ bool DataQueue::pop(Generator::PacketData &pData, int &dataId) {
     return false;
 }
 
-bool DataQueue::removeData(int dataId) {
-    // find data elem and set to deleted
-    // need uId first
-    auto lookupIt = lookupTable.find(dataId);
-    if (lookupIt == lookupTable.end()) {
-        return false;
+void DataQueue::removeData(int dataId) {
+    for(auto it = lookupTable.cbegin(); it != lookupTable.cend();) {
+        if (it->first <= dataId) {
+            // find data elem and set to deleted
+            auto dataIt = dataTable.find(it->second.uniqueId);
+
+            dataIt->second.deleted = true;
+            // the queue's handle deleted elements
+
+            lookupTable.erase(it++);
+        } else {
+            // if false then all packets below the data id have been removed from resending
+            break;
+        }
     }
-
-    auto dataIt = dataTable.find(lookupIt->second.uniqueId);
-    dataIt->second.deleted = true;
-
-    // remove lookup elem
-    lookupTable.erase(lookupIt);
-
-    return true;
 }
 
 /* Data Flow */
@@ -768,6 +768,45 @@ DataFlow::~DataFlow() {
 
 int DataFlow::newDataId() {
     return curDataPId++;
+}
+
+void DataFlow::addRecievedPacket(Packet *p) {
+    int n = p->getDataId();
+
+    if (recievedPackets.empty()) {
+        recievedPackets.emplace(n);
+        return;
+    }
+
+    int min = recievedPackets.top();
+
+    if (abs(n - min) <= 1) {
+        n = max(min, n);
+    } else {
+        recievedPackets.emplace(n);
+        return;
+    }
+
+    recievedPackets.pop();
+
+    min = recievedPackets.top();
+
+    while (n + 1 == min) {
+        n = min;
+
+        recievedPackets.pop();
+
+        if (recievedPackets.empty()) {
+            break;
+        }
+        min = recievedPackets.top();
+    }
+
+    recievedPackets.emplace(n);
+}
+
+int DataFlow::getAckDataId() {
+    return recievedPackets.top();
 }
 
 /*
@@ -892,6 +931,10 @@ void DataFlow::packetArrived(Packet *p) {
 }
 
 void DataFlow::sourcePacketArrived(Packet *p) {
+    addRecievedPacket(p);
+    man.logEvent("DataFlow", id, "sourcePacketArrived", "new min ack dataId: " + to_string(recievedPackets.top())
+            + " flow: " + to_string(id));
+
     Flow::sourcePacketArrived(p);
 }
 
@@ -976,7 +1019,7 @@ ECNPacket *ECNFlow::createAckPacket(ECNPacket *toAck) {
 
     // add state
     ackPacket->setAckData(toAck->getSendTime(), toAck->fullSize(), toAck->getECNBit(), toAck->getECNScale(),
-            toAck->getDataId());
+            getAckDataId());
 
     return ackPacket;
 }
@@ -1174,11 +1217,10 @@ void ECNFlow::updateStatsPostStep(pair<double, double> action) {
 }
 
 void ECNFlow::takeAction(pair<double, double> action) {
-    //
-
     rate *= action.first;
     rate += action.second;
 
+    // bounds
     rate = min(maxRate, max(MIN_RATE, rate));
     rate = min(sentRate * 2, rate);
 }
@@ -1293,15 +1335,18 @@ void ECNFlow::sourcePacketArrived(Packet *p) {
     ECNPacket *ecnP = dynamic_cast<ECNPacket *>(p);
     if (ecnP != NULL) {
         man.logTxEvent("ECNFlow", this->id, "Flow Packet Arrived", p->getDest(), p);
+        // copy
+        ecnP = ecnP->clone();
     } else {
         man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet arrived but was null");
         // oh no this is bad, really bad!
         throw runtime_error("ECNFlow: sourcePacketArrived packet not ECN Packet or NULL\n");
     }
 
-    // create and send ack packet
-    txAck(ecnP);
     DataFlow::sourcePacketArrived(p);
+    txAck(ecnP);
+
+    delete ecnP;
 }
 
 void ECNFlow::sinkPacketArrived(Packet *p) {

@@ -38,7 +38,16 @@ Packet::Packet(const Packet &p): NetworkObject(p.id) {
 }
 
 Packet *Packet::clone() {
-    return new Packet(id, sourceId, destId, dataId, flowId, ttl, headerSize, bodySize, sourcePacket);
+    Packet *p = new Packet(id, sourceId, destId, dataId, flowId, ttl, headerSize, bodySize, sourcePacket);
+
+    p->createTime = this->createTime;
+    p->arrivalTime = this->arrivalTime;
+
+    p->ackedSendTime = this->ackedSendTime;
+    p->ackedSizeBytes = this->ackedSizeBytes;
+    p->ackedId = this->ackedId;
+
+    return p;
 }
 
 void Packet::arrive() {
@@ -87,6 +96,23 @@ ECNPacket::ECNPacket(int id, int sourceId, int destId, int flowId, int dataId, i
 ECNPacket::ECNPacket(const Packet &p): Packet(p) {
     ECNBit = false;
     ECNScale = 0;
+}
+
+ECNPacket *ECNPacket::clone() {
+    ECNPacket *p = new ECNPacket(id, sourceId, destId, flowId, dataId, ttl, headerSize, bodySize, sourcePacket);
+
+    p->createTime = this->createTime;
+    p->arrivalTime = this->arrivalTime;
+    p->ECNBit = this->ECNBit;
+    p->ECNScale = this->ECNScale;
+
+    p->ackedSendTime = this->ackedSendTime;
+    p->ackedSizeBytes = this->ackedSizeBytes;
+    p->ackedId = this->ackedId;
+    p->ackData.ECNBit = this->ackData.ECNBit;
+    p->ackData.bufferOccupancy = this->ackData.bufferOccupancy;
+
+    return p;
 }
 
 void ECNPacket::setECNBit() {
