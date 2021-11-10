@@ -738,11 +738,16 @@ bool DataQueue::pop(Generator::PacketData &pData, int &dataId) {
     return false;
 }
 
-void DataQueue::removeData(int dataId) {
+int DataQueue::removeData(int dataId) {
+    int maxByte = -1;
+
     for(auto it = lookupTable.cbegin(); it != lookupTable.cend();) {
         if (it->first <= dataId) {
             // find data elem and set to deleted
             auto dataIt = dataTable.find(it->second.uniqueId);
+
+            // last byte in packet
+            maxByte = max(maxByte, it->first + dataIt->second.pData.bodySize);
 
             dataIt->second.deleted = true;
             // the queue's handle deleted elements
@@ -753,11 +758,15 @@ void DataQueue::removeData(int dataId) {
             break;
         }
     }
+
+    return maxByte;
 }
 
 /* Data Flow */
 DataFlow::DataFlow(json &flowConfig): Flow(flowConfig) {
     this->curDataPId = 0;
+    this->maxAckedByte = 0;
+    this->ackedBytesArrived = 0;
     this->retransmitTimeout = 1; // TODO use define or config
     this->queue = new DataQueue(id);
 }
@@ -766,22 +775,30 @@ DataFlow::~DataFlow() {
     delete queue;
 }
 
-int DataFlow::newDataId() {
-    return curDataPId++;
+int DataFlow::newDataId(Generator::PacketData pData) {
+    int curDataPIdCopy = curDataPId;
+    curDataPId += pData.bodySize;
+    return curDataPIdCopy;
 }
 
 void DataFlow::addRecievedPacket(Packet *p) {
-    int n = p->getDataId();
+    recievedPacket n = {p->getDataId(), p->getBodySize()};
 
     if (recievedPackets.empty()) {
         recievedPackets.emplace(n);
         return;
     }
 
-    int min = recievedPackets.top();
+    recievedPacket min = recievedPackets.top();
 
-    if (abs(n - min) <= 1) {
-        n = max(min, n);
+    if (min == n) {
+        return;
+    }
+
+    if (n.dataId + n.size == min.dataId || min.dataId + min.size == n.dataId || n.dataId == min.dataId) {
+        if (n < min) {
+            n = min;
+        }
     } else {
         recievedPackets.emplace(n);
         return;
@@ -791,7 +808,7 @@ void DataFlow::addRecievedPacket(Packet *p) {
 
     min = recievedPackets.top();
 
-    while (n + 1 == min) {
+    while (n.dataId + n.size == min.dataId) {
         n = min;
 
         recievedPackets.pop();
@@ -802,11 +819,15 @@ void DataFlow::addRecievedPacket(Packet *p) {
         min = recievedPackets.top();
     }
 
+    if (min == n) {
+        return;
+    }
+
     recievedPackets.emplace(n);
 }
 
 int DataFlow::getAckDataId() {
-    return recievedPackets.top();
+    return recievedPackets.top().dataId;
 }
 
 /*
@@ -889,7 +910,7 @@ Packet *DataFlow::createNextPacket(bool fromSource) {
             return NULL;
         }
 
-        dId = newDataId();
+        dId = newDataId(pData);
 
         // create packet for this
         p = new Packet(pId, packetSourceId, packetDestId, id, dId, ttl, pData.headerSize, pData.bodySize, fromSource);
@@ -932,8 +953,8 @@ void DataFlow::packetArrived(Packet *p) {
 
 void DataFlow::sourcePacketArrived(Packet *p) {
     addRecievedPacket(p);
-    man.logEvent("DataFlow", id, "sourcePacketArrived", "new min ack dataId: " + to_string(recievedPackets.top())
-            + " flow: " + to_string(id));
+    man.logEvent("DataFlow", id, "sourcePacketArrived", "new min ack dataId: "
+            + to_string(recievedPackets.top().dataId) + " flow: " + to_string(id));
 
     Flow::sourcePacketArrived(p);
 }
@@ -944,8 +965,14 @@ void DataFlow::sinkPacketArrived(Packet *p) {
         throw runtime_error("DataFlow: sinkPacketArrival acked data id NULL_DATA_ID\n");
     }
 
-    queue->removeData(p->getAckedId());
+    int newMaxAckedByte = queue->removeData(p->getAckedId());
     man.logEvent("DataFlow", id, "sinkPacketArrived", "Packet " + to_string(p->getAckedId()) + " Ack arrived");
+
+    // if -1 nothing new was acked
+    if (newMaxAckedByte != -1) {
+        ackedBytesArrived += newMaxAckedByte - maxAckedByte;
+        maxAckedByte = newMaxAckedByte;
+    }
 
     Flow::sinkPacketArrived(p);
 }
@@ -1162,6 +1189,7 @@ void ECNFlow::resetState() {
     packetsDropped = 0;
     bytesSent = 0;
     bytesArrived = 0;
+    ackedBytesArrived = 0;
     averageRTT = 0;
     minRTT = MAX_RTT;
 
@@ -1174,11 +1202,14 @@ void ECNFlow::updateStats() {
     totalPacketsSent += packetsSent;
     totalPacketsDropped += packetsDropped;
     throughput = bytesArrived * BITS_PER_BYTE / miTime;
+    goodput = ackedBytesArrived * BITS_PER_BYTE / miTime;
+    man.logEvent("ECNFlow", id, "updateStats", " goodput " + to_string(goodput) + " acked bits " + to_string(ackedBytesArrived * BITS_PER_BYTE));
     sentRate = bytesSent * BITS_PER_BYTE / miTime;
 
     observer.logFlowData(id, "Reward", getReward());
     observer.logFlowData(id, "Rate", rate);
     observer.logFlowData(id, "Throughput", throughput);
+    observer.logFlowData(id, "Goodput", goodput);
     observer.logFlowData(id, "AverageRTT", averageRTT);
     observer.logFlowData(id, "MinRTT", minRTT);
     observer.logFlowData(id, "SentRate", sentRate);

@@ -173,7 +173,7 @@ class DataQueue {
 
         void push_back(Packet *p, second_t timeoutTime);
         bool pop(Generator::PacketData &pData, int &dataId);
-        void removeData(int dataId);
+        int removeData(int dataId); // returns the maximum acked Byte
 
         struct transitPacket {
             Generator::PacketData pData;
@@ -232,7 +232,12 @@ class DataFlow: public Flow {
     protected:
         int curDataPId;
 
-        int newDataId();
+        int newDataId(Generator::PacketData pData);
+
+        // used for goodput, is calculated using acks, only when a packet is acked is it counted towards
+        int maxAckedByte; // should be working
+        int ackedBytesArrived;
+        double goodput; //TODO implement both ^
 
         DataQueue *queue;
 
@@ -240,7 +245,22 @@ class DataFlow: public Flow {
         bool timeoutEventScheduled;
 
         // track what has been recieved for TCP style acks
-        priority_queue<int, vector<int>, greater<int>> recievedPackets;// TODO properly use this when acking
+        struct recievedPacket {
+            int dataId;
+            int size; // body size
+            friend bool operator >(const recievedPacket& lhs, const recievedPacket& rhs) {
+                return lhs.dataId > rhs.dataId;
+            }
+            friend bool operator <(const recievedPacket& lhs, const recievedPacket& rhs) {
+                return rhs > lhs;
+            }
+            friend bool operator ==(const recievedPacket& lhs, const recievedPacket& rhs) {
+                return lhs.dataId == rhs.dataId;
+            }
+        };
+
+
+        priority_queue<recievedPacket, vector<recievedPacket>, greater<recievedPacket>> recievedPackets;
 
         void addRecievedPacket(Packet *p);
         int getAckDataId();
