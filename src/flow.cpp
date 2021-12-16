@@ -147,10 +147,12 @@ double Flow::initialAverageReward() {
             rBar = 1;
             break;
         case ThroughputReward:
+        case GoodputReward:
         case ThroughputDemandReward:
             rBar = 0;
             break;
         case LogThroughput:
+        case LogGoodput:
             rBar = log(rate);
             break;
         case REMY1:
@@ -767,6 +769,8 @@ DataFlow::DataFlow(json &flowConfig): Flow(flowConfig) {
     this->curDataPId = 0;
     this->maxAckedByte = 0;
     this->ackedBytesArrived = 0;
+    this->goodput = 0;
+    this->oldGoodput = 0;
     this->retransmitTimeout = 1; // TODO use define or config
     this->queue = new DataQueue(id);
 }
@@ -1154,6 +1158,13 @@ double ECNFlow::getReward() {
                 return -1;
             }
             return 0;
+        case GoodputReward:
+            if (oldGoodput < goodput) {
+                return 1;
+            } else if (oldGoodput > goodput) {
+                return -1;
+            }
+            return 0;
         case ThroughputDemandReward:
             {
                 double r = 0;
@@ -1174,6 +1185,8 @@ double ECNFlow::getReward() {
             }
         case LogThroughput:
             return log(throughput);
+        case LogGoodput:
+            return log(goodput);
         case REMY1:
             return log(throughput) - log(averageRTT);
         case REMY2:
@@ -1268,6 +1281,7 @@ void ECNFlow::stepAgent() {
     oldRate = rate;
     oldECN = averageECN;
     oldThroughput = throughput;
+    oldGoodput = goodput;
 
     pair<double, double> action = agent->step(state, reward);
 

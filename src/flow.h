@@ -58,8 +58,10 @@ class Flow: public NetworkObject {
             ECNReward,
             ExpertReward,
             ThroughputReward,
+            GoodputReward,
             ThroughputDemandReward,
             LogThroughput,
+            LogGoodput,
             REMY1,
             REMY2,
         };
@@ -237,7 +239,8 @@ class DataFlow: public Flow {
         // used for goodput, is calculated using acks, only when a packet is acked is it counted towards
         int maxAckedByte; // should be working
         int ackedBytesArrived;
-        double goodput; //TODO implement both ^
+        double goodput;
+        double oldGoodput;
 
         DataQueue *queue;
 
