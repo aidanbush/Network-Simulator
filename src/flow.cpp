@@ -1351,6 +1351,83 @@ void ECNFlow::packetError(Packet *p) {
     Flow::packetError(p);
 }
 
+/* CUBIC Flow */
+/*
+CUBICFlow::CUBICFlow(json &flowConfig): DataFlow(flowConfig) {
+    this->cwnd = ???;
+    this->tcpFriendliness = 1;
+    this->fastConvergence = 1;
+    this->beta = 0.2; // 0.2 from paper, 0.7 from RFC 8312 Sec. 4.5
+    this->C = 0.4; // 0.4 from paper and from RFC 8312 Sec. 4.5
+    CUBICReset();
+}
+
+// ack packet arrived
+void CUBICFlow::AckArrived() {
+    if dMin then dMin <- min(dMin,RTT)
+    else dMin <- RTT
+
+    if cwnd <= ssthresh then cwnd <- cwnd + 1
+    else
+        cnt <- cubic_update()
+}
+
+// packet loss
+// TODO what is this
+void CUBICFlow::packetLoss() {
+    epoch_start <- 0
+    if cwnd < Wlast_max and fast_convergance then
+        Wlast_max <- cwnd * (2 - beta) / 2
+    else Wlast_max <- cwnd
+    wwthresh <- cwnd <- cwnd * (1 - beta)
+}
+
+// timeout
+// queue function called
+void CUBICFlow::timeout() {
+    CUBICReset();
+}
+
+// cubic update
+// TODO when is this???
+void CUBICFlow::CUBICUpdate() {
+    ack_cnt <- ack_cnt + 1
+    if epoch_start <= 0 then
+        epoch_start <- tcp_time_stamp
+        if cwnd < Wlast_time then
+            K <- // cubic function
+            origin_point <- Wlast_max
+        else
+            K <- 0
+            origin_point <- cwnd
+        ack_cnt <- 1
+        Wtcp <- cwnd
+    t <- tcp_time_stamp + dMin - epoch_start
+    target <- origin_point + C(t - K)^3
+    if target > cwnd then cnt <- cwnd/(target-cwnd)
+    else cnt <- 100 * cwnd
+    if tcp_friendliness then cubic_friendliness()
+}
+
+void CUBICFlow::CUBICTCPFriendliness() {
+    Wtcp <- Wctp + (3 * beta) / (2 - beta) * ack_cnt/cwnd
+    ack_cnt <- 0
+    if Wtcp > cwnd then
+        max_cnt <- cwnd / (Wtcp - cwnd)
+        if cnt > max_cnt then cnt <- max_cnt
+}
+
+void CUBICFlow::CUBICReset() {
+    Wlast_max <- 0
+    epoch_start <- 0
+    origin_point <- 0
+    dMin <- 0
+    Wtcp <- 0
+    K <- 0
+    ack_cnt <- 0
+}
+*/
+
 /* tests */
 #ifdef _TEST
 TestFlow::TestFlow(json &flowConfig): Flow(validateTestFlowConfig(flowConfig)) {}
