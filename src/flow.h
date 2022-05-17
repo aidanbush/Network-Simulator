@@ -171,7 +171,7 @@ class DataQueue {
     public:
         DataQueue(int flowId);
 
-        void push_back(Packet *p, int timeoutTime);
+        void push_back(Packet *p, second_t timeoutTime);
         bool pop(Generator::PacketData &pData, int &dataId);
         bool removeData(int dataId);
 

@@ -627,7 +627,7 @@ int DataQueue::newUId() {
     return curUId++;
 }
 
-void DataQueue::push_back(Packet *p, int timeoutTime) {
+void DataQueue::push_back(Packet *p, second_t timeoutTime) {
     // check if data id in lookupTable
     if (lookupTable.find(p->getDataId()) != lookupTable.end()) {
         throw runtime_error("DataQueue:\npush_back dataId already in lookupTable\n");
@@ -766,6 +766,10 @@ DataFlow::~DataFlow() {
     delete queue;
 }
 
+void DataFlow::notifyPacketTimeout() {
+    // TODO implement
+}
+
 int DataFlow::newDataId() {
     return curDataPId++;
 }
@@ -866,8 +870,6 @@ Packet *DataFlow::getNextPacket(bool fromSource) {
     } else { // only when fromSource = true and retransmit = true
         // create packet from tPacket
         int pId = newPacketId(fromSource);
-        int packetSourceId = sourceId;
-        int packetDestId = destId;
         p = new Packet(pId, sourceId, destId, id, dId, ttl, pData.headerSize, pData.bodySize, fromSource);
     }
 
