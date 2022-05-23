@@ -332,6 +332,24 @@ class ECNFlow: public DataFlow {
         void updateStatsPostStep(pair<double, double> action);
 };
 
+/*
+class CUBICFlow: public DataFlow {
+    friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
+    public:
+        CUBICFlow(json &flowConfig);
+
+    private:
+        int cwnd;
+
+        int tcpFriendliness;
+        int fastConvergence;
+        double beta;
+        double C;
+
+        int ssthresh; // slow start threshold
+};
+*/
+
 #ifdef _TEST
 class TestFlow: public Flow {
     friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
