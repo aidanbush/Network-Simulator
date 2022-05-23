@@ -91,7 +91,7 @@ static bool parseConfig(json& netConfig, json &testConfig) {
 
     for (json::iterator it = netConfig["switches"].begin(); it != netConfig["switches"].end(); ++it) {
         try {
-            Switch *netSwitch = new Switch(it.value());
+            Switch *netSwitch = createSwitch(it.value());
             if (!man.addSwitch(netSwitch)) {
                 cerr << "Switch:\nMultiple packet handlers exist with id '" << netSwitch->getId() << "'." << endl;
                 delete netSwitch;
