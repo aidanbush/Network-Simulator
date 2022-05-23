@@ -14,6 +14,46 @@ using namespace std;
 
 using json = nlohmann::json;
 
+enum SwitchType {
+    BasicSwitchType,
+    RandomDeflectSwitchType,
+};
+
+Switch *createSwitch(json &switchNetConfig) {
+    static map<string, SwitchType> switchTypeMap = {
+        {"basic", BasicSwitchType},
+        {"rand_deflect", RandomDeflectSwitchType},
+    };
+
+
+    if (!hasMemberOfType(switchNetConfig, "type", jsonString)) {
+        throw runtime_error("Switch:\nNo string with name 'type'\n" + switchNetConfig.dump(4));
+    }
+
+    string switchTypeString = switchNetConfig["type"];
+    SwitchType switchType;
+    try {
+        switchType = switchTypeMap.at(switchTypeString);
+    } catch (out_of_range&) {
+        throw runtime_error("Switch:\nInvalid switch type: " + switchTypeString);
+    }
+
+    Switch *netSwitch;
+
+    switch (switchType) {
+        case BasicSwitchType:
+            netSwitch = new Switch(switchNetConfig);
+            break;
+        case RandomDeflectSwitchType:
+            netSwitch = new RandomDeflectionSwitch(switchNetConfig);
+            break;
+        default:
+            throw runtime_error("Switch:\nInvalid switch type: " + switchTypeString);
+    }
+
+    return netSwitch;
+}
+
 Switch::Switch(json &switchConfig): PacketHandler(validateSwitchConfig(switchConfig)) {}
 
 json &Switch::validateSwitchConfig(json &switchConfig) {
@@ -47,7 +87,7 @@ void Switch::rxPacket(Packet *p) {
 int Switch::routePacket(Packet *p) {
     auto destId = routingTable.find(p->getDest());
     if (destId == routingTable.end()) {
-        // TODO handle error
+        throw runtime_error("Switch: routePacket: not able to route to destination\n");
     }
 
     return destId->second;
@@ -126,6 +166,20 @@ void Switch::addNeighbours(priority_queue<routingSearchElem> &fringe,
     }
 }
 
+void Switch::setNeighbours() {
+    set<int> interfaces;
+    // for all interfaces
+    for (auto const& [handlerId, interfaceId] : routingTable) {
+        // if handler is an switch then add to set
+        if (man.getSwitch(handlerId) != NULL) {
+            interfaces.insert(interfaceId);
+        }
+    }
+
+    // convert to vector
+    copy(interfaces.begin(), interfaces.end(), switchNeighbourIfaces.begin());
+}
+
 bool Switch::setupRoutingTable() {
     priority_queue<routingSearchElem> fringe;
     set<int> explored; // explored packetHandlers
@@ -176,6 +230,7 @@ void Switch::printRoutingTable() {
 }
 
 bool Switch::initSwitch() {
+    setNeighbours();
     return setupRoutingTable();
 }
 
@@ -187,6 +242,72 @@ bool Switch::validate() {
     }
 
     return valid;
+}
+
+/* RandomDeflectionSwitch */
+
+RandomDeflectionSwitch::RandomDeflectionSwitch(json &switchConfig):
+    Switch(validateRandomDeflectionSwitchConfig(switchConfig)) {
+    // set threshold
+    this->deflectThresh = switchConfig["deflect_thresh"];
+}
+
+json &RandomDeflectionSwitch::validateRandomDeflectionSwitchConfig(json &switchConfig) {
+    string message = "";
+
+    if (!hasMemberOfType(switchConfig, "deflect_thresh", jsonDouble)) {
+        // TODO error
+        message += "No double with name 'deflect_thresh'.\n";
+    }
+
+    if (!message.empty()) {
+        message = "RandomDeflectionSwitch:\n" + message + switchConfig.dump(4);
+        throw runtime_error(message);
+    }
+
+    return switchConfig;
+}
+
+bool RandomDeflectionSwitch::initSwitch() {
+    bool ret = Switch::initSwitch();
+    generator.seed(man.random());
+    setRerouteLists();
+    return ret;
+}
+
+void RandomDeflectionSwitch::setRerouteLists() {
+    // create rerouteLists
+    for (int i = 0; i < switchNeighbourIfaces.size(); i++) {
+        // create vector missing element i
+        vector<int> newNeighbours;
+        for (int j = 0; j < switchNeighbourIfaces.size(); j++) { // copy all but element i
+            if (j == i) {
+                continue;
+            }
+            newNeighbours.emplace_back(switchNeighbourIfaces[j]);
+        }
+
+        rerouteLists.emplace(switchNeighbourIfaces[i], newNeighbours);
+    }
+}
+
+int RandomDeflectionSwitch::routePacket(Packet *p) {
+    int routeIfaceId = Switch::routePacket(p);
+    int nextIfaceId = routeIfaceId;
+
+    // check if >= threshold
+    // get interface
+    Interface *interface = man.getInterface(routeIfaceId);
+    // check how full and compare
+    if ((double(interface->getOutBufferCurrentSize()) / interface->getOutBufferTotalSize()) >= deflectThresh) {
+        // if empty dont reroute
+        if (rerouteLists[routeIfaceId].size() > 0) {
+            // randomly deflect
+            nextIfaceId = rerouteLists[routeIfaceId][generator() % rerouteLists[routeIfaceId].size()];
+        }
+    }
+
+    return nextIfaceId;
 }
 
 #ifdef _TEST

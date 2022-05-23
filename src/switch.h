@@ -5,6 +5,7 @@
 #include <map>
 #include <queue>
 #include <set>
+#include <random>
 
 #include "packetHandler.h"
 
@@ -39,6 +40,7 @@ class Switch: public PacketHandler {
         };
 
         map<int, int> routingTable; // dest Id to interface Id
+        vector<int> switchNeighbourIfaces; // all the interfaces that connect to a switch
 
         int routePacket(Packet *p);
 
@@ -51,11 +53,33 @@ class Switch: public PacketHandler {
                 set<int> &explored, routingSearchElem curElem);
 
         bool setupRoutingTable();
-
         void printRoutingTable();
+
+        void setNeighbours();
 
     private:
         static json &validateSwitchConfig(json &switchConfig);
+};
+
+class RandomDeflectionSwitch: public Switch {
+    public:
+        RandomDeflectionSwitch(json &switchConfig);
+
+        bool initSwitch();
+
+    protected:
+        double deflectThresh;
+
+        default_random_engine generator;
+
+        map<int, vector<int>> rerouteLists;
+
+        int routePacket(Packet *p);
+
+        void setRerouteLists();
+
+    private:
+        json &validateRandomDeflectionSwitchConfig(json &switchConfig);
 };
 
 #ifdef _TEST
@@ -63,5 +87,7 @@ class Switch: public PacketHandler {
 int testSwitch();
 
 #endif /* _TEST */
+
+Switch *createSwitch(json &switchNetConfig);
 
 #endif /* SWITCH_H */

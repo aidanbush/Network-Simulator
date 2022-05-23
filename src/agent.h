@@ -15,8 +15,9 @@ enum AgentType {
 class Agent {
     public:
         virtual ~Agent() = default;
-        virtual pair<double, double> step(vector<double> state, double reward, double &rate) = 0;
+        virtual pair<double, double> step(vector<double> state, double reward) = 0;
         virtual string getName() = 0;
+        virtual vector<double> getWeights() = 0;
 
     protected:
         int flowId;

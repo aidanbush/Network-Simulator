@@ -1,13 +1,17 @@
 #include <vector>
 #include <stdlib.h>
 #include <iostream>
+#include <nlohmann/json.hpp>
 
 #include "agent.h"
 #include "sarsa.h"
 #include "tilecoder.h"
 #include "manager.h"
+#include "config.h"
 
 using namespace std;
+
+using json = nlohmann::json;
 
 // All following defines can be overridden in sarsaDefines.h, which can be modified for local testing
 #if __has_include("sarsaDefines.h")
@@ -18,7 +22,10 @@ using namespace std;
 #define DEFAULT_GAMMA 0.9
 #define DEFAULT_EPSILON 0.01
 #define DEFAULT_INITIAL_WEIGHTS 0.1
-#define NUM_PARAMS 5
+#define NUM_PARAMS 6
+
+#define DEFAULT_REWARD_MODE averageReward
+#define DEFAULT_BETA 0.01
 
 #define TILECODE_NUM_DIMS 1
 #define TILECODE_DIM_RANGES {{0,1}}
@@ -27,34 +34,62 @@ using namespace std;
 #define TILECODE_NUM_TILINGS {1}
 #endif // __has_include
 
-#define NUM_ACTIONS 4
 
-Sarsa::Sarsa(vector<double> initialState, int flowId) {
+#define NUM_ACTIONS 5
+
+Sarsa::Sarsa(vector<double> initialState, int flowId, json agentConfig) {
     this->flowId = flowId;
 
     tilecoder = new Tilecoder(TILECODE_NUM_DIMS, TILECODE_DIM_RANGES, TILECODE_PATTERNS,
             TILECODE_TILES_PER_DIM_TILING, TILECODE_NUM_TILINGS);
 
+    this->rewardMode = DEFAULT_REWARD_MODE;
+
     vector<double> params;
     double initialWeights;
 
-    if (!man.getParameters(&params, NUM_PARAMS)) {
-        initialAlpha = DEFAULT_ALPHA;
-        lambda = DEFAULT_LAMBDA;
-        gamma = DEFAULT_GAMMA;
-        epsilon = DEFAULT_EPSILON;
-        initialWeights = DEFAULT_INITIAL_WEIGHTS;
-    } else {
-        initialAlpha = params[0];
-        lambda = params[1];
-        gamma = params[2];
-        epsilon = params[3];
-        initialWeights = params[4];
+    initialAlpha = DEFAULT_ALPHA;
+    lambda = DEFAULT_LAMBDA;
+    gamma = DEFAULT_GAMMA;
+    epsilon = DEFAULT_EPSILON;
+    initialWeights = DEFAULT_INITIAL_WEIGHTS;
+    beta = DEFAULT_BETA;
+
+    if (hasMemberOfType(agentConfig, "alpha", jsonDouble)) {
+        initialAlpha = agentConfig["alpha"];
+    }
+
+    if (hasMemberOfType(agentConfig, "lambda", jsonDouble)) {
+        lambda = agentConfig["lambda"];
+    }
+
+    if (hasMemberOfType(agentConfig, "gamma", jsonDouble)) {
+        gamma = agentConfig["gamma"];
+    }
+
+    if (hasMemberOfType(agentConfig, "epsilon", jsonDouble)) {
+        epsilon = agentConfig["epsilon"];
+    }
+
+    if (hasMemberOfType(agentConfig, "initial_weights", jsonDouble)) {
+        initialWeights = agentConfig["initial_weights"];
+    }
+
+    if (hasMemberOfType(agentConfig, "beta", jsonDouble)) {
+        beta = agentConfig["beta"];
     }
 
     this->weights = vector<double>(tilecoder->getNumTiles() * NUM_ACTIONS, initialWeights);
 
     alpha = (double)initialAlpha / tilecoder->getNumTotalTilings();
+    beta /= tilecoder->getNumTotalTilings();
+
+    if (rewardMode == averageReward) {
+        gamma = 1;
+    }
+
+    rBar = 0;
+
     trace = vector<double>(tilecoder->getNumTiles() * NUM_ACTIONS, 0);
     oldState = initialState;
     generator.seed(man.random());
@@ -65,6 +100,10 @@ string Sarsa::getName() {
     return "Sarsa";
 }
 
+vector<double> Sarsa::getWeights() {
+    return weights;
+}
+
 void Sarsa::setAveragePacketSizeBytes(double size) {
     avgPacketSizeBytes = size;
 }
@@ -73,7 +112,6 @@ pair<int, double> Sarsa::selectAction() {
     if ((double)generator()/(generator.max() - generator.min()) < epsilon) {
         int ind = (int)(generator()%NUM_ACTIONS);
         double val = sumIndices(&weights, &tiles, ind * tilecoder->getNumTiles());
-        //cout << "Exploring:\nAction: " << ind << " Value: " << val << endl;
         return pair<int, double>(ind, val);
     } else {
         double best;
@@ -90,7 +128,7 @@ pair<int, double> Sarsa::selectAction() {
     }
 }
 
-pair<double, double> Sarsa::step(vector<double> state, double reward, double &rate) {
+pair<double, double> Sarsa::step(vector<double> state, double reward) {
     totalReward += reward;
     // Tilecode
     tiles = tilecoder->tilecode(state);
@@ -100,14 +138,20 @@ pair<double, double> Sarsa::step(vector<double> state, double reward, double &ra
     int action = actionValue.first;
     double value = actionValue.second;
 
-    // Update values
     double newOldValue = sumIndices(&weights, &oldTiles, oldAction * tilecoder->getNumTiles());
-    double delta = reward + gamma*value - newOldValue;
-    //cout << "Q: " << newOldValue << " Q\': " << value << " Q_old: " << oldValue << endl;
-    //cout << "Alpha: " << alpha << " Delta: " << delta << endl;
-    // if (value > 100 || newOldValue > 100 || oldValue > 100) {
-    //     exit(0);
-    // }
+    double delta;
+
+    // Update values
+    switch (rewardMode) {
+        case discountedReward:
+            delta = reward + gamma*value - newOldValue;
+            break;
+        case averageReward:
+            delta = reward - rBar + value - newOldValue;
+            rBar = rBar + beta * delta;
+            break;
+    }
+
     // Update trace
     for (int i = 0; i < tilecoder->getNumTiles() * NUM_ACTIONS; i++) {
         trace[i] *= gamma*lambda;
@@ -115,16 +159,16 @@ pair<double, double> Sarsa::step(vector<double> state, double reward, double &ra
     for (auto tile: tiles) {
         trace[action * tilecoder->getNumTiles() + tile] += (1 - alpha);
     }
+
     // Update Weights
     for (int i = 0; i < tilecoder->getNumTiles() * NUM_ACTIONS; i++) {
         weights[i] += alpha*(delta + newOldValue - oldValue)*trace[i];
     }
-    //cout << alpha*(delta + newOldValue - oldValue) << endl;
+
     for (auto tile: tiles) {
         weights[action * tilecoder->getNumTiles() + tile] -= alpha*(newOldValue - oldValue);
     }
-    //cout << alpha*(newOldValue - oldValue) << endl;
-    
+
     oldAction = action;
     oldValue = value;
     oldTiles = tiles;
@@ -134,20 +178,19 @@ pair<double, double> Sarsa::step(vector<double> state, double reward, double &ra
     //update rate
     switch (action) {
         case 0:
-            rate *= 2;
             actionPair = pair<double, double>(2, 0);
             break;
         case 1:
-            rate /= 2;
             actionPair = pair<double, double>(.5, 0);
             break;
         case 2:
-            actionPair = pair<double, double>(0, avgPacketSizeBytes * 8);
-            rate += actionPair.second;
+            actionPair = pair<double, double>(1, avgPacketSizeBytes * 8);
             break;
         case 3:
-            actionPair = pair<double, double>(0, -avgPacketSizeBytes * 8);
-            rate += actionPair.second;
+            actionPair = pair<double, double>(1, -avgPacketSizeBytes * 8);
+            break;
+        case 4:
+            actionPair = pair<double, double>(1, 0);
             break;
     }
 

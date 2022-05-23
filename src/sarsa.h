@@ -2,20 +2,32 @@
 #define SARSA_H
 
 #include <random>
+#include <nlohmann/json.hpp>
 
 #include "tilecoder.h"
 
+using json = nlohmann::json;
+
 class Sarsa: public Agent {
     public:
-        Sarsa(vector<double> initialState, int flowId);
+        Sarsa(vector<double> initialState, int flowId, json agentConfig);
 
-        pair<double, double> step(vector<double> state, double reward, double &rate);
+        pair<double, double> step(vector<double> state, double reward);
 
         string getName();
+
+        vector<double> getWeights();
 
         void setAveragePacketSizeBytes(double size);
 
     private:
+        enum RewardMode {
+            averageReward,
+            discountedReward,
+        };
+
+        RewardMode rewardMode;
+
         pair<int, double> selectAction();
 
         vector<double> weights;
@@ -34,6 +46,9 @@ class Sarsa: public Agent {
         double lambda;
         double gamma;
         double epsilon;
+        double beta;
+
+        double rBar;
 
         double totalReward = 0;
 

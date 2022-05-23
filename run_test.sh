@@ -10,18 +10,23 @@ plotFormat=pdf
 while getopts "o:n:f:p:t:" c; do
     case $c in
         o)
+            # seed offset
             offset=${OPTARG}
             ;;
         n)
+            # number of tests to run
             numTests=${OPTARG}
             ;;
         f)
+            # plot format (eg png or pdf)
             plotFormat=${OPTARG}
             ;;
         p)
+            # limit of concurent processes
             procLimit=${OPTARG}
             ;;
         t)
+            # real time limit per run
             timer=${OPTARG}
             ;;
     esac
@@ -43,6 +48,8 @@ if [ -d $resultsDir ] ; then
     rm -r $resultsDir
 fi
 mkdir $resultsDir
+
+mkdir ${resultsDir}/weights
 
 cp $paramFile $resultsDir
 
@@ -69,6 +76,10 @@ wait
 # combine data
 echo python combineData.py $tempResultsDir ${resultsDir}/results.csv
 time python combineData.py $tempResultsDir ${resultsDir}/results.csv
+
+# copy weights
+echo cp ${tempResultsDir}/*_Weights.csv ${resultsDir}/weights/
+cp ${tempResultsDir}/*_Weights.csv ${resultsDir}/weights/
 
 # plot data
 echo python plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat} -t $testName

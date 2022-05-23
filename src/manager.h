@@ -1,6 +1,8 @@
 #ifndef MANAGER_H
 #define MANAGER_H
 
+#define NULL_TIME   -1.0
+
 #include <queue>
 #include <map>
 #include <vector>
@@ -14,6 +16,10 @@ class Interface;
 class Link;
 class Packet;
 class Flow;
+
+class Manager;
+
+extern Manager man;
 
 using namespace std;
 
@@ -39,12 +45,6 @@ template <typename T> struct Event: EventI {
     }
 };
 
-struct EventQueueComparator {
-    bool operator()(const EventI *lhs, const EventI *rhs) const {
-        return lhs->time > rhs->time; // Lower time is higher priority
-    }
-};
-
 enum LogLevel {
     CSV=1,
     PARAMS=2,
@@ -55,6 +55,15 @@ enum LogLevel {
 class Manager {
     public:
         Manager();
+
+        struct EventQueueComparator {
+            bool operator()(const EventI *lhs, const EventI *rhs) const {
+                if (lhs->time == rhs->time) {
+                    return man.random() % 2;
+                }
+                return lhs->time > rhs->time; // Lower time is higher priority
+            }
+        };
 
         second_t time;
         // global stats
@@ -95,9 +104,6 @@ class Manager {
         bool setCSVDir(string filename);
         string getCSVDir();
 
-        void setParameters(vector<double> params);
-        bool getParameters(vector<double> *params, int numParams);
-
         void setSuppressOutput(int value);
         int getSuppressOutput(LogLevel level);
 
@@ -105,6 +111,9 @@ class Manager {
         void logEvent(string objName, int objId, string eventName, string message);
 
         bool startSimulator();
+
+        void setExitTime(second_t time);
+        bool checkExitTime();
 
         void seed(int seed);
         int random();
@@ -120,7 +129,6 @@ class Manager {
         void deleteEvents();
 
         bool parametersSet = false;
-        vector<double> params;
         double initialWeights;
 
         double totalReward = 0;
@@ -139,8 +147,8 @@ class Manager {
         string CSVDir;
 
         mt19937 generator;
-};
 
-extern Manager man;
+        second_t exitTime;
+};
 
 #endif // MANAGER_H

@@ -10,10 +10,14 @@
 #include "link.h"
 #include "packet.h"
 #include "flow.h"
+#include "observer.h"
+
+#define DEFAULT_EXIT_TIME   5000
 
 Manager::Manager() {
     time = 0;
     logFile = stdout;
+    exitTime = DEFAULT_EXIT_TIME;
 }
 
 bool Manager::addHandler(PacketHandler *handler) {
@@ -130,17 +134,6 @@ void Manager::removeFlow(int id) {
     Flow *f = getFlow(id);
     totalReward += f->getTotalReward();
     flows.erase(id);
-    if (flows.size() == 0) {
-        // All flows finished, end simulation
-        if (!getSuppressOutput(PARAMS)) {
-            for (auto p: params) {
-                cout << p << ",";
-            }
-            cout << initialWeights << ",";
-        }
-        cout << totalReward << endl;
-        exit(0);
-    }
 }
 
 Flow *Manager::getFlow(int id) {
@@ -269,25 +262,20 @@ bool Manager::startSimulator() {
     }
 
     for (auto& it : flows) {
-        it.second->startFlow();
+        it.second->initializeFlow();
     }
+
+    observer.initializeObserver();
 
     return true;
 }
 
-void Manager::setParameters(vector<double> params) {
-    parametersSet = true;
-    this->params = params;
+void Manager::setExitTime(second_t time) {
+    exitTime = time;
 }
 
-bool Manager::getParameters(vector<double> *params, int numParams) {
-    if (parametersSet && numParams == (int)this->params.size()) {
-        // TODO: print warning if incorrect number of parameters
-        *params = this->params;
-        return true;
-    } else {
-        return false;
-    }
+bool Manager::checkExitTime() {
+    return time >= exitTime;
 }
 
 void Manager::setSuppressOutput(int value) {
@@ -300,6 +288,8 @@ int Manager::getSuppressOutput(LogLevel level) {
 
 bool Manager::setLogFile(string filename) {
     FILE *newLog = fopen(filename.c_str(), (char *)"w");
+
+    // TODO check if the old log file is not the default stdout
 
     if (newLog == NULL) {
         perror("fopen");
@@ -337,8 +327,8 @@ string Manager::getCSVDir() {
 }
 
 void Manager::logTxEvent(string objName, int objId, string eventName, int destId, Packet *p) {
-    string message = "dest: " + to_string(destId) + " packet: " + to_string(p->getId()) + " flow: "
-        + to_string(p->getFlow());
+    string message = "dest: " + to_string(destId) + " packet: " + to_string(p->getId()) + " dataId: "
+        + to_string(p->getDataId()) + " flow: " + to_string(p->getFlow());
     logEvent(objName, objId, eventName, message);
 }
 

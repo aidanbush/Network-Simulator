@@ -7,6 +7,7 @@
 #include "networkObject.h"
 #include "manager.h"
 #include "agent.h"
+#include "generator.h"
 
 using namespace std;
 using json = nlohmann::json;
@@ -19,7 +20,9 @@ class Flow: public NetworkObject {
     public:
         ~Flow();
 
+        virtual void initializeFlow();
         virtual void startFlow() = 0;
+        virtual void stopFlow() = 0;
         virtual void stepAgent() = 0;
         virtual void txPacketEvent() = 0;
 
@@ -40,6 +43,8 @@ class Flow: public NetworkObject {
 
         virtual double getAveragePacketSizeBytes() = 0;
 
+        virtual void packetGenerationNotification() = 0;
+
     protected:
         // TODO move out of Flow into ECNFlow
         enum RewardType {
@@ -47,12 +52,25 @@ class Flow: public NetworkObject {
             RateReward,
             LogReward,
             AdvancedReward,
+            AdvancedPenaltyReward,
             NegativeReward,
             OffsetReward,
             ECNReward,
             ExpertReward,
+            ThroughputReward,
+            GoodputReward,
+            ThroughputDemandReward,
+            LogThroughput,
+            LogGoodput,
+            REMY1,
+            REMY2,
         };
+
         RewardType rewardType;
+
+        bool running;
+
+        Packet *sendingPacket;
 
         double initialAverageReward();
 
@@ -60,104 +78,251 @@ class Flow: public NetworkObject {
         bool validateSource();
         bool validateDest();
 
+        int ackHeadSize;
+        int ackBodySize;
+
+        virtual void sourcePacketArrived(Packet *p);
+        virtual void sinkPacketArrived(Packet *p);
+
         void removePacket(Packet *p);
         bool addPacket(Packet *p);
 
-        Packet *createPacket(int ttl, int headSize, int bodySize);
+        Packet *getNextPacket(bool fromSource);
 
-        int newPacketId();
+        int newPacketId(bool fromSource);
 
-        int curPId;
+        int curSourcePId;
+        int curSinkPId;
 
-        map<int, Packet *> packets;
+        map<int, Packet *> sourcePackets;
+        map<int, Packet *> sinkPackets;
         int sourceId;
         int destId;
 
-        virtual second_t nextTxTime() = 0;
+        int ttl;
+
+        second_t nextTxTime(Packet *p);
 
         // stats
         int packetsCreated;
         int packetsArrived;
+        int acksArrived;
         int packetsDropped;
+        int packetsSent;
         int packetsErrored;
+        int bytesSent;
+        int bytesArrived;
+        double throughput; // bytes/s
+        double sentRate;
+        double oldThroughput;
+        second_t averageRTT;
+        second_t minRTT;
+
+        int totalPacketsSent;
+        int totalPacketsDropped;
 
         Agent *agent;
         second_t miTime = 0.01; // 10 ms
-        double rate = 0;
+        double rate = 0; // bits/s
         double oldRate = 0;
         double oldECN = 0;
         double maxRate;
 
         // TODO move out of Flow into ECNFlow
         double totalReward = 0;
-        vector<double> rateList;
-        vector<double> rewardList;
-        vector<double> actionMultList;
-        vector<double> actionAddList;
-        vector<double> multMeanList;
-        vector<double> multStdevList;
-        vector<double> addMeanList;
-        vector<double> addStdevList;
 
-        second_t maxTime;
+        Generator *generator;
+
+        second_t startTime;
+        second_t endTime;
+
+    private:
+        void validateFlowConfig(json &flowConfig);
 };
 
 class BasicFlow: public Flow {
-    friend Flow *createFlow(json &flowConfig);
+    friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
     public:
 
+        void initializeFlow();
         void startFlow();
+        void stopFlow();
         void stepAgent();
         void txPacketEvent();
 
         double getAveragePacketSizeBytes();
+
+        void packetGenerationNotification();
 
     private:
         BasicFlow(json &flowConfig);
 
         static json &validateBasicFlowConfig(json &flowConfig);
 
-        second_t time;
+        void recordData();
+        void resetData();
 
-        int headSize;
-        int bodySize;
+        Packet *createAckPacket(Packet *p);
 
-        int ttl;
-
-        second_t nextTxTime();
+        void txAck(Packet *p);
+        void packetArrived(Packet *p);
+        void sourcePacketArrived(Packet *p);
 };
 
-class ECNFlow: public Flow {
-    friend Flow *createFlow(json &flowConfig);
+class DataQueue {
+    public:
+        DataQueue(int flowId);
+
+        void push_back(Packet *p, second_t timeoutTime);
+        bool pop(Generator::PacketData &pData, int &dataId);
+        int removeData(int dataId); // returns the maximum acked Byte
+
+        struct transitPacket {
+            Generator::PacketData pData;
+            int dataId;
+            second_t timeout;
+        };
+
+    private:
+        struct queuePacket {
+            second_t timeoutTime;
+            int uniqueId;
+        };
+
+        struct queuePacketComparator {
+            bool operator ()(const queuePacket lhs, const queuePacket rhs) const {
+                return lhs.timeoutTime > rhs.timeoutTime;
+            }
+        };
+
+        struct lookupElem {
+            int uniqueId;
+        };
+
+        struct dataElem {
+            Generator::PacketData pData;
+            int dataId;
+            bool deleted;
+        };
+
+        // queue for packets not timed out
+        priority_queue<queuePacket, vector<queuePacket>, queuePacketComparator> untimedoutQueue;
+        // queue for packets timed out
+        priority_queue<queuePacket, vector<queuePacket>, queuePacketComparator> timedoutQueue;
+
+        // uId is the key, contains the actual packets that the queues and lookup table refer to
+        unordered_map<int, dataElem> dataTable;
+        map<int, lookupElem> lookupTable; // dataId is the key
+
+        int curUId;
+
+        int flowId;
+
+        int newUId();
+
+        void timeoutEvent();
+};
+
+class DataFlow: public Flow {
+    public:
+        DataFlow(json &flowConfig);
+
+        ~DataFlow();
+
+        virtual void notifyPacketTimeout() = 0;
+
+    protected:
+        int curDataPId;
+
+        int newDataId(Generator::PacketData pData);
+
+        // used for goodput, is calculated using acks, only when a packet is acked is it counted towards
+        int maxAckedByte; // should be working
+        int ackedBytesArrived;
+        double goodput;
+        double oldGoodput;
+
+        DataQueue *queue;
+
+        second_t retransmitTimeout;
+        bool timeoutEventScheduled;
+
+        // track what has been recieved for TCP style acks
+        struct recievedPacket {
+            int dataId;
+            int size; // body size
+            friend bool operator >(const recievedPacket& lhs, const recievedPacket& rhs) {
+                return lhs.dataId > rhs.dataId;
+            }
+            friend bool operator <(const recievedPacket& lhs, const recievedPacket& rhs) {
+                return rhs > lhs;
+            }
+            friend bool operator ==(const recievedPacket& lhs, const recievedPacket& rhs) {
+                return lhs.dataId == rhs.dataId;
+            }
+        };
+
+
+        priority_queue<recievedPacket, vector<recievedPacket>, greater<recievedPacket>> recievedPackets;
+
+        void addRecievedPacket(Packet *p);
+        int getAckDataId();
+
+        bool nextRetransmitionPacket(DataQueue::transitPacket &p);
+        void addRetransmitPacket(Packet *p);
+
+        void packetTimeoutEvent();
+
+        Packet *createNextPacket(bool fromSource);
+        Packet *getNextPacket(bool fromSource);
+
+        void packetArrived(Packet *p);
+        void sourcePacketArrived(Packet *p);
+        void sinkPacketArrived(Packet *p);
+};
+
+class ECNFlow: public DataFlow {
+    friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
     public:
 
+        void initializeFlow();
         void startFlow();
+        void stopFlow();
+        void takeAction(pair<double, double> action);
         void stepAgent();
         void txPacketEvent();
 
         double getAveragePacketSizeBytes();
 
+        void packetGenerationNotification();
+
+        void notifyPacketTimeout();
+
     private:
         ECNFlow(json &flowConfig);
 
-        ECNPacket *createPacket(int ttl, int headSize, int bodySize);
+        ECNPacket *getNextPacket(bool fromSource);
+        ECNPacket *createAckPacket(ECNPacket *toAck);
+
+        void txAck(ECNPacket *toAckPacket);
 
         void packetArrived(Packet *p);
         void packetDropped(Packet *p);
         void packetError(Packet *p);
 
+        void sourcePacketArrived(Packet *p);
+        void sinkPacketArrived(Packet *p);
+
         static json &validateECNFlowConfig(json &flowConfig);
 
-        int headSize;
-        int bodySize;
-        int ttl;
+        ECNPacket *sendingPacket;
 
         int packetsUntagged;
-        int packetsSent;
         double averageECN;
         int totalPacketsUntagged;
-        int totalPacketsSent;
-        vector<double> averageECNList;
+
+        int numSteps;
+        int maxSteps;
 
         vector<double> getState();
         double getReward();
@@ -165,17 +330,29 @@ class ECNFlow: public Flow {
 
         void updateStats();
         void updateStatsPostStep(pair<double, double> action);
-
-        void printCSV(string filename, vector<double> vec);
-
-        ECNPacket *createPacket();
-
-        second_t nextTxTime();
 };
+
+/*
+class CUBICFlow: public DataFlow {
+    friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
+    public:
+        CUBICFlow(json &flowConfig);
+
+    private:
+        int cwnd;
+
+        int tcpFriendliness;
+        int fastConvergence;
+        double beta;
+        double C;
+
+        int ssthresh; // slow start threshold
+};
+*/
 
 #ifdef _TEST
 class TestFlow: public Flow {
-    friend Flow *createFlow(json &flowConfig);
+    friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
     public:
         TestFlow(json &flowConfig);
 
@@ -186,10 +363,10 @@ class TestFlow: public Flow {
     private:
         static json &validateTestFlowConfig(json &flowConfig);
 
-        second_t nextTxTime();
+        second_t nextTxTime(Packet *p);
 };
 #endif /* _TEST */
 
-Flow *createFlow(json &flowConfig);
+Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
 
 #endif /* FLOW_H */

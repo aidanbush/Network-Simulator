@@ -1,22 +1,58 @@
 #include "packet.h"
 #include "flow.h"
+#include "manager.h"
 
-Packet::Packet(int id, int sourceId, int destId, int flowId, int ttl,
-        int headerSize, int bodySize): NetworkObject(id) {
+Packet::Packet(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
+        int headerSize, int bodySize, bool sourcePacket): NetworkObject(id) {
     this->sourceId = sourceId;
     this->destId = destId;
     this->flowId = flowId;
+    this->dataId = dataId;
     this->ttl = ttl;
     this->headerSize = headerSize;
     this->bodySize = bodySize;
+    this->createTime = man.time;
+    this->arrivalTime = 0;
+    this->sourcePacket = sourcePacket;
+
+    this->ackedSendTime = NULL_TIME;
+    this->ackedSizeBytes = NULL_PACKET_SIZE;
+    this->ackedId = NULL_DATA_ID;
+}
+
+Packet::Packet(const Packet &p): NetworkObject(p.id) {
+    this->sourceId = p.sourceId;
+    this->destId = p.destId;
+    this->flowId = p.flowId;
+    this->dataId = p.dataId;
+    this->ttl = p.ttl;
+    this->headerSize = p.headerSize;
+    this->bodySize = p.bodySize;
+    this->createTime = p.createTime;
+    this->arrivalTime = p.arrivalTime;
+    this->sourcePacket = p.sourcePacket;
+
+    this->ackedSendTime = p.ackedSendTime;
+    this->ackedSizeBytes = p.ackedSizeBytes;
+    this->ackedId = p.ackedId;
 }
 
 Packet *Packet::clone() {
-    return new Packet(id, sourceId, destId, flowId, ttl, headerSize, bodySize);
+    Packet *p = new Packet(id, sourceId, destId, dataId, flowId, ttl, headerSize, bodySize, sourcePacket);
+
+    p->createTime = this->createTime;
+    p->arrivalTime = this->arrivalTime;
+
+    p->ackedSendTime = this->ackedSendTime;
+    p->ackedSizeBytes = this->ackedSizeBytes;
+    p->ackedId = this->ackedId;
+
+    return p;
 }
 
 void Packet::arrive() {
     Flow *f = man.getFlow(flowId);
+    arrivalTime = man.time;
     f->packetArrived(this);
 }
 
@@ -30,18 +66,53 @@ void Packet::error() {
     f->packetError(this);
 }
 
+second_t Packet::getSendTime() {
+    return createTime;
+}
+
+second_t Packet::getAckedSendTime() {
+    return ackedSendTime;
+}
+
+void Packet::setAckData(second_t sendTime, int sizeBytes, int ackedId) {
+    this->ackedSendTime = sendTime;
+    this->ackedSizeBytes = sizeBytes;
+    this->ackedId = ackedId;
+}
+
 bool Packet::validate() {
     // TODO implement
     return true;
 }
 
-/* explicit congestion notification packet */
 
-ECNPacket::ECNPacket(int id, int sourceId, int destId, int flowId, int ttl,
-        int headerSize, int bodySize): Packet(id, sourceId, destId, flowId, ttl,
-            headerSize, bodySize) {
+ECNPacket::ECNPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
+        int headerSize, int bodySize, bool sourcePacket): Packet(id, sourceId, destId, flowId, dataId, ttl,
+            headerSize, bodySize, sourcePacket) {
     ECNBit = false;
     ECNScale = 0;
+}
+
+ECNPacket::ECNPacket(const Packet &p): Packet(p) {
+    ECNBit = false;
+    ECNScale = 0;
+}
+
+ECNPacket *ECNPacket::clone() {
+    ECNPacket *p = new ECNPacket(id, sourceId, destId, flowId, dataId, ttl, headerSize, bodySize, sourcePacket);
+
+    p->createTime = this->createTime;
+    p->arrivalTime = this->arrivalTime;
+    p->ECNBit = this->ECNBit;
+    p->ECNScale = this->ECNScale;
+
+    p->ackedSendTime = this->ackedSendTime;
+    p->ackedSizeBytes = this->ackedSizeBytes;
+    p->ackedId = this->ackedId;
+    p->ackData.ECNBit = this->ackData.ECNBit;
+    p->ackData.bufferOccupancy = this->ackData.bufferOccupancy;
+
+    return p;
 }
 
 void ECNPacket::setECNBit() {
@@ -58,6 +129,16 @@ void ECNPacket::setECNScale(double scale) {
 
 double ECNPacket::getECNScale() {
     return ECNScale;
+}
+
+void ECNPacket::setAckData(second_t sendTime, int sizeBytes, bool ECNBit, double bufferOccupancy, int ackedId) {
+    Packet::setAckData(sendTime, sizeBytes, ackedId);
+    this->ackData.ECNBit = ECNBit;
+    this->ackData.bufferOccupancy = bufferOccupancy;
+}
+
+ECNPacket::ackMetaData ECNPacket::getAckData() {
+    return ackData;
 }
 
 #ifdef _TEST

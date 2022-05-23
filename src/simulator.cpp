@@ -11,9 +11,11 @@
 #include <iostream>
 
 #include "manager.h"
+#include "observer.h"
 #include "config.h"
 
-#define DEFAULT_CONFIG  "config.json"
+#define DEFAULT_NET_CONFIG  "net_config.json"
+#define DEFAULT_TEST_CONFIG  "test_config.json"
 
 using namespace std;
 
@@ -21,10 +23,15 @@ using json = nlohmann::json;
 
 #ifndef _TEST
 Manager man;
+Observer observer;
 
 volatile sig_atomic_t exitSim;
 
 void sigintHandler(__attribute__((unused)) int par) {
+    if (exitSim == 1) {
+        exit(1);
+    }
+
     exitSim = 1;
 }
 
@@ -41,9 +48,10 @@ bool createSigintHandler() {
 }
 
 void printUsage(char *pName) {
-    printf("Usage %s [OPTIONS] [config]\n"
+    printf("Usage %s [OPTIONS] [network config] [test config]\n"
             "Network simulator\n\n"
-            "If config file is not specified it defaults to \"" DEFAULT_CONFIG "\"\n\n"
+            "If network config file is not specified it defaults to \"" DEFAULT_NET_CONFIG "\"\n\n"
+            "If test config file is not specified it defaults to \"" DEFAULT_TEST_CONFIG "\"\n\n"
             "Options\n"
             "  -l [filename] sets the log file, if not set uses stdout\n"
             "  -s step through event by event\n"
@@ -63,7 +71,8 @@ void printUsage(char *pName) {
 int main(int argc, char **argv) {
     int c;
     bool step = false;
-    char const *configFile = DEFAULT_CONFIG;
+    char const *netConfigFile = DEFAULT_NET_CONFIG;
+    char const *testConfigFile = DEFAULT_TEST_CONFIG;
 
     srand((int)time(0));
 
@@ -113,18 +122,16 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (optind == argc - 1) {
-        configFile = argv[optind];
-    } else if (optind == argc - 2) {
-        configFile = argv[optind];
-        loadParams(argv[optind + 1]);
+    if (optind == argc - 2) {
+        netConfigFile = argv[optind];
+        testConfigFile = argv[optind + 1];
     } else {
         fprintf(stderr, "Incorrect number of arguments\n");
         printUsage(argv[0]);
         return 1;
     }
 
-    if (!loadConfig(configFile)) {
+    if (!loadConfig(netConfigFile, testConfigFile)) {
         return 1;
     }
 
@@ -141,7 +148,13 @@ int main(int argc, char **argv) {
         if (step) {
             getchar();
         }
+
+        if (man.checkExitTime()) {
+            exitSim = 1;
+        }
     }
+
+    observer.writeData();
 
     man.deleteNetwork();
 

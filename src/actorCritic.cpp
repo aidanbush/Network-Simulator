@@ -5,13 +5,17 @@
 #include <random>
 #include <stdexcept>
 #include <boost/math/special_functions/digamma.hpp>
+#include <nlohmann/json.hpp>
 
 #include "agent.h"
 #include "actorCritic.h"
 #include "tilecoder.h"
 #include "manager.h"
+#include "config.h"
 
 using namespace std;
+
+using json = nlohmann::json;
 
 // All following defines can be overridden in actorCriticDefines.h, which can be modified for local testing
 #if __has_include("actorCriticDefines.h")
@@ -67,7 +71,7 @@ using namespace std;
 #define CHOOSE_MUL_ORDER 0
 #define CHOOSE_ADD_ORDER 1
 
-ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initialRBar) {
+ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initialRBar, json agentConfig) {
     this->flowId = flowId;
     this->rBar = initialRBar;
 
@@ -76,26 +80,42 @@ ActorCritic::ActorCritic(vector<double> initialState, int flowId, double initial
 
     stepnum = 0;
 
-    vector<double> params;
     double initialWeights;
 
-    if (!man.getParameters(&params, NUM_PARAMS)) {
-        initialAlphaU = DEFAULT_ALPHA_U;
-        initialAlphaV = DEFAULT_ALPHA_V;
-        alphaR = DEFAULT_ALPHA_R;
-        tau = DEFAULT_TAU;
-        inac = DEFAULT_INAC;
-        s = DEFAULT_S;
-        initialWeights = DEFAULT_INITIAL_WEIGHTS;
-    } else {
-        initialAlphaU = params[0];
-        initialAlphaV = params[1];
-        alphaR = params[2];
-        tau = params[3];
-        //TODO: ensure this cast works
-        inac = params[4];
-        s = params[5];
-        initialWeights = params[6];
+    initialAlphaU = DEFAULT_ALPHA_U;
+    initialAlphaV = DEFAULT_ALPHA_V;
+    alphaR = DEFAULT_ALPHA_R;
+    tau = DEFAULT_TAU;
+    inac = DEFAULT_INAC;
+    s = DEFAULT_S;
+    initialWeights = DEFAULT_INITIAL_WEIGHTS;
+
+    if (hasMemberOfType(agentConfig, "alpha_u", jsonDouble)) {
+        initialAlphaU = agentConfig["alpha_u"];
+    }
+
+    if (hasMemberOfType(agentConfig, "alpha_v", jsonDouble)) {
+        initialAlphaV = agentConfig["alpha_v"];
+    }
+
+    if (hasMemberOfType(agentConfig, "alpha_r", jsonDouble)) {
+        alphaR = agentConfig["alpha_r"];
+    }
+
+    if (hasMemberOfType(agentConfig, "tau", jsonDouble)) {
+        tau = agentConfig["tau"];
+    }
+
+    if (hasMemberOfType(agentConfig, "inac", jsonInt)) {
+        inac = int(agentConfig["inac"]);
+    }
+
+    if (hasMemberOfType(agentConfig, "s", jsonInt)) {
+        s = int(agentConfig["s"]);
+    }
+
+    if (hasMemberOfType(agentConfig, "initial_weights", jsonDouble)) {
+        initialWeights = agentConfig["initial_weights"];
     }
 
     alphaU = (double)initialAlphaU / tilecoder->getNumTotalTilings();
@@ -179,6 +199,10 @@ string ActorCritic::getName() {
         default:
             return "AC";
     }
+}
+
+vector<double> ActorCritic::getWeights() {
+    return criticWeights;
 }
 
 double ActorCritic::selectActionMult() {
@@ -541,7 +565,7 @@ void ActorCritic::updateParameters(double delta) {
     }
 }
 
-pair<double, double> ActorCritic::step(vector<double> state, double reward, double &rate) {
+pair<double, double> ActorCritic::step(vector<double> state, double reward) {
     totalReward += reward;
     splitDistributionDecrease = (state[0] > DEC_THRESHOLD);
     // Tilecode
@@ -667,20 +691,20 @@ pair<double, double> ActorCritic::step(vector<double> state, double reward, doub
     //          to keep it as a switch since it is going over the values of an enum
     switch (mode) {
         case Mult:
-            rate *= multAction;
+            actionPair.second = 0;
             break;
         case Add:
-            rate += addAction;
+            actionPair.first = 1;
             break;
         case Both:
-            rate *= multAction;
-            rate += addAction;
             break;
         case Choose:
-            if (multAction == 0) {
-                rate += addAction;
+            if (actionPair.first == 0) {
+                // if 0 then not taking a multiplicative action
+                actionPair.first = 1;
             } else {
-                rate *= multAction;
+                // else not taking addative action
+                actionPair.second = 0;
             }
             break;
     }

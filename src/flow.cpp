@@ -7,6 +7,7 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <filesystem>
+#include <string>
 
 #include "flow.h"
 #include "manager.h"
@@ -17,6 +18,8 @@
 #include "agent.h"
 #include "actorCritic.h"
 #include "sarsa.h"
+#include "generator.h"
+#include "observer.h"
 
 #define FLOW_STR        "Flow"
 #define TX_PACKET_EVENT "flow create packet event"
@@ -31,11 +34,14 @@
 #define PACKET_HEADER_SIZE 20
 #define PACKET_BODY_SIZE 236
 #define STAT_FILE_DIRECTORY "results"
+#define NO_PACKET_WAIT 0.01
 
 #define DEFAULT_REWARD_TYPE BasicReward
 
 #define INITIAL_STATE {0}
 #endif // __has_include
+
+#define MAX_RTT 1
 
 using namespace std;
 
@@ -47,7 +53,26 @@ enum FlowType {
 #endif /* _TEST */
 };
 
-Flow *createFlow(json &flowConfig) {
+void combineFlowConfigs(json &flowNetConfig, json &flowTestConfig) {
+    // check net has Id
+    if (!hasMemberOfType(flowNetConfig, "id", jsonInt)) {
+        return;
+    }
+
+    // find flowTest with corresponding if exists
+    for (json::iterator it = flowTestConfig.begin(); it != flowTestConfig.end(); ++it) {
+        if (hasMemberOfType(it.value(), "id", jsonInt)) {
+            // if match
+            if (int(flowNetConfig["id"]) == int(it.value()["id"])) {
+                // add it to flowNetConfig
+                flowNetConfig.merge_patch(it.value());
+                return;
+            }
+        }
+    }
+}
+
+Flow *createFlow(json &flowNetConfig, json &flowTestConfig) {
     static map<string, FlowType> flowTypeMap = {
         {"basic", BasicFlowType},
         {"ecn", ECNFlowType},
@@ -57,11 +82,11 @@ Flow *createFlow(json &flowConfig) {
     };
 
 
-    if (!hasMemberOfType(flowConfig, "type", jsonString)) {
-        throw runtime_error("Flow:\nNo string with name 'type'\n" + flowConfig.dump(4));
+    if (!hasMemberOfType(flowNetConfig, "type", jsonString)) {
+        throw runtime_error("Flow:\nNo string with name 'type'\n" + flowNetConfig.dump(4));
     }
 
-    string flowTypeString = flowConfig["type"];
+    string flowTypeString = flowNetConfig["type"];
     FlowType flowType;
     try {
         flowType = flowTypeMap.at(flowTypeString);
@@ -69,18 +94,21 @@ Flow *createFlow(json &flowConfig) {
         throw runtime_error("Flow:\nInvalid flow type: " + flowTypeString);
     }
 
+    // combine with test object
+    combineFlowConfigs(flowNetConfig, flowTestConfig);
+
     Flow *flow;
 
     switch (flowType) {
         case BasicFlowType:
-            flow = new BasicFlow(flowConfig);
+            flow = new BasicFlow(flowNetConfig);
             break;
         case ECNFlowType:
-            flow = new ECNFlow(flowConfig);
+            flow = new ECNFlow(flowNetConfig);
             break;
 #ifdef _TEST
         case TestFlowType:
-            flow = new TestFlow(flowConfig);
+            flow = new TestFlow(flowNetConfig);
             break;
 #endif /* _TEST */
         default:
@@ -102,6 +130,7 @@ double Flow::initialAverageReward() {
             rBar = expectedPackets;
             break;
         case AdvancedReward:
+        case AdvancedPenaltyReward:
         case RateReward:
             rBar = expectedPackets / pow(this->rate, 0.5);
             break;
@@ -117,6 +146,21 @@ double Flow::initialAverageReward() {
         case ExpertReward:
             rBar = 1;
             break;
+        case ThroughputReward:
+        case GoodputReward:
+        case ThroughputDemandReward:
+            rBar = 0;
+            break;
+        case LogThroughput:
+        case LogGoodput:
+            rBar = log(rate);
+            break;
+        case REMY1:
+            rBar = log(rate); // ignore RTT for now, average reward should increase
+            break;
+        case REMY2:
+            rBar = -1/rate;
+            break;
     }
 
     return rBar;
@@ -128,21 +172,31 @@ Flow::Flow(json &flowConfig):
     //TODO: Second parameter is initial state, should it be something other than 0?
     //,agent(new AGENT_TYPE(man.getEndpoint(flowConfig["source_id"])->getWeights(), 0))
     {
-    Endpoint *end = man.getEndpoint(flowConfig["source_id"]);
+    validateFlowConfig(flowConfig);
+
     this->rate = flowConfig["start_rate"];
+    this->maxRate = 0; // will be corrected when the flow is initialized
+
+    this->startTime = flowConfig["start_time"];
+    this->endTime = flowConfig["end_time"];
+
+    // create generator
+    this->generator = createGenerator(flowConfig["generator"]);
+
+    this->generator->setFlowId(flowConfig["id"]);
 
     // TODO move agents into ECN Flow
     vector<double> initialState = INITIAL_STATE;
-    switch (end->getAgentType()) {
+    switch (AGENT_TYPE) {
         case ActorCriticAgent:
             {
                 double rBar = initialAverageReward();
 
-                agent = new ActorCritic(initialState, flowConfig["id"], rBar);
+                agent = new ActorCritic(initialState, flowConfig["id"], rBar, flowConfig["agent"]);
                 break;
             }
         case SarsaAgent:
-            agent = new Sarsa(initialState, flowConfig["id"]);
+            agent = new Sarsa(initialState, flowConfig["id"], flowConfig["agent"]);
             break;
     }
     this->sourceId = flowConfig["source_id"];
@@ -150,50 +204,142 @@ Flow::Flow(json &flowConfig):
 
     this->packetsCreated = 0;
     this->packetsArrived = 0;
+    this->acksArrived = 0;
     this->packetsDropped = 0;
     this->packetsErrored = 0;
-    this->curPId = 0;
+    this->bytesArrived = 0;
+    this->throughput = 0;
+    this->oldThroughput = 0;
+    this->sentRate = this->rate;
+    this->curSourcePId = 0;
+    this->curSinkPId = 0;
     this->miTime = MI_TIME;
-    this->maxTime = NUM_AGENT_STEPS*miTime;
+    this->ttl = 15; // TODO use define
+    this->running = false;
+    this->sendingPacket = NULL;
+    this->ackHeadSize = ACK_HEADER_SIZE;
+    this->ackBodySize = ACK_BODY_SIZE;
 
     this->rewardType = DEFAULT_REWARD_TYPE;
 }
 
+void Flow::validateFlowConfig(json &flowConfig) {
+    string message = "";
+
+    if (!hasMemberOfType(flowConfig, "source_id", jsonInt)) {
+        message += "No integer with name 'source_id'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "dest", jsonInt)) {
+        message += "No integer with name 'dest'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "start_rate", jsonDouble)) {
+        message += "No double with name 'start_rate'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "start_time", jsonDouble)) {
+        message += "No double with name 'start_time'\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "end_time", jsonDouble)) {
+        message += "No double with name 'end_time'\n";
+    }
+
+    // generator
+    if (!hasMember(flowConfig, "generator")) {
+        message += "No object with name 'generator'.\n";
+    }
+
+    // agent
+    if (!hasMember(flowConfig, "agent")) {
+        message += "No object with name 'agent'.\n";
+    }
+
+    if (!message.empty()) {
+        message = "Flow:\n" + message + flowConfig.dump(4);
+        throw runtime_error(message);
+    }
+}
+
 Flow::~Flow() {
-    for (auto it : packets) {
+    for (auto it : sourcePackets) {
         delete it.second;
     }
+
+    for (auto it : sinkPackets) {
+        delete it.second;
+    }
+
     delete agent;
+    delete generator;
+}
+
+void Flow::initializeFlow() {
+    this->maxRate = getMaxRate();
 }
 
 void Flow::removePacket(Packet *p) {
-    packets.erase(p->getId());
+    if (p->isSourcePacket()) {
+        sourcePackets.erase(p->getId());
+    } else {
+        sinkPackets.erase(p->getId());
+    }
 }
 
 bool Flow::addPacket(Packet *p) {
-    return packets.emplace(p->getId(), p).second;
+    if (p->isSourcePacket()) {
+        return sourcePackets.emplace(p->getId(), p).second;
+    }
+    return sinkPackets.emplace(p->getId(), p).second;
 }
 
 void Flow::packetArrived(Packet *p) {
-    removePacket(p);
+    if (p->isSourcePacket()) {
+        Flow::sourcePacketArrived(p);
+    } else {
+        Flow::sinkPacketArrived(p);
+    }
+}
+
+void Flow::sourcePacketArrived(Packet *p) {
+    bytesArrived += p->fullSize();
+
     packetsArrived++;
+
+    removePacket(p);
+    delete p;
+}
+
+void Flow::sinkPacketArrived(Packet *p) {
+    acksArrived++;
+
+    second_t packetRTT = man.time - p->getAckedSendTime();
+
+    averageRTT += (packetRTT - averageRTT) / acksArrived;
+    minRTT = min(minRTT, packetRTT);
+
+    removePacket(p);
     delete p;
 }
 
 void Flow::packetDropped(Packet *p) {
-    removePacket(p);
     packetsDropped++;
+    removePacket(p);
     delete p;
 }
 
 void Flow::packetError(Packet *p) {
-    removePacket(p);
     packetsErrored++;
+    removePacket(p);
     delete p;
 }
 
-int Flow::newPacketId() {
-    return curPId++;
+int Flow::newPacketId(bool fromSource) {
+    if (fromSource) {
+        return curSourcePId++;
+    }
+    return curSinkPId++;
 }
 
 int Flow::getPacketsCreated() {
@@ -245,18 +391,34 @@ bool Flow::validate() {
     return valid;
 }
 
-Packet *Flow::createPacket(int ttl, int headSize, int bodySize) {
-    int pId = newPacketId();
+Packet *Flow::getNextPacket(bool fromSource) {
+    Generator::PacketData pData;
 
-    Packet *p = new Packet(pId, sourceId, destId, id, ttl, headSize, bodySize);
+    if (!generator->getNextPacket(pData)) {
+        return NULL;
+    }
+
+    int pId = newPacketId(fromSource);
+
+    // create packet for this
+    Packet *p = new Packet(pId, sourceId, destId, id, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource);
 
     if (!addPacket(p)) {
         delete p;
         return NULL;
     }
+
     packetsCreated++;
 
     return p;
+}
+
+second_t Flow::nextTxTime(Packet *p) {
+    if (p == NULL) {
+        return -1;
+    }
+
+    return man.time + (p->fullSizeBits() / rate);
 }
 
 double Flow::getMaxRate() {
@@ -269,10 +431,26 @@ double Flow::getTotalReward() {
 }
 
 BasicFlow::BasicFlow(json &flowConfig): Flow(validateBasicFlowConfig(flowConfig)) {
-    this->time = 0.001;
-    this->headSize = 20;
-    this->bodySize = 256;
-    this->ttl = 15;
+}
+
+void BasicFlow::initializeFlow() {
+    EventI *e1 = new Event<BasicFlow>(startTime, &BasicFlow::startFlow, this);
+    man.pushEvent(e1);
+
+    if (endTime != 0) {
+        EventI *e2 = new Event<BasicFlow>(endTime, &BasicFlow::stopFlow, this);
+        man.pushEvent(e2);
+    }
+
+    // TODO move to start flow
+    second_t nextRecord = man.time + miTime;
+    EventI *e3 = new Event<BasicFlow>(nextRecord, &BasicFlow::recordData, this);
+    man.pushEvent(e3);
+
+    Flow::initializeFlow();
+
+    // set the basic flow to send as fast as possible
+    this->rate = maxRate;
 }
 
 json &BasicFlow::validateBasicFlowConfig(json &flowConfig) {
@@ -296,48 +474,525 @@ json &BasicFlow::validateBasicFlowConfig(json &flowConfig) {
     return flowConfig;
 }
 
-second_t BasicFlow::nextTxTime() {
-    return man.time + time;
+void BasicFlow::startFlow() {
+    if (running) {
+        return;
+    }
+
+    resetData();
+
+    generator->startTraffic();
+
+    running = true;
+
+    sendingPacket = getNextPacket(true);
+
+    second_t nextTx = nextTxTime(sendingPacket);
+    if (nextTx >= 0) {
+        EventI *e1 = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
+        man.pushEvent(e1);
+    }
 }
 
-void BasicFlow::startFlow() {
-    second_t nextTx = nextTxTime();
-    EventI *e1 = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
-    man.pushEvent(e1);
+void BasicFlow::stopFlow() {
+    running = false;
 }
 
 void BasicFlow::stepAgent() {
 }
 
 void BasicFlow::txPacketEvent() {
+    if (!running) {
+        return;
+    }
+
     Endpoint *endpoint = man.getEndpoint(sourceId);
-    // TODO test for error
 
-    Packet *p = createPacket(ttl, headSize, bodySize);
+    man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceId, sendingPacket);
 
-    man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceId, p);
+    man.logEvent("BasicFlow", this->id, "Flow Packet Tx", "Sent packet " + to_string(sendingPacket->getId()) +
+                    " from flow " + to_string(this->id));
+    endpoint->txPacket(sendingPacket);
 
-    endpoint->txPacket(p);
+    packetsSent++;
+    bytesSent += sendingPacket->fullSize();
 
-    second_t nextTx = nextTxTime();
-    EventI *e = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
-    man.pushEvent(e);
+    sendingPacket = getNextPacket(true); // TODO should this be true
+
+    second_t nextTx = nextTxTime(sendingPacket);
+    if (nextTx >= 0) {
+        EventI *e = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
+        man.pushEvent(e);
+    }
+}
+
+Packet *BasicFlow::createAckPacket(Packet *toAck) {
+    int pId = newPacketId(false);
+
+    // create packet
+    Packet *ackPacket = new Packet(pId, destId, sourceId, id, NULL_DATA_ID, ttl, ackHeadSize, ackBodySize, false);
+
+    // add state
+    ackPacket->setAckData(toAck->getSendTime(), toAck->fullSize(), toAck->getId());
+
+    return ackPacket;
+}
+
+void BasicFlow::txAck(Packet *toAckPacket) {
+    Endpoint *endpoint = man.getEndpoint(destId);
+
+    // create
+    Packet *ackPacket = createAckPacket(toAckPacket);
+
+    // send
+    endpoint->txPacket(ackPacket);
+
+    man.logEvent("ECNFlow", this->id, "Flow Ack Tx", "Sent Ack " + to_string(ackPacket->getId()) +
+                    " from flow " + to_string(this->id));
+}
+
+void BasicFlow::packetArrived(Packet *p) {
+    if (p->isSourcePacket()) {
+        sourcePacketArrived(p);
+    }
+    Flow::packetArrived(p);
+}
+
+void BasicFlow::sourcePacketArrived(Packet *p) {
+    txAck(p);
 }
 
 double BasicFlow::getAveragePacketSizeBytes() {
-    return double(headSize + bodySize);
+    return generator->getAveragePacketSizeBytes();
+}
+
+void BasicFlow::packetGenerationNotification() {
+    if (sendingPacket == NULL) {
+        sendingPacket = getNextPacket(true);
+
+        second_t nextTx = nextTxTime(sendingPacket);
+        if (nextTx >= 0) {
+            EventI *e = new Event<BasicFlow>(nextTx, &BasicFlow::txPacketEvent, this);
+            man.pushEvent(e);
+        }
+    }
+}
+
+void BasicFlow::resetData() {
+    packetsSent = 0;
+    packetsDropped = 0;
+    bytesSent = 0;
+    bytesArrived = 0;
+    averageRTT = 0;
+    minRTT = MAX_RTT;
+
+    packetsArrived = 0;
+    acksArrived = 0;
+}
+
+void BasicFlow::recordData() {
+    throughput = bytesArrived * BITS_PER_BYTE / miTime;
+    sentRate = bytesSent * BITS_PER_BYTE / miTime;
+
+    observer.logFlowData(id, "Throughput", throughput);
+    observer.logFlowData(id, "AverageRTT", averageRTT);
+    observer.logFlowData(id, "MinRTT", minRTT);
+    observer.logFlowData(id, "SentRate", sentRate);
+    observer.logFlowData(id, "PacketsArrived", packetsArrived);
+    observer.logFlowData(id, "AcksArrived", acksArrived);
+
+    observer.logFlowData(id, "SentPackets", packetsSent);
+
+    if (packetsSent == 0) {
+        observer.logFlowData(id, "DroppedPackets", 0);
+        observer.logFlowData(id, "ErroredPackets", 0);
+    } else {
+        observer.logFlowData(id, "DroppedPackets", packetsDropped / double(packetsSent));
+        observer.logFlowData(id, "ErroredPackets", packetsErrored / double(packetsSent));
+    }
+
+    resetData();
+
+    second_t nextRecord = man.time + miTime;
+    EventI *e = new Event<BasicFlow>(nextRecord, &BasicFlow::recordData, this);
+    man.pushEvent(e);
+}
+
+/* Data Queue */
+
+DataQueue::DataQueue(int flowId) {
+    this->curUId = 1;
+    this->flowId = flowId;
+}
+
+int DataQueue::newUId() {
+    return curUId++;
+}
+
+void DataQueue::push_back(Packet *p, second_t timeoutTime) {
+    // check if data id in lookupTable
+    if (lookupTable.find(p->getDataId()) != lookupTable.end()) {
+        throw runtime_error("DataQueue:\npush_back dataId already in lookupTable\n");
+    }
+
+    int uId = newUId();
+
+    // insert into queue
+    queuePacket qp = {
+        timeoutTime,
+        uId
+    };
+
+    dataElem de = {
+        {p->getHeaderSize(), p->getBodySize()},
+        p->getDataId(),
+        false
+    };
+
+    lookupElem le = {
+        uId
+    };
+
+    untimedoutQueue.emplace(qp);
+
+    dataTable.emplace(uId, de);
+
+    lookupTable.emplace(p->getDataId(), le);
+
+    // create event if only element in untimedoutQueue
+    if (untimedoutQueue.size() == 1) {
+        EventI *e = new Event<DataQueue>(timeoutTime, &DataQueue::timeoutEvent, this);
+        man.pushEvent(e);
+    }
+}
+
+void DataQueue::timeoutEvent() {
+    // grab top element from the untimedoutQueue
+    queuePacket top = untimedoutQueue.top();
+    // check time
+    if (top.timeoutTime > man.time) {
+        throw runtime_error("DataQueue:\ntimeoutEvent top element time is in the future\n");
+    }
+
+    // pop top element
+    untimedoutQueue.pop();
+
+    // check if deleted
+    auto it = dataTable.find(top.uniqueId);
+    if (it == dataTable.end()) {
+        throw runtime_error("DataQueue:\ntimeoutEvent provided dataId does not exist in the dataTable\n");
+    }
+
+    // if deleted remove it
+    if (it->second.deleted == true) {
+        dataTable.erase(it);
+    } else {
+        Flow *f = man.getFlow(flowId);
+        DataFlow *df = dynamic_cast<DataFlow*>(f);
+
+        if (df != NULL) {
+            df->notifyPacketTimeout();
+        }
+
+        // otherwise move to timedout
+        timedoutQueue.emplace(top);
+    }
+
+    // create new event if untimed is not empty using top time
+    if (!untimedoutQueue.empty()) {
+        top = untimedoutQueue.top();
+
+        EventI *e = new Event<DataQueue>(top.timeoutTime, &DataQueue::timeoutEvent, this);
+        man.pushEvent(e);
+    }
+}
+
+bool DataQueue::pop(Generator::PacketData &pData, int &dataId) {
+    while (!timedoutQueue.empty()) {
+        queuePacket top = timedoutQueue.top();
+
+        // pop element
+        timedoutQueue.pop();
+
+        auto it = dataTable.find(top.uniqueId);
+        if (it == dataTable.end()) {
+            throw runtime_error("DataQueue:\npop provided dataId does not exist in the dataTable\n");
+        }
+        dataElem data = it->second;
+
+        // if deleted, clean up and continue
+        if (data.deleted) {
+            dataTable.erase(it);
+            continue;
+        } else {
+            // delete data and lookup table elements
+            lookupTable.erase(data.dataId);
+            dataTable.erase(it);
+
+            // copy over
+            pData.headerSize = data.pData.headerSize;
+            pData.bodySize = data.pData.bodySize;
+            dataId = data.dataId;
+
+            return true;
+        }
+    }
+    return false;
+}
+
+int DataQueue::removeData(int dataId) {
+    int maxByte = -1;
+
+    for(auto it = lookupTable.cbegin(); it != lookupTable.cend();) {
+        if (it->first <= dataId) {
+            // find data elem and set to deleted
+            auto dataIt = dataTable.find(it->second.uniqueId);
+
+            // last byte in packet
+            maxByte = max(maxByte, it->first + dataIt->second.pData.bodySize);
+
+            dataIt->second.deleted = true;
+            // the queue's handle deleted elements
+
+            lookupTable.erase(it++);
+        } else {
+            // if false then all packets below the data id have been removed from resending
+            break;
+        }
+    }
+
+    return maxByte;
+}
+
+/* Data Flow */
+DataFlow::DataFlow(json &flowConfig): Flow(flowConfig) {
+    this->curDataPId = 0;
+    this->maxAckedByte = 0;
+    this->ackedBytesArrived = 0;
+    this->goodput = 0;
+    this->oldGoodput = 0;
+    this->retransmitTimeout = 1; // TODO use define or config
+    this->queue = new DataQueue(id);
+}
+
+DataFlow::~DataFlow() {
+    delete queue;
+}
+
+int DataFlow::newDataId(Generator::PacketData pData) {
+    int curDataPIdCopy = curDataPId;
+    curDataPId += pData.bodySize;
+    return curDataPIdCopy;
+}
+
+void DataFlow::addRecievedPacket(Packet *p) {
+    recievedPacket n = {p->getDataId(), p->getBodySize()};
+
+    if (recievedPackets.empty()) {
+        recievedPackets.emplace(n);
+        return;
+    }
+
+    recievedPacket min = recievedPackets.top();
+
+    if (min == n) {
+        return;
+    }
+
+    if (n.dataId + n.size == min.dataId || min.dataId + min.size == n.dataId || n.dataId == min.dataId) {
+        if (n < min) {
+            n = min;
+        }
+    } else {
+        recievedPackets.emplace(n);
+        return;
+    }
+
+    recievedPackets.pop();
+
+    min = recievedPackets.top();
+
+    while (n.dataId + n.size == min.dataId) {
+        n = min;
+
+        recievedPackets.pop();
+
+        if (recievedPackets.empty()) {
+            break;
+        }
+        min = recievedPackets.top();
+    }
+
+    if (min == n) {
+        return;
+    }
+
+    recievedPackets.emplace(n);
+}
+
+int DataFlow::getAckDataId() {
+    return recievedPackets.top().dataId;
+}
+
+/*
+bool DataFlow::nextRetransmitionPacket(DataQueue::transitPacket &p) {
+    // check time of top transit Packet and return if it is past the current time
+    if (retransmitPackets.size() <= 0) {
+        return false;
+    }
+
+    if (man.time >= retransmitPackets.front().timeout) {
+        // return packet and remove it
+        p = retransmitPackets.front();
+        retransmitPackets.pop();
+        return true;
+    }
+
+    return false;
+}
+*/
+
+/*
+void DataFlow::addRetransmitPacket(Packet *p) {
+    second_t timeoutTime = man.time + retransmitTimeout;
+
+    DataQueue::transitPacket t = {
+        {p->getHeaderSize(), p->getBodySize()},
+        p->getDataId(),
+        timeoutTime
+    };
+
+    transitPackets.emplace(t);
+
+    if (!timeoutEventScheduled) {
+        EventI *e = new Event<DataFlow>(timeoutTime, &DataFlow::packetTimeoutEvent, this);
+        man.pushEvent(e);
+        timeoutEventScheduled = true;
+    }
+}
+*/
+
+/*
+void DataFlow::packetTimeoutEvent() {
+    timeoutEventScheduled = false;
+
+    if (!transitPackets.empty()) {
+        if (transitPackets.front().timeout <= man.time) {
+            // record timeout event
+            // move into retransmit Packets
+            retransmitPackets.emplace(transitPackets.front());
+            transitPackets.pop();
+        }
+
+        second_t nextTimeout = transitPackets.front().timeout;
+
+        // create event
+        EventI *e = new Event<DataFlow>(nextTimeout, &DataFlow::packetTimeoutEvent, this);
+        man.pushEvent(e);
+        timeoutEventScheduled = true;
+    }
+}
+*/
+
+Packet *DataFlow::createNextPacket(bool fromSource) {
+    if (!fromSource) {
+        throw runtime_error("DataFlow:\ncreateNextPacket: fromSource=false not supported");
+    }
+
+    Packet *p = NULL;
+    Generator::PacketData pData;
+    int dId = NULL_DATA_ID;
+    int pId = newPacketId(fromSource);
+    int packetSourceId = sourceId;
+    int packetDestId = destId;
+
+    bool retransmit = queue->pop(pData, dId);
+
+    // retransmit == false => transmit new packet
+    if (!retransmit) {
+        if (!generator->getNextPacket(pData)) {
+            return NULL;
+        }
+
+        dId = newDataId(pData);
+
+        // create packet for this
+        p = new Packet(pId, packetSourceId, packetDestId, id, dId, ttl, pData.headerSize, pData.bodySize, fromSource);
+    } else { // retransmit == true, pData and did are filled by queue->pop
+        p = new Packet(pId, packetSourceId, packetDestId, id, dId, ttl, pData.headerSize, pData.bodySize, fromSource);
+    }
+
+    return p;
+}
+
+// reutrns NULL if there is no packet to send
+Packet *DataFlow::getNextPacket(bool fromSource) {
+    Packet *p = createNextPacket(fromSource);
+
+    // if NULL there is no packet to send
+    if (p == NULL) {
+        return NULL;
+    }
+
+    if (!addPacket(p)) {
+        delete p;
+        return NULL;
+    }
+    packetsCreated++;
+
+    // add packet to transitPackets
+    second_t timeoutTime = man.time + retransmitTimeout;
+    queue->push_back(p, timeoutTime);
+
+    return p;
+}
+
+void DataFlow::packetArrived(Packet *p) {
+    if (p->isSourcePacket()) {
+        sourcePacketArrived(p);
+    } else {
+        sinkPacketArrived(p);
+    }
+}
+
+void DataFlow::sourcePacketArrived(Packet *p) {
+    addRecievedPacket(p);
+    man.logEvent("DataFlow", id, "sourcePacketArrived", "new min ack dataId: "
+            + to_string(recievedPackets.top().dataId) + " flow: " + to_string(id));
+
+    Flow::sourcePacketArrived(p);
+}
+
+void DataFlow::sinkPacketArrived(Packet *p) {
+    int ackedId = p->getAckedId();
+    if (ackedId == NULL_DATA_ID) {
+        throw runtime_error("DataFlow: sinkPacketArrival acked data id NULL_DATA_ID\n");
+    }
+
+    int newMaxAckedByte = queue->removeData(p->getAckedId());
+    man.logEvent("DataFlow", id, "sinkPacketArrived", "Packet " + to_string(p->getAckedId()) + " Ack arrived");
+
+    // if -1 nothing new was acked
+    if (newMaxAckedByte != -1) {
+        ackedBytesArrived += newMaxAckedByte - maxAckedByte;
+        maxAckedByte = newMaxAckedByte;
+    }
+
+    Flow::sinkPacketArrived(p);
 }
 
 /* Explicit congestion notification flow */
 
-ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
+ECNFlow::ECNFlow(json &flowConfig): DataFlow(validateECNFlowConfig(flowConfig)) {
     this->packetsUntagged = 0;
     this->packetsSent = 0;
+    this->bytesSent = 0;
+    this->bytesArrived = 0;
+    this->averageRTT = 0;
+    this->minRTT = MAX_RTT;
     this->averageECN = 0;
-    this->headSize = PACKET_HEADER_SIZE;
-    this->bodySize = PACKET_BODY_SIZE;
-    this->ttl = 15;
-    this->maxRate = getMaxRate();
+    this->numSteps = 0;
+    this->maxSteps = NUM_AGENT_STEPS;
 
     Sarsa *agent = dynamic_cast<Sarsa *>(this->agent);
     if (agent != NULL) {
@@ -347,59 +1002,110 @@ ECNFlow::ECNFlow(json &flowConfig): Flow(validateECNFlowConfig(flowConfig)) {
 
 json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
     string message = "";
+
     if (!hasMemberOfType(flowConfig, "id", jsonInt)) {
         message += "No integer with name 'id'.\n";
     }
 
-    if (!hasMemberOfType(flowConfig, "source_id", jsonInt)) {
-        message += "No integer with name 'source_id'.\n";
-    }
-
-    if (!hasMemberOfType(flowConfig, "dest", jsonInt)) {
-        message += "No integer with name 'dest'.\n";
-    }
-
-    if (!hasMemberOfType(flowConfig, "start_rate", jsonDouble)) {
-        message += "No double with name 'start_rate'.\n";
-    }
-
     if (!message.empty()) {
-        message = "Basic Flow:\n" + message + flowConfig.dump(4);
+        message = "ECN Flow:\n" + message + flowConfig.dump(4);
         throw runtime_error(message);
     }
+
     return flowConfig;
 }
 
-ECNPacket *ECNFlow::createPacket(int ttl, int headSize, int bodySize) {
-    int pId = newPacketId();
+ECNPacket *ECNFlow::getNextPacket(bool fromSource) {
+    // call DataFlow's function and create an ECNPacket that is it
+    Packet *p = DataFlow::createNextPacket(fromSource);
 
-    ECNPacket *p = new ECNPacket(pId, sourceId, destId, id, ttl, headSize, bodySize);
+    // if NULL there is no packet to send
+    if (p == NULL) {
+        return NULL;
+    }
 
-    if (!addPacket(p)) {
-        delete p;
+    // create ecn packet
+    ECNPacket *ep = new ECNPacket(*p);
+    delete p;
+    // TODO: ensure everything is tracked properly
+
+    if (!addPacket(ep)) {
+        delete ep;
         return NULL;
     }
     packetsCreated++;
 
-    return p;
+    // add packet to transitPackets
+    second_t timeoutTime = man.time + retransmitTimeout;
+    queue->push_back(ep, timeoutTime);
+
+    return ep;
 }
 
-second_t ECNFlow::nextTxTime() {
-    return man.time + ((headSize + bodySize) * BITS_PER_BYTE / rate);
+ECNPacket *ECNFlow::createAckPacket(ECNPacket *toAck) {
+    int pId = newPacketId(false);
+
+    // create packet
+    ECNPacket *ackPacket = new ECNPacket(pId, destId, sourceId, id, NULL_DATA_ID, ttl, ackHeadSize, ackBodySize, false);
+
+    // add state
+    ackPacket->setAckData(toAck->getSendTime(), toAck->fullSize(), toAck->getECNBit(), toAck->getECNScale(),
+            getAckDataId());
+
+    return ackPacket;
+}
+
+void ECNFlow::initializeFlow() {
+    EventI *e1 = new Event<ECNFlow>(startTime, &ECNFlow::startFlow, this);
+    man.pushEvent(e1);
+
+    if (endTime != 0) {
+        EventI *e2 = new Event<ECNFlow>(endTime, &ECNFlow::stopFlow, this);
+        man.pushEvent(e2);
+    }
+
+    Flow::initializeFlow();
 }
 
 void ECNFlow::startFlow() {
+    if (running) {
+        return;
+    }
+
+    running = true;
+
+    // start generator
+    generator->startTraffic();
+
     // create txPacket event
-    second_t nextTx = nextTxTime();
-    EventI *e1 = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
-    man.pushEvent(e1);
+    sendingPacket = getNextPacket(true);
+
+    second_t nextTx = nextTxTime(sendingPacket);
+    if (nextTx >= 0) {
+        EventI *e1 = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
+        man.pushEvent(e1);
+    }
 
     EventI *e2 = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
     man.pushEvent(e2);
 }
 
+void ECNFlow::stopFlow() {
+    running = false;
+}
+
 vector<double> ECNFlow::getState() {
-    return {averageECN};
+    double averageECNFeature = averageECN;
+    double throughputFeature = throughput / maxRate;
+    double rateSelectedFeature = rate / maxRate;
+    double dropRateFeature = packetsSent == 0 ? 0 : packetsDropped / packetsSent; // TODO figure out bug
+    double averageRTTFeature = averageRTT / MAX_RTT;
+    double queueDelayFeature = (averageRTT - minRTT) / MAX_RTT;
+    double rateSentFeature = sentRate / maxRate;
+
+    // average max buffer occupancy
+    return {averageECNFeature, throughputFeature, rateSelectedFeature, dropRateFeature, averageRTTFeature,
+        queueDelayFeature, rateSentFeature};
 }
 
 double ECNFlow::getReward() {
@@ -414,12 +1120,21 @@ double ECNFlow::getReward() {
             }
             return log(packetsUntagged) + 1;
         case AdvancedReward:
+            return ((1 - averageECN)*packetsSent) / pow(rate, 0.5);
+            /*
+            // (untagged - tagged) / sqrt(rate)
+            return (2*packetsUntagged - packetsSent) / pow(rate, 0.5);
+            */
+        case AdvancedPenaltyReward:
             {
-                // (untagged - tagged) / sqrt(rate)
                 double r = ((1 - averageECN)*packetsSent) / pow(rate, 0.5);
-                // if (rate == MIN_RATE || rate == maxRate) {
-                //     r -= 1;
-                // }
+                /*
+                // (untagged - tagged) / sqrt(rate)
+                double r = (2*packetsUntagged - packetsSent) / pow(rate, 0.5);
+                */
+                if (rate == MIN_RATE || rate == maxRate) {
+                    r -= 1;
+                }
                 return r;
             }
         case NegativeReward:
@@ -436,6 +1151,46 @@ double ECNFlow::getReward() {
                 //Either ECN is low and rate decreased or ECN is high and rate increased
                 return -1.0;
             }
+        case ThroughputReward:
+            if (oldThroughput < throughput) {
+                return 1;
+            } else if (oldThroughput > throughput) {
+                return -1;
+            }
+            return 0;
+        case GoodputReward:
+            if (oldGoodput < goodput) {
+                return 1;
+            } else if (oldGoodput > goodput) {
+                return -1;
+            }
+            return 0;
+        case ThroughputDemandReward:
+            {
+                double r = 0;
+                if (oldThroughput < throughput) {
+                    r = 1;
+                } else if (oldThroughput > throughput) {
+                    r = -1;
+                } else {
+                    r = 0;
+                }
+                if (throughput > 50000) {
+                    //r -= 1;
+                    //r -= 0.5;
+                    r = -1;
+                }
+
+                return r;
+            }
+        case LogThroughput:
+            return log(throughput);
+        case LogGoodput:
+            return log(goodput);
+        case REMY1:
+            return log(throughput) - log(averageRTT);
+        case REMY2:
+            return -1/throughput;
     }
     throw runtime_error("Invalid reward specified\n");
 }
@@ -444,173 +1199,321 @@ void ECNFlow::resetState() {
     packetsUntagged = 0;
     packetsSent = 0;
     averageECN = 0;
+    packetsDropped = 0;
+    bytesSent = 0;
+    bytesArrived = 0;
+    ackedBytesArrived = 0;
+    averageRTT = 0;
+    minRTT = MAX_RTT;
+
+    packetsArrived = 0;
+    acksArrived = 0;
 }
 
 void ECNFlow::updateStats() {
     totalPacketsUntagged += packetsUntagged;
     totalPacketsSent += packetsSent;
+    totalPacketsDropped += packetsDropped;
+    throughput = bytesArrived * BITS_PER_BYTE / miTime;
+    goodput = ackedBytesArrived * BITS_PER_BYTE / miTime;
+    man.logEvent("ECNFlow", id, "updateStats", " goodput " + to_string(goodput) + " acked bits " + to_string(ackedBytesArrived * BITS_PER_BYTE));
+    sentRate = bytesSent * BITS_PER_BYTE / miTime;
 
-    rewardList.push_back(getReward());
-    rateList.push_back(rate);
-    averageECNList.push_back(averageECN);
+    observer.logFlowData(id, "Reward", getReward());
+    observer.logFlowData(id, "Rate", rate);
+    observer.logFlowData(id, "Throughput", throughput);
+    observer.logFlowData(id, "Goodput", goodput);
+    observer.logFlowData(id, "AverageRTT", averageRTT);
+    observer.logFlowData(id, "MinRTT", minRTT);
+    observer.logFlowData(id, "SentRate", sentRate);
+    observer.logFlowData(id, "PacketsArrived", packetsArrived);
+    observer.logFlowData(id, "AcksArrived", acksArrived);
+    observer.logFlowData(id, "ECNAverage", averageECN);
+
+    observer.logFlowData(id, "SentPackets", packetsSent);
+
+    if (packetsSent == 0) {
+        observer.logFlowData(id, "DroppedPackets", 0);
+        observer.logFlowData(id, "ErroredPackets", 0);
+    } else {
+        observer.logFlowData(id, "DroppedPackets", packetsDropped / double(packetsSent));
+        observer.logFlowData(id, "ErroredPackets", packetsErrored / double(packetsSent));
+    }
 }
 
 void ECNFlow::updateStatsPostStep(pair<double, double> action) {
-    actionMultList.push_back(action.first);
-    actionAddList.push_back(action.second);
+    observer.logFlowData(id, "MultAction", action.first);
+    observer.logFlowData(id, "AddAction", action.second);
+
+    observer.logFlowData(id, "RateChange", rate - oldRate);
 
     // Add distribution data
     ActorCritic *actorCriticAgent = dynamic_cast<ActorCritic*>(agent);
     if (actorCriticAgent != NULL) {
         pair<double, double> multMeanStdev = actorCriticAgent->getMultMeanStdev();
-        multMeanList.push_back(multMeanStdev.first);
-        multStdevList.push_back(multMeanStdev.second);
+        observer.logFlowData(id, "MultMean", multMeanStdev.first);
+        observer.logFlowData(id, "MultStdev", multMeanStdev.second);
 
         pair<double, double> addMeanStdev = actorCriticAgent->getAddMeanStdev();
-        addMeanList.push_back(addMeanStdev.first);
-        addStdevList.push_back(addMeanStdev.second);
+        observer.logFlowData(id, "AddMean", addMeanStdev.first);
+        observer.logFlowData(id, "AddStdev", addMeanStdev.second);
     }
 }
 
-void ECNFlow::printCSV(string filename, vector<double> vec) {
-    if (man.getSuppressOutput(CSV)) {
-        //Don't create CSV files if in q mode
-        return;
-    }
+void ECNFlow::takeAction(pair<double, double> action) {
+    rate *= action.first;
+    rate += action.second;
 
-    // TODO clean up placement of setting path
-    if (!filesystem::exists(STAT_FILE_DIRECTORY)) {
-        filesystem::create_directory(STAT_FILE_DIRECTORY);
-    }
-
-    ofstream ofs;
-    ofs.open(filename, ofstream::trunc);
-    if (vec.size() >= 1) {
-        ofs << vec[0];
-        for (int i = 1; i < (int)vec.size(); i++) {
-            ofs << "," << vec[i];
-        }
-    }
-    ofs.close();
+    // bounds
+    rate = min(maxRate, max(MIN_RATE, rate));
+    rate = min(sentRate * 2, rate);
 }
 
 void ECNFlow::stepAgent() {
+    numSteps++;
+
+    updateStats();
     vector<double> state = getState();
+
     double reward = getReward();
     totalReward += reward;
 
-    updateStats();
-
-    pair<double, double> action = agent->step(state, reward, rate);
     oldRate = rate;
     oldECN = averageECN;
+    oldThroughput = throughput;
+    oldGoodput = goodput;
+
+    pair<double, double> action = agent->step(state, reward);
+
+    // take action
+    takeAction(action);
 
     updateStatsPostStep(action);
 
     resetState();
 
-    rate = min(maxRate, max(MIN_RATE, rate));
-    if (man.time + miTime <= maxTime) {
+    if (numSteps < maxSteps && running) {
         EventI *e = new Event<ECNFlow>(man.time + miTime, &ECNFlow::stepAgent, this);
         man.pushEvent(e);
     } else {
         man.logEvent("ECNFlow", this->id, "End of program", "Acheived reward " + to_string(totalReward) +\
                         " with final rate of " + to_string(rate) + " and " + to_string(totalPacketsUntagged) +\
                         " out of " + to_string(totalPacketsSent) + " packets untagged.");
-        time_t currentTime;
-        time(&currentTime);
-        tm *currentTm = localtime(&currentTime);
-        char date[13];
-        strftime(date, 13, "%Y%m%d%H%M", currentTm);
 
-        string fileDir = man.getCSVDir();
-        if (fileDir.empty()) {
-            fileDir = string(STAT_FILE_DIRECTORY);
-        }
+        observer.logFlowDataBulk(id, "Weights", agent->getWeights());
 
-        string filePathExceptSuffix = man.getCSVFilename();
-        if (filePathExceptSuffix.empty()) {
-            filePathExceptSuffix = fileDir + "/" + agent->getName() + "_" + date;
-        } else {
-            filePathExceptSuffix = fileDir + "/" + filePathExceptSuffix;
-        }
-        filePathExceptSuffix += "_Flow" + to_string(id);
-
-        printCSV(filePathExceptSuffix + "_Rewards.csv", rewardList);
-        printCSV(filePathExceptSuffix + "_Rates.csv", rateList);
-        printCSV(filePathExceptSuffix + "_ECNAverages.csv", averageECNList);
-        printCSV(filePathExceptSuffix + "_MultActions.csv", actionMultList);
-        printCSV(filePathExceptSuffix + "_AddActions.csv", actionAddList);
-
-        if (dynamic_cast<ActorCritic*>(agent) != NULL) {
-            printCSV(filePathExceptSuffix + "_MultMean.csv", multMeanList);
-            printCSV(filePathExceptSuffix + "_MultStdev.csv", multStdevList);
-
-            printCSV(filePathExceptSuffix + "_AddMean.csv", addMeanList);
-            printCSV(filePathExceptSuffix + "_AddStdev.csv", addStdevList);
-        }
-
-        man.removeFlow(id);
-        delete this;
+        generator->stopTraffic();
+        // TODO stop sending new packets
+        running = false;
     }
-    // man.logEvent("ECNFlow", this->id, "Agent Step", "Agent called with state " + to_string(state) + " and reward "
-    //                 + to_string(reward) + " and took action " + to_string(action)
-    //                     + ", setting rate to " +to_string(rate));
+    man.logEvent("ECNFlow", this->id, "Agent Step", "Agent called with state " + string (state.begin(), state.end())
+            + " and reward " + to_string(reward) + " and took action " + to_string(action.first) + ", "
+            + to_string(action.second) + ", setting rate to " + to_string(rate));
 }
 
 void ECNFlow::txPacketEvent() {
+    if (!running) {
+        return;
+    }
+
     Endpoint *endpoint = man.getEndpoint(sourceId);
 
-    // create packet
-    ECNPacket *p = createPacket(ttl, headSize, bodySize);
+    man.logTxEvent("ECNFlow", this->id, "Flow Packet Tx", sourceId, sendingPacket);
+    endpoint->txPacket(sendingPacket);
 
-    endpoint->txPacket(p);
+    // track sent packets
+    packetsSent++;
+    bytesSent += sendingPacket->fullSize();
 
-    second_t nextTx = nextTxTime();
-    if (nextTx < maxTime) {
+    sendingPacket = getNextPacket(true); // TODO should this be true
+
+    second_t nextTx = nextTxTime(sendingPacket);
+    if (nextTx >= 0) {
         EventI *e = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
         man.pushEvent(e);
     }
-    man.logEvent("ECNFlow", this->id, "Flow Packet Tx", "Sent packet " + to_string(p->getId()) + 
+}
+
+void ECNFlow::txAck(ECNPacket *toAckPacket) {
+    Endpoint *endpoint = man.getEndpoint(destId);
+
+    // create
+    ECNPacket *ackPacket = createAckPacket(toAckPacket);
+
+    // send
+    endpoint->txPacket(ackPacket);
+
+    man.logEvent("ECNFlow", this->id, "Flow Ack Tx", "Sent Ack " + to_string(ackPacket->getId()) +
+                    " for data " + to_string(ackPacket->getAckedId()) +
                     " from flow " + to_string(this->id));
 }
 
 double ECNFlow::getAveragePacketSizeBytes() {
-    return double(headSize + bodySize);
+    return generator->getAveragePacketSizeBytes();
+}
+
+void ECNFlow::packetGenerationNotification() {
+    if (sendingPacket == NULL) {
+        sendingPacket = getNextPacket(true);
+
+        second_t nextTx = nextTxTime(sendingPacket);
+        if (nextTx >= 0) {
+            EventI *e = new Event<ECNFlow>(nextTx, &ECNFlow::txPacketEvent, this);
+            man.pushEvent(e);
+        }
+    }
+}
+
+void ECNFlow::notifyPacketTimeout() {
+    // do nothing, is not used here
 }
 
 void ECNFlow::packetArrived(Packet *p) {
+    if (p->isSourcePacket()) {
+        sourcePacketArrived(p);
+    } else {
+        sinkPacketArrived(p);
+    }
+}
+
+void ECNFlow::sourcePacketArrived(Packet *p) {
     ECNPacket *ecnP = dynamic_cast<ECNPacket *>(p);
     if (ecnP != NULL) {
-        if (!ecnP->getECNBit()) {
+        man.logTxEvent("ECNFlow", this->id, "Flow Packet Arrived", p->getDest(), p);
+        // copy
+        ecnP = ecnP->clone();
+    } else {
+        man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet arrived but was null");
+        // oh no this is bad, really bad!
+        throw runtime_error("ECNFlow: sourcePacketArrived packet not ECN Packet or NULL\n");
+    }
+
+    DataFlow::sourcePacketArrived(p);
+    txAck(ecnP);
+
+    delete ecnP;
+}
+
+void ECNFlow::sinkPacketArrived(Packet *p) {
+    ECNPacket *ecnP = dynamic_cast<ECNPacket *>(p);
+    if (ecnP != NULL) {
+        man.logTxEvent("ECNFlow", this->id, "Flow Ack Packet Arrived", p->getDest(), p);
+
+        ECNPacket::ackMetaData ackData = ecnP->getAckData();
+        // TODO update stats
+        if (!ackData.ECNBit) {
             packetsUntagged++;
         }
-        if (packetsSent > 0) {
-            averageECN += ecnP->getECNScale()/packetsSent;
-            averageECN *= (double)packetsSent/(packetsSent + 1);
+        if (packetsSent > 0) { // TODO shouldnt use packetsSent
+            averageECN += ackData.bufferOccupancy / packetsSent;
+            averageECN *= (double)packetsSent / (packetsSent + 1);
         } else {
-            averageECN = ecnP->getECNScale();
+            averageECN = ackData.bufferOccupancy;
         }
-        packetsSent++;
-        man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet " + to_string(p->getId()) + 
-                        " arrived at destination.");
     } else {
         man.logEvent("ECNFlow", this->id, "Flow Packet Arrived", "Packet arrived but was null");
         // TODO oh no this is bad, really bad!
+        throw runtime_error("ECNFlow:\nsinkPacketArrived non ECNPacket arrived");
     }
 
-    Flow::packetArrived(p);
+    DataFlow::sinkPacketArrived(p);
 }
 
 void ECNFlow::packetDropped(Packet *p) {
-    packetsSent++;
+    // TODO track acks separatly
     Flow::packetDropped(p);
 }
 
 void ECNFlow::packetError(Packet *p) {
-    packetsSent++;
+    // TODO track acks separatly
     Flow::packetError(p);
 }
+
+/* CUBIC Flow */
+/*
+CUBICFlow::CUBICFlow(json &flowConfig): DataFlow(flowConfig) {
+}
+
+CUBICFlow::initializeFlow() {
+    CUBICInitialization();
+
+    Flow::initializeFlow()
+}
+
+CUBICFlow::CUBICInitialization() {
+    this->cwnd = ???;
+    this->tcpFriendliness = 1;
+    this->fastConvergence = 1;
+    this->beta = 0.2; // 0.2 from paper, 0.7 from RFC 8312 Sec. 4.5
+    this->C = 0.4; // 0.4 from paper and from RFC 8312 Sec. 4.5
+    CUBICReset();
+}
+
+// ack packet arrived
+void CUBICFlow::CUBICAckArrived() {
+    if dMin then dMin <- min(dMin,RTT)
+    else dMin <- RTT
+
+    if cwnd <= ssthresh then cwnd <- cwnd + 1
+    else
+        cnt <- cubic_update()
+}
+
+// packet loss
+// TODO what is this
+void CUBICFlow::CUBICpacketLoss() {
+    epoch_start <- 0
+    if cwnd < Wlast_max and fast_convergance then
+        Wlast_max <- cwnd * (2 - beta) / 2
+    else Wlast_max <- cwnd
+    wwthresh <- cwnd <- cwnd * (1 - beta)
+}
+
+// timeout
+// queue function called
+void CUBICFlow::timeout() {
+    CUBICReset();
+}
+
+// cubic update
+// TODO when is this???
+void CUBICFlow::CUBICUpdate() {
+    ack_cnt <- ack_cnt + 1
+    if epoch_start <= 0 then
+        epoch_start <- tcp_time_stamp
+        if cwnd < Wlast_time then
+            K <- // cubic function
+            origin_point <- Wlast_max
+        else
+            K <- 0
+            origin_point <- cwnd
+        ack_cnt <- 1
+        Wtcp <- cwnd
+    t <- tcp_time_stamp + dMin - epoch_start
+    target <- origin_point + C(t - K)^3
+    if target > cwnd then cnt <- cwnd/(target-cwnd)
+    else cnt <- 100 * cwnd
+    if tcp_friendliness then cubic_friendliness()
+}
+
+void CUBICFlow::CUBICTCPFriendliness() {
+    Wtcp <- Wctp + (3 * beta) / (2 - beta) * ack_cnt/cwnd
+    ack_cnt <- 0
+    if Wtcp > cwnd then
+        max_cnt <- cwnd / (Wtcp - cwnd)
+        if cnt > max_cnt then cnt <- max_cnt
+}
+
+void CUBICFlow::CUBICReset() {
+    Wlast_max <- 0
+    epoch_start <- 0
+    origin_point <- 0
+    dMin <- 0
+    Wtcp <- 0
+    K <- 0
+    ack_cnt <- 0
+}
+*/
 
 /* tests */
 #ifdef _TEST
@@ -637,19 +1540,27 @@ json &TestFlow::validateTestFlowConfig(json &flowConfig) {
     return flowConfig;
 }
 
-second_t TestFlow::nextTxTime() {
+second_t TestFlow::nextTxTime(Packet *p) {
     static const second_t min = 0.001, max = 0.01;
 
     return man.time + min + (float)rand() / (RAND_MAX / (max - min));
 }
 
 void TestFlow::startFlow() {
-    second_t nextTx = nextTxTime();
+    if (running) {
+        return;
+    }
+
+    second_t nextTx = nextTxTime(NULL);
     EventI *e1 = new Event<TestFlow>(nextTx, &TestFlow::txPacketEvent, this);
     man.pushEvent(e1);
 
     EventI *e2 = new Event<TestFlow>(man.time + miTime, &TestFlow::stepAgent, this);
     man.pushEvent(e2);
+
+    generator->startTraffic();
+
+    running = true;
 }
 
 void TestFlow::stepAgent() {
@@ -660,6 +1571,10 @@ void TestFlow::stepAgent() {
 }
 
 void TestFlow::txPacketEvent() {
+    if (!running) {
+        return;
+    }
+
     static const int hMin = 10, hMax = 50;
     static const int bMin = 40, bMax = 120;
     static const int ttl = 15;
@@ -670,14 +1585,14 @@ void TestFlow::txPacketEvent() {
     Endpoint *endpoint = man.getEndpoint(sourceId);
     // todo test for error
 
-    Packet *p = createPacket(ttl, hSize, bSize);
+    Packet *p = getNextPacket(true);
 
     man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceId, p);
 
     endpoint->txPacket(p);
 
     // set up next
-    second_t nextTx = nextTxTime();
+    second_t nextTx = nextTxTime(NULL);
     EventI *e = new Event<TestFlow>(nextTx, &TestFlow::txPacketEvent, this);
     man.pushEvent(e);
 }
