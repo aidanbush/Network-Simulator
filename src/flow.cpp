@@ -448,9 +448,6 @@ void BasicFlow::initializeFlow() {
     man.pushEvent(e3);
 
     Flow::initializeFlow();
-
-    // set the basic flow to send as fast as possible
-    this->rate = maxRate;
 }
 
 json &BasicFlow::validateBasicFlowConfig(json &flowConfig) {
