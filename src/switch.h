@@ -19,7 +19,7 @@ class Switch: public PacketHandler {
 
         void rxPacket(Packet *p);
 
-        bool initSwitch();
+        virtual bool initSwitch();
 
         int getInterfaceId(int destId);
 
@@ -42,7 +42,7 @@ class Switch: public PacketHandler {
         map<int, int> routingTable; // dest Id to interface Id
         vector<int> switchNeighbourIfaces; // all the interfaces that connect to a switch
 
-        int routePacket(Packet *p);
+        virtual int routePacket(Packet *p);
 
         static double txCost(Switch *source, int destId);
         static double txCost(Interface *interface);

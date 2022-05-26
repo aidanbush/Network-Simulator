@@ -167,17 +167,19 @@ void Switch::addNeighbours(priority_queue<routingSearchElem> &fringe,
 }
 
 void Switch::setNeighbours() {
-    set<int> interfaces;
+    set<int> interfaceSet;
+
     // for all interfaces
-    for (auto const& [handlerId, interfaceId] : routingTable) {
+    for (auto const& [handlerId, interfaceId] : interfaces) {
         // if handler is an switch then add to set
         if (man.getSwitch(handlerId) != NULL) {
-            interfaces.insert(interfaceId);
+            interfaceSet.insert(interfaceId);
         }
     }
 
+    switchNeighbourIfaces.resize(interfaceSet.size());
     // convert to vector
-    copy(interfaces.begin(), interfaces.end(), switchNeighbourIfaces.begin());
+    copy(interfaceSet.begin(), interfaceSet.end(), switchNeighbourIfaces.begin());
 }
 
 bool Switch::setupRoutingTable() {
