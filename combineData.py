@@ -35,7 +35,18 @@ for filename in os.listdir(dataPath):
 # convert to numpy array
 for flowId in rawData.keys():
     for i in range(len(rawData[flowId])):
-        rawData[flowId][i] = np.array(rawData[flowId][i])
+        # reduce to the minimum number of samples of all runs
+        minSamples = 0
+        maxSamples = 0
+        if rawData[flowId][i] != []:
+            minSamples = min([len(run) for run in rawData[flowId][i]])
+            maxSamples = max([len(run) for run in rawData[flowId][i]])
+
+        if minSamples < maxSamples:
+            print("up to", maxSamples - minSamples, "sample(s) dropped from flow", flowId, "i", DATA_TYPES[i])
+
+        #rawData[flowId][i] = np.array(rawData[flowId][i])
+        rawData[flowId][i] = np.array([subList[:minSamples] for subList in rawData[flowId][i]])
 
 maxSamples = max([len(rawData[flowId][run][dataType])
     for flowId in rawData.keys()
