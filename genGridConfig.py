@@ -1,6 +1,7 @@
 import json
 
-# 0,0 in the bottom left
+# 1,1 in the bottom left
+# n = network_size + 1
 # change to 1,1
 # coordinates: x, y
 #   switch:
@@ -90,7 +91,8 @@ for x in range(1,n):
         # create switch and endpoint
         switch = {
                 "id": x*n + y,
-                "internal_speed": 0
+                "internal_speed": 0,
+                "network_size": size
                 }
         switch.update(switchConfig)
 
