@@ -40,7 +40,7 @@ class Switch: public PacketHandler {
         };
 
         map<int, int> routingTable; // dest Id to interface Id
-        vector<int> switchNeighbourIfaces; // all the interfaces that connect to a switch
+        vector<pair<int, int>> switchNeighbourIfaces; // all the interfaces that connect to a switch (interface id, switch id)
 
         virtual int routePacket(Packet *p);
 
@@ -68,11 +68,15 @@ class RandomDeflectionSwitch: public Switch {
         bool initSwitch();
 
     protected:
+        int networkSize;
+        pair<int, int> coords; // x, y
+
         double deflectThresh;
 
         default_random_engine generator;
 
-        map<int, vector<int>> rerouteLists;
+        pair<int, int> getCoords(int id, int networkSize);
+        int manhattanDistance(pair<int, int> coord1, pair<int, int> coord2);
 
         int routePacket(Packet *p);
 

@@ -10,6 +10,9 @@
 #include "endpoint.h"
 #include "config.h"
 
+#define SWITCH_STR          "Switch"
+#define SWITCH_RX_EVENT_STR "switch rx"
+
 using namespace std;
 
 using json = nlohmann::json;
@@ -75,6 +78,12 @@ json &Switch::validateSwitchConfig(json &switchConfig) {
 
 void Switch::rxPacket(Packet *p) {
     int interfaceId = routePacket(p);
+    // TODO if interface id == -1 then drop the packet
+    if (interfaceId == NULL_ID) {
+        p->drop();
+        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet dropped");
+        return;
+    }
 
     Interface *interface = man.getInterface(interfaceId);
 
@@ -167,13 +176,13 @@ void Switch::addNeighbours(priority_queue<routingSearchElem> &fringe,
 }
 
 void Switch::setNeighbours() {
-    set<int> interfaceSet;
+    set<pair<int, int>> interfaceSet;
 
     // for all interfaces
     for (auto const& [handlerId, interfaceId] : interfaces) {
         // if handler is an switch then add to set
         if (man.getSwitch(handlerId) != NULL) {
-            interfaceSet.insert(interfaceId);
+            interfaceSet.insert({interfaceId, handlerId});
         }
     }
 
@@ -252,6 +261,9 @@ RandomDeflectionSwitch::RandomDeflectionSwitch(json &switchConfig):
     Switch(validateRandomDeflectionSwitchConfig(switchConfig)) {
     // set threshold
     this->deflectThresh = switchConfig["deflect_thresh"];
+
+    // TODO set coordinates based on id and network size
+    networkSize = switchConfig["network_size"];
 }
 
 json &RandomDeflectionSwitch::validateRandomDeflectionSwitchConfig(json &switchConfig) {
@@ -262,6 +274,11 @@ json &RandomDeflectionSwitch::validateRandomDeflectionSwitchConfig(json &switchC
         message += "No double with name 'deflect_thresh'.\n";
     }
 
+    if (!hasMemberOfType(switchConfig, "network_size", jsonInt)) {
+        // TODO error
+        message += "No int with name 'network_size'.\n";
+    }
+
     if (!message.empty()) {
         message = "RandomDeflectionSwitch:\n" + message + switchConfig.dump(4);
         throw runtime_error(message);
@@ -270,46 +287,71 @@ json &RandomDeflectionSwitch::validateRandomDeflectionSwitchConfig(json &switchC
     return switchConfig;
 }
 
+pair<int, int> RandomDeflectionSwitch::getCoords(int netId, int networkSize) {
+    int n = networkSize + 1;
+    return {(netId / n) % n, netId % n}; // x, y
+}
+
 bool RandomDeflectionSwitch::initSwitch() {
     bool ret = Switch::initSwitch();
+
+    this->coords = getCoords(id, networkSize);
     generator.seed(man.random());
-    setRerouteLists();
+
     return ret;
 }
 
-void RandomDeflectionSwitch::setRerouteLists() {
-    // create rerouteLists
-    for (int i = 0; i < switchNeighbourIfaces.size(); i++) {
-        // create vector missing element i
-        vector<int> newNeighbours;
-        for (int j = 0; j < switchNeighbourIfaces.size(); j++) { // copy all but element i
-            if (j == i) {
-                continue;
-            }
-            newNeighbours.emplace_back(switchNeighbourIfaces[j]);
-        }
-
-        rerouteLists.emplace(switchNeighbourIfaces[i], newNeighbours);
-    }
+int RandomDeflectionSwitch::manhattanDistance(pair<int, int> coord1, pair<int, int> coord2) {
+    // |x - x| + |y - y|
+    return abs(coord1.first - coord2.first) + abs(coord1.second - coord2.second);
 }
 
 int RandomDeflectionSwitch::routePacket(Packet *p) {
-    int routeIfaceId = Switch::routePacket(p);
-    int nextIfaceId = routeIfaceId;
+    vector<int> optimalInterfaces;
+    vector<int> remainingInterfaces;
 
-    // check if >= threshold
-    // get interface
-    Interface *interface = man.getInterface(routeIfaceId);
-    // check how full and compare
-    if ((double(interface->getOutBufferCurrentSize()) / interface->getOutBufferTotalSize()) >= deflectThresh) {
-        // if empty dont reroute
-        if (rerouteLists[routeIfaceId].size() > 0) {
-            // randomly deflect
-            nextIfaceId = rerouteLists[routeIfaceId][generator() % rerouteLists[routeIfaceId].size()];
+    pair<int, int> destinationCoords = getCoords(p->getDest(), networkSize);
+
+    // if destination is the current node then pass to endpoint
+    // TODO fix this hack
+    if (destinationCoords == coords) {
+        return Switch::routePacket(p);
+    }
+
+    int minDist = manhattanDistance(destinationCoords, coords);
+
+    for (auto it : switchNeighbourIfaces) {
+        // if room in buffer
+        Interface *interface = man.getInterface(it.first);
+        // this is wrong does not let anything in
+        // TODO check if there is room for the packet in the buffer
+        if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
+            pair<int, int> neighbourCoord = getCoords(it.second/*neighbouring switch*/, networkSize);
+            int distance = manhattanDistance(destinationCoords, neighbourCoord);
+
+            if (distance > minDist) {
+                remainingInterfaces.push_back(it.first);
+            } else if (distance == minDist) {
+                optimalInterfaces.push_back(it.first);
+            } else { // new min distance
+                copy(optimalInterfaces.begin(), optimalInterfaces.end(), back_inserter(remainingInterfaces));
+                optimalInterfaces.clear();
+                optimalInterfaces.push_back(it.first);
+
+                minDist = distance;
+            }
         }
     }
 
-    return nextIfaceId;
+    if (!optimalInterfaces.empty()) {
+        return optimalInterfaces[generator() % optimalInterfaces.size()];
+    }
+
+    if (!remainingInterfaces.empty()) {
+        return remainingInterfaces[generator() % remainingInterfaces.size()];
+    }
+
+    return NULL_ID;
 }
 
 #ifdef _TEST

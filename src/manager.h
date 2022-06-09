@@ -2,6 +2,7 @@
 #define MANAGER_H
 
 #define NULL_TIME   -1.0
+#define NULL_ID     -1
 
 #include <queue>
 #include <map>
