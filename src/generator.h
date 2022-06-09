@@ -109,10 +109,8 @@ class PoissonGenerator: public Generator {
         int getBodySize();
         second_t nextGenTime();
 
-        double baseTime;
-
         default_random_engine generator;
-        poisson_distribution<int> distribution;
+        exponential_distribution<double> distribution;
 
         int headerSize;
         int bodySize;

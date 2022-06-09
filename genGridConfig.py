@@ -38,19 +38,18 @@ flowConfig = {
             "type": "poisson",
             "header": 20,
             "body": 1480,
-            "lambda": 44.444,
-            "base_time": 0.0002,
+            "bitrate": 1500000,
             "buffer_size": 150000
             }
         }
 #
 flowRoutes = [{
-    "source_id": 21,
-    "dest": 31
-    },{
-    "source_id": 21,
-    "dest": 31
-    },{
+    #"source_id": 21,
+    #"dest": 31
+    #},{
+    #"source_id": 21,
+    #"dest": 31
+    #},{
     "source_id": 23,
     "dest": 29
     }

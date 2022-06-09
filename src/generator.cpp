@@ -312,14 +312,15 @@ PoissonGenerator::PoissonGenerator(json &generatorConfig):
     validatePoissonGeneratorConfig(generatorConfig);
 
     // get lambda
-    double lambda = generatorConfig["lambda"];
+    int rate = generatorConfig["bitrate"];
 
-    this->baseTime = generatorConfig["base_time"];
     this->headerSize = generatorConfig["header"];
     this->bodySize = generatorConfig["body"];
 
+    double lambda = rate / ((this->headerSize + this->bodySize) * BITS_PER_BYTE);
+
     // create distribution
-    distribution = poisson_distribution(lambda);
+    distribution = exponential_distribution(lambda);
     // seed generator
     generator.seed(man.random()); // use man random
 }
@@ -327,12 +328,8 @@ PoissonGenerator::PoissonGenerator(json &generatorConfig):
 void PoissonGenerator::validatePoissonGeneratorConfig(json &generatorConfig) {
     string message = "";
 
-    if (!hasMemberOfType(generatorConfig, "lambda", jsonDouble)) {
-        message += "No integer with name 'lambda'.\n";
-    }
-
-    if (!hasMemberOfType(generatorConfig, "base_time", jsonDouble)) {
-        message += "No integer with name 'base_time'.\n";
+    if (!hasMemberOfType(generatorConfig, "bitrate", jsonInt)) {
+        message += "No integer with name 'bitrate'.\n";
     }
 
     if (!hasMemberOfType(generatorConfig, "header", jsonInt)) {
@@ -358,7 +355,7 @@ int PoissonGenerator::getBodySize() {
 }
 
 second_t PoissonGenerator::nextGenTime() {
-    second_t interArrivalTime = distribution(generator) * baseTime;
+    second_t interArrivalTime = distribution(generator);
     return man.time + interArrivalTime;
 }
 
