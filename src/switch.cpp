@@ -77,6 +77,13 @@ json &Switch::validateSwitchConfig(json &switchConfig) {
 }
 
 void Switch::rxPacket(Packet *p) {
+    // if timeout drop
+    if (p->outOfTime()) {
+        p->drop();
+        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet timeout drop");
+        return;
+    }
+
     int interfaceId = routePacket(p);
     // TODO if interface id == -1 then drop the packet
     if (interfaceId == NULL_ID) {
@@ -89,6 +96,7 @@ void Switch::rxPacket(Packet *p) {
 
     // handle packets
     //tagPacketOut(p, interface);
+    p->decTTL();
 
     interface->rxHandler(p);
 }

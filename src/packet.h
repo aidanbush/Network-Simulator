@@ -32,6 +32,7 @@ class Packet: public NetworkObject {
         int fullSizeBits() {return (headerSize + bodySize) * BITS_PER_BYTE; }
         int hopCount() {return initialTTL - ttl;}
         void decTTL() {ttl--; }
+        bool outOfTime() { return ttl <= 0; }
 
         virtual void arrive();
         virtual void drop();
