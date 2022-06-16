@@ -1,6 +1,9 @@
 #include "packet.h"
 #include "flow.h"
 #include "manager.h"
+#include "switch.h"
+
+class MDCSwitch;
 
 Packet::Packet(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
         int headerSize, int bodySize, bool sourcePacket): NetworkObject(id) {
@@ -8,6 +11,7 @@ Packet::Packet(int id, int sourceId, int destId, int flowId, int dataId, int ttl
     this->destId = destId;
     this->flowId = flowId;
     this->dataId = dataId;
+    this->initialTTL = ttl;
     this->ttl = ttl;
     this->headerSize = headerSize;
     this->bodySize = bodySize;
@@ -25,6 +29,7 @@ Packet::Packet(const Packet &p): NetworkObject(p.id) {
     this->destId = p.destId;
     this->flowId = p.flowId;
     this->dataId = p.dataId;
+    this->initialTTL = p.initialTTL;
     this->ttl = p.ttl;
     this->headerSize = p.headerSize;
     this->bodySize = p.bodySize;
@@ -85,6 +90,43 @@ bool Packet::validate() {
     return true;
 }
 
+/* MinimalDeflectionCostPacket */
+MDCPacket::MDCPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl, int headerSize,
+        int bodySize, bool sourcePacket): Packet(id, sourceId, destId, flowId, dataId, ttl, headerSize,
+            bodySize, sourcePacket) {
+    this->ttlInitial = ttl;
+}
+
+void MDCPacket::recordDeflection(int switchId, int interfaceId) {
+    deflections.push_back({switchId, interfaceId});
+}
+
+void MDCPacket::arrive() {
+    // update switches
+    updateSwitches(0, 0);
+
+    Packet::arrive();
+}
+
+void MDCPacket::drop() {
+    // update switches
+    MDCFlow *f = dynamic_cast<MDCFlow *>(man.getFlow(flowId));
+    updateSwitches(ttlInitial - ttl, f->getAverageHops());
+
+    Packet::drop();
+}
+
+void MDCPacket::updateSwitches(double lostCost, double resendCost) {
+    double cost = lostCost + resendCost;
+
+    // these updates are not correct if a switch is in deflection twice as those updates will be out of order
+    for (auto it : deflections) {
+        cost += 2; // add deflection cost
+
+        MDCSwitch *s = dynamic_cast<MDCSwitch *>(man.getSwitch(it.first));
+        s->updateDeflectionCost(flowId, it.second, cost);
+    }
+}
 
 ECNPacket::ECNPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
         int headerSize, int bodySize, bool sourcePacket): Packet(id, sourceId, destId, flowId, dataId, ttl,

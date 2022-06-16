@@ -615,6 +615,44 @@ void BasicFlow::recordData() {
     man.pushEvent(e);
 }
 
+/* MinimalDeflectionCostFlow */
+
+MDCFlow::MDCFlow(json &flowConfig): BasicFlow(flowConfig) {
+    this->averageHopCount = 0;
+    this->totalPacketsArrived = 0;
+}
+
+Packet *MDCFlow::getNextPacket(bool fromSource) {
+    Generator::PacketData pData;
+
+    if (!generator->getNextPacket(pData)) {
+        return NULL;
+    }
+
+    int pId = newPacketId(fromSource);
+
+    MDCPacket *p = new MDCPacket(pId, sourceId, destId, id, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource);
+
+    if (!addPacket(p)) {
+        delete p;
+        return NULL;
+    }
+
+    packetsCreated++;
+
+    return p;
+}
+
+void MDCFlow::packetArrived(Packet *p) {
+    if (p->isSourcePacket()) {
+        // update averageHopCount
+        totalPacketsArrived += 1;
+        averageHopCount += 1 / min(totalPacketsArrived, alphaLimiter) * (p->hopCount() - averageHopCount);
+    }
+
+    BasicFlow::packetArrived(p);
+}
+
 /* Data Queue */
 
 DataQueue::DataQueue(int flowId) {

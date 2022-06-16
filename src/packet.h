@@ -30,10 +30,11 @@ class Packet: public NetworkObject {
 
         int fullSize() {return headerSize + bodySize; }
         int fullSizeBits() {return (headerSize + bodySize) * BITS_PER_BYTE; }
+        int hopCount() {return initialTTL - ttl;}
         void decTTL() {ttl--; }
 
-        void arrive();
-        void drop();
+        virtual void arrive();
+        virtual void drop();
         void error();
 
         second_t getSendTime(); // creation not send time
@@ -56,6 +57,7 @@ class Packet: public NetworkObject {
 
         int headerSize;
         int bodySize;
+        int initialTTL;
         int ttl;
         int sourceId;
         int destId;
@@ -69,6 +71,23 @@ class Packet: public NetworkObject {
 
         second_t createTime;
         second_t arrivalTime; // currently not used
+};
+
+class MDCPacket: public Packet {
+    public:
+        MDCPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
+                int headerSize, int bodySize, bool sourcePacket);
+
+        void recordDeflection(int switchId, int interfaceId);
+
+        void arrive();
+        void drop();
+
+    protected:
+        vector<pair<int, int>> deflections; // switchId, interfaceId
+        int ttlInitial;
+
+        void updateSwitches(double lostCost, double resendCost);
 };
 
 class ECNPacket: public Packet {

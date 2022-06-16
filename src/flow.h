@@ -154,7 +154,7 @@ class BasicFlow: public Flow {
 
         void packetGenerationNotification();
 
-    private:
+    protected:
         BasicFlow(json &flowConfig);
 
         static json &validateBasicFlowConfig(json &flowConfig);
@@ -167,6 +167,24 @@ class BasicFlow: public Flow {
         void txAck(Packet *p);
         void packetArrived(Packet *p);
         void sourcePacketArrived(Packet *p);
+};
+
+class MDCFlow: public BasicFlow {
+    friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
+    public:
+
+        double getAverageHops() {return averageHopCount; }
+
+    protected:
+        MDCFlow(json &flowConfig);
+        double averageHopCount;
+        int totalPacketsArrived;
+
+        int alphaLimiter = 1000;
+
+        Packet *getNextPacket(bool fromSource);
+
+        void packetArrived(Packet *p);
 };
 
 class DataQueue {

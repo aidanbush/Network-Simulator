@@ -70,6 +70,16 @@ class RandomDeflectionSwitch: public Switch {
     protected:
         int networkSize;
         pair<int, int> coords; // x, y
+        enum directions {
+            RIGHT = 1,
+            LEFT = 2,
+            UP = 3,
+            DOWN = 6,
+        };
+
+        // lookup table containing the optimal and deflect interfaces
+        // index: right +1, left +2, up +3, down +6
+        vector<pair<vector<int>, vector<int>>> manhattanRouting = vector<pair<vector<int>, vector<int>>>(9);
 
         double deflectThresh;
 
@@ -78,12 +88,35 @@ class RandomDeflectionSwitch: public Switch {
         pair<int, int> getCoords(int id, int networkSize);
         int manhattanDistance(pair<int, int> coord1, pair<int, int> coord2);
 
+        pair<vector<int>, vector<int>> generateRoutingLists(pair<int, int> destCoords);
+        void createManhattanRoutingTable();
+        pair<vector<int>, vector<int>> availableRouteSets(Packet *p);
+
         int routePacket(Packet *p);
 
         void setRerouteLists();
 
     private:
         json &validateRandomDeflectionSwitchConfig(json &switchConfig);
+};
+
+class MDCSwitch: public RandomDeflectionSwitch {
+    public:
+        MDCSwitch(json &switchConfig);
+
+        void updateDeflectionCost(int flowId, int interfaceId, double cost);
+    protected:
+        // flowId -> interfaceId -> (cost, deflectCount)
+        map<int, map<int, pair<double, int>>> flowInterfaceCost;
+        int alphaLimiter = 1000;
+
+        void initializeInterfaceCost(Packet *p);
+        int getLowestCostDeflect(Packet *p, vector<int> deflectInterfaces);
+
+        int routePacket(Packet *p);
+
+    private:
+        json &validateMDCSwitchConfig(json &switchConfig);
 };
 
 #ifdef _TEST

@@ -292,10 +292,55 @@ pair<int, int> RandomDeflectionSwitch::getCoords(int netId, int networkSize) {
     return {(netId / n) % n, netId % n}; // x, y
 }
 
+pair<vector<int>, vector<int>> RandomDeflectionSwitch::generateRoutingLists(pair<int, int> destCoords) {
+    pair<vector<int>, vector<int>> routes; // optimal, deflect
+
+    if (destCoords == coords) {
+        return routes;
+    }
+
+    int minDist = manhattanDistance(destCoords, coords);
+
+    for (auto it : switchNeighbourIfaces) {
+        pair<int, int> neighbourCoord = getCoords(it.second/*neighbouring switch*/, networkSize);
+        int distance = manhattanDistance(destCoords, neighbourCoord);
+
+        if (distance > minDist) {
+            routes.second.push_back(it.first);
+        } else if (distance == minDist) {
+            routes.first.push_back(it.first);
+        } else { // new min distance
+            copy(routes.first.begin(), routes.first.end(), back_inserter(routes.second));
+            routes.first.clear();
+            routes.first.push_back(it.first);
+
+            minDist = distance;
+        }
+    }
+
+    return routes;
+}
+
+void RandomDeflectionSwitch::createManhattanRoutingTable() {
+    pair<int, int> destCoords;
+    // for none left and right
+    for (int i = 0; i < 3; i++) {
+        // for none up and down
+        for (int j = 0; j < 3; j++) {
+            destCoords.first = coords.first + ((i+1) %3) -1;
+            destCoords.second = coords.second + ((j+1) %3) -1;
+
+            manhattanRouting[i+j*3] = generateRoutingLists(destCoords);
+        }
+    }
+}
+
 bool RandomDeflectionSwitch::initSwitch() {
     bool ret = Switch::initSwitch();
 
     this->coords = getCoords(id, networkSize);
+    createManhattanRoutingTable();
+
     generator.seed(man.random());
 
     return ret;
@@ -306,52 +351,176 @@ int RandomDeflectionSwitch::manhattanDistance(pair<int, int> coord1, pair<int, i
     return abs(coord1.first - coord2.first) + abs(coord1.second - coord2.second);
 }
 
+// blocked interfaces are not removed
+pair<vector<int>, vector<int>> RandomDeflectionSwitch::availableRouteSets(Packet *p) {
+    pair<int, int> dest = getCoords(p->getDest(), networkSize);
+
+    int i = 0;
+
+    if (dest.first > coords.first) { // if dest.x > x : right
+        i += RIGHT;
+    } else if (dest.first < coords.first) { // if dest.x < x : left
+        i += LEFT;
+    }
+    if (dest.second > coords.second) { // if dest.y > y : up
+        i += UP;
+    } else if (dest.second < coords.second) { // if dest.y < y : down
+        i += DOWN;
+    }
+
+    // use lookup tables for all 8 + 1 possible directions (+1 is at dest)
+    return manhattanRouting[i];
+}
+
 int RandomDeflectionSwitch::routePacket(Packet *p) {
-    vector<int> optimalInterfaces;
-    vector<int> remainingInterfaces;
+    pair<vector<int>, vector<int>> routes = availableRouteSets(p);
 
-    pair<int, int> destinationCoords = getCoords(p->getDest(), networkSize);
-
-    // if destination is the current node then pass to endpoint
-    // TODO fix this hack
-    if (destinationCoords == coords) {
+    // if both sets empty
+    if (routes.first.empty() && routes.second.empty()) {
+        // TODO this is a hack change it
         return Switch::routePacket(p);
     }
 
-    int minDist = manhattanDistance(destinationCoords, coords);
+    vector<int> optimalInterfaces;
+    vector<int> deflectInterfaces;
 
-    for (auto it : switchNeighbourIfaces) {
-        // if room in buffer
-        Interface *interface = man.getInterface(it.first);
-        // this is wrong does not let anything in
-        // TODO check if there is room for the packet in the buffer
+    for (auto it : routes.first) {
+        // if room add to optimal
+        Interface *interface = man.getInterface(it);
         if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
-            pair<int, int> neighbourCoord = getCoords(it.second/*neighbouring switch*/, networkSize);
-            int distance = manhattanDistance(destinationCoords, neighbourCoord);
-
-            if (distance > minDist) {
-                remainingInterfaces.push_back(it.first);
-            } else if (distance == minDist) {
-                optimalInterfaces.push_back(it.first);
-            } else { // new min distance
-                copy(optimalInterfaces.begin(), optimalInterfaces.end(), back_inserter(remainingInterfaces));
-                optimalInterfaces.clear();
-                optimalInterfaces.push_back(it.first);
-
-                minDist = distance;
-            }
+            optimalInterfaces.push_back(it);
         }
     }
 
+    // if not empty randomly send to one
     if (!optimalInterfaces.empty()) {
         return optimalInterfaces[generator() % optimalInterfaces.size()];
     }
 
-    if (!remainingInterfaces.empty()) {
-        return remainingInterfaces[generator() % remainingInterfaces.size()];
+    // deflect interfaces
+    for (auto it : routes.second) {
+        // if room add to deflect
+        Interface *interface = man.getInterface(it);
+        if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
+            deflectInterfaces.push_back(it);
+        }
     }
 
+    // if not empty randomly send to one
+    if (!deflectInterfaces.empty()) {
+        return deflectInterfaces[generator() % deflectInterfaces.size()];
+    }
+
+    // drop packet
     return NULL_ID;
+}
+
+/* MinimalDeflectionCostSwitch */
+
+MDCSwitch::MDCSwitch(json &switchConfig):
+    RandomDeflectionSwitch(validateMDCSwitchConfig(switchConfig)) {
+}
+
+json &MDCSwitch::validateMDCSwitchConfig(json &switchConfig) {
+    return switchConfig;
+}
+
+void MDCSwitch::initializeInterfaceCost(Packet *p) {
+    vector<int> allDeflectInterfaces = availableRouteSets(p).second;
+    int flowId = p->getFlow();
+
+    // for all interfaces add into flow map elements
+    for (auto it : allDeflectInterfaces) {
+        flowInterfaceCost[flowId][it] = {2.0, 0};
+    }
+}
+
+int MDCSwitch::getLowestCostDeflect(Packet *p, vector<int> deflectInterfaces) {
+    int flowId = p->getFlow();
+
+    // if flow entry doesn't exists create
+    if (flowInterfaceCost[flowId].empty()) {
+        initializeInterfaceCost(p);
+    }
+
+    map<int, pair<double, int>> interfaceCosts = flowInterfaceCost[flowId];
+
+    // go through list of deflect interfaces removing elements that are not max
+    double minCost = interfaceCosts[deflectInterfaces[0]].first;
+    vector<int> interfaces;
+    for (auto it : deflectInterfaces) {
+        double cost = interfaceCosts[it].first;
+        // if < min cost replace
+        if (cost < minCost) {
+            minCost = cost;
+            interfaces.clear();
+            interfaces.push_back(it);
+        } else if (cost == minCost) { // if = min cost add to
+            interfaces.push_back(it);
+        }
+    }
+    // randomly select from remaining interfaces
+    return interfaces[generator() % interfaces.size()];
+}
+
+int MDCSwitch::routePacket(Packet *p) {
+    pair<vector<int>, vector<int>> routes = availableRouteSets(p);
+
+    // at destination send to endpoint
+    if (routes.first.empty() && routes.second.empty()) {
+        // TODO this is a hack change it
+        return Switch::routePacket(p);
+    }
+
+    vector<int> optimalInterfaces;
+    vector<int> deflectInterfaces;
+
+    for (auto it : routes.first) {
+        // if room add to optimal
+        Interface *interface = man.getInterface(it);
+        if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
+            optimalInterfaces.push_back(it);
+        }
+    }
+
+    // if not empty randomly send to one
+    if (!optimalInterfaces.empty()) {
+        return optimalInterfaces[generator() % optimalInterfaces.size()];
+    }
+
+    // get list of interfaces it can deflect on
+    for (auto it : routes.second) {
+        // if room add to deflect
+        Interface *interface = man.getInterface(it);
+        if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
+            deflectInterfaces.push_back(it);
+        }
+    }
+
+    // if empty drop
+    if (deflectInterfaces.empty()) {
+        return NULL_ID;
+    }
+
+    // else find flow or create entry
+    // find lowest valued interface
+    int deflectIface = getLowestCostDeflect(p, deflectInterfaces);
+
+    // mark packet
+    MDCPacket *MDCP = dynamic_cast<MDCPacket *>(p);
+    MDCP->recordDeflection(id, deflectIface);
+
+    return deflectIface;
+}
+
+void MDCSwitch::updateDeflectionCost(int flowId, int interfaceId, double cost) {
+    if (flowInterfaceCost[flowId][interfaceId].second < alphaLimiter) {
+        flowInterfaceCost[flowId][interfaceId].second++;
+    }
+
+    int n = flowInterfaceCost[flowId][interfaceId].second;
+
+    flowInterfaceCost[flowId][interfaceId].first += (cost - flowInterfaceCost[flowId][interfaceId].first) / n;
 }
 
 #ifdef _TEST

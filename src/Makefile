@@ -42,7 +42,7 @@ $(BUILD_DIR)flow.o: flow.cpp flow.h networkObject.h manager.h packet.h endpoint.
 
 $(BUILD_DIR)link.o: link.cpp link.h networkObject.h manager.h packet.h interface.h tests/throwAssert.h
 
-$(BUILD_DIR)packet.o: packet.cpp packet.h networkObject.h flow.h
+$(BUILD_DIR)packet.o: packet.cpp packet.h networkObject.h flow.h switch.h
 
 $(BUILD_DIR)manager.o: manager.cpp manager.h packetHandler.h switch.h endpoint.h observer.h
 
