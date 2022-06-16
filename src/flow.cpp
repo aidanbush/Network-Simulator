@@ -556,7 +556,7 @@ void BasicFlow::packetArrived(Packet *p) {
 }
 
 void BasicFlow::sourcePacketArrived(Packet *p) {
-    txAck(p);
+    //txAck(p);
 }
 
 double BasicFlow::getAveragePacketSizeBytes() {

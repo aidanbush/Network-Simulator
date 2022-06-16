@@ -111,7 +111,7 @@ void MDCPacket::arrive() {
 void MDCPacket::drop() {
     // update switches
     MDCFlow *f = dynamic_cast<MDCFlow *>(man.getFlow(flowId));
-    updateSwitches(ttlInitial - ttl, f->getAverageHops());
+    updateSwitches(hopCount(), f->getAverageHops());
 
     Packet::drop();
 }
