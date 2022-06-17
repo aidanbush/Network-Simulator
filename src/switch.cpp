@@ -20,12 +20,14 @@ using json = nlohmann::json;
 enum SwitchType {
     BasicSwitchType,
     RandomDeflectSwitchType,
+    MDCSwitchType,
 };
 
 Switch *createSwitch(json &switchNetConfig) {
     static map<string, SwitchType> switchTypeMap = {
         {"basic", BasicSwitchType},
         {"rand_deflect", RandomDeflectSwitchType},
+        {"mdc", MDCSwitchType},
     };
 
 
@@ -49,6 +51,9 @@ Switch *createSwitch(json &switchNetConfig) {
             break;
         case RandomDeflectSwitchType:
             netSwitch = new RandomDeflectionSwitch(switchNetConfig);
+            break;
+        case MDCSwitchType:
+            netSwitch = new MDCSwitch(switchNetConfig);
             break;
         default:
             throw runtime_error("Switch:\nInvalid switch type: " + switchTypeString);

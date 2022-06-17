@@ -87,7 +87,7 @@ class Flow: public NetworkObject {
         void removePacket(Packet *p);
         bool addPacket(Packet *p);
 
-        Packet *getNextPacket(bool fromSource);
+        virtual Packet *getNextPacket(bool fromSource);
 
         int newPacketId(bool fromSource);
 
@@ -148,7 +148,7 @@ class BasicFlow: public Flow {
         void startFlow();
         void stopFlow();
         void stepAgent();
-        void txPacketEvent();
+        virtual void txPacketEvent();
 
         double getAveragePacketSizeBytes();
 
@@ -292,7 +292,7 @@ class DataFlow: public Flow {
         void packetTimeoutEvent();
 
         Packet *createNextPacket(bool fromSource);
-        Packet *getNextPacket(bool fromSource);
+        virtual Packet *getNextPacket(bool fromSource);
 
         void packetArrived(Packet *p);
         void sourcePacketArrived(Packet *p);
@@ -319,7 +319,7 @@ class ECNFlow: public DataFlow {
     private:
         ECNFlow(json &flowConfig);
 
-        ECNPacket *getNextPacket(bool fromSource);
+        Packet *getNextPacket(bool fromSource);
         ECNPacket *createAckPacket(ECNPacket *toAck);
 
         void txAck(ECNPacket *toAckPacket);
@@ -332,8 +332,6 @@ class ECNFlow: public DataFlow {
         void sinkPacketArrived(Packet *p);
 
         static json &validateECNFlowConfig(json &flowConfig);
-
-        ECNPacket *sendingPacket;
 
         int packetsUntagged;
         double averageECN;

@@ -98,7 +98,7 @@ MDCPacket::MDCPacket(int id, int sourceId, int destId, int flowId, int dataId, i
 }
 
 void MDCPacket::recordDeflection(int switchId, int interfaceId) {
-    deflections.push_back({switchId, interfaceId});
+    deflections.emplace_back(pair<int, int>({switchId, interfaceId}));
 }
 
 void MDCPacket::arrive() {

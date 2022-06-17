@@ -48,6 +48,7 @@ using namespace std;
 enum FlowType {
     BasicFlowType,
     ECNFlowType,
+    MDCFlowType,
 #ifdef _TEST
     TestFlowType,
 #endif /* _TEST */
@@ -76,11 +77,11 @@ Flow *createFlow(json &flowNetConfig, json &flowTestConfig) {
     static map<string, FlowType> flowTypeMap = {
         {"basic", BasicFlowType},
         {"ecn", ECNFlowType},
+        {"mdc", MDCFlowType},
 #ifdef _TEST
         {"test", TestFlowType},
 #endif /* _TEST */
     };
-
 
     if (!hasMemberOfType(flowNetConfig, "type", jsonString)) {
         throw runtime_error("Flow:\nNo string with name 'type'\n" + flowNetConfig.dump(4));
@@ -105,6 +106,9 @@ Flow *createFlow(json &flowNetConfig, json &flowTestConfig) {
             break;
         case ECNFlowType:
             flow = new ECNFlow(flowNetConfig);
+            break;
+        case MDCFlowType:
+            flow = new MDCFlow(flowNetConfig);
             break;
 #ifdef _TEST
         case TestFlowType:
@@ -1050,7 +1054,7 @@ json &ECNFlow::validateECNFlowConfig(json &flowConfig) {
     return flowConfig;
 }
 
-ECNPacket *ECNFlow::getNextPacket(bool fromSource) {
+Packet *ECNFlow::getNextPacket(bool fromSource) {
     // call DataFlow's function and create an ECNPacket that is it
     Packet *p = DataFlow::createNextPacket(fromSource);
 
