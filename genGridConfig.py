@@ -24,14 +24,14 @@ n = size+1
 
 # switches
 switchConfig = {
-        "type": "rand_deflect",
+        "type": "mdc", #"rand_deflect",
         "deflect_thresh": 1.0
         }
 
 # flows
 flowConfig = {
         "start_rate": 1500000,
-        "type": "basic",
+        "type": "mdc",
         "start_time": 0,
         "end_time": 0,
         "generator": {
@@ -44,12 +44,12 @@ flowConfig = {
         }
 #
 flowRoutes = [{
-    #"source_id": 21,
-    #"dest": 31
-    #},{
-    #"source_id": 21,
-    #"dest": 31
-    #},{
+    "source_id": 21,
+    "dest": 31
+    },{
+    "source_id": 21,
+    "dest": 31
+    },{
     "source_id": 23,
     "dest": 29
     }
@@ -68,11 +68,11 @@ endpointInterfaceConfig = {
 
 # links
 linkConfig = {
-        "speed": 1500001,
+        "speed": 1500000,
         "time": 0.1 # propagation delay
         }
 endpointLinkConfig = {
-        "speed": linkConfig["speed"] * 4,
+        "speed": linkConfig["speed"] * 4, # update not true at edges
         "time": 0.0 # propagation delay
         }
 
