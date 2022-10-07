@@ -187,6 +187,14 @@ class MDCFlow: public BasicFlow {
         void packetArrived(Packet *p);
 };
 
+class MBDFlow: public MDCFlow {
+    friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
+
+    protected:
+        MBDFlow(json &flowConfig);
+        Packet *getNextPacket(bool fromSource);
+};
+
 class DataQueue {
     public:
         DataQueue(int flowId);

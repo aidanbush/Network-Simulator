@@ -9,6 +9,8 @@
 
 #include "packetHandler.h"
 
+class LinUCB;
+
 using namespace std;
 
 using json = nlohmann::json;
@@ -65,7 +67,7 @@ class RandomDeflectionSwitch: public Switch {
     public:
         RandomDeflectionSwitch(json &switchConfig);
 
-        bool initSwitch();
+        virtual bool initSwitch();
 
     protected:
         int networkSize;
@@ -117,6 +119,34 @@ class MDCSwitch: public RandomDeflectionSwitch {
 
     private:
         json &validateMDCSwitchConfig(json &switchConfig);
+};
+
+class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
+    public:
+        ManhattanBanditDeflectionSwitch(json &switchConfig);
+
+        bool initSwitch();
+
+        void rewardAction(int pId, double reward);
+
+    protected:
+        int routePacket(Packet *p);
+
+        void recordAction(Packet *p, vector<double> context, int action);
+        pair<vector<double>, int> retrieveAction(int pId);
+
+        map<int, pair<vector<double>, int>> actionStore; // packet id -> (context, action)
+        vector<int> actionInterfaces;
+        LinUCB *agent;
+
+        // agent variables
+        double regularizer;
+        double delta;
+        // state variables
+        int numFlows;
+
+    private:
+        json &validateManhattanBanditDeflectionSwitchConfig(json &switchConfig);
 };
 
 #ifdef _TEST

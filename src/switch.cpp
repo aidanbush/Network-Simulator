@@ -1,6 +1,7 @@
 #include <map>
 #include <set>
 #include <nlohmann/json.hpp>
+#include <torch/torch.h>
 
 #include "switch.h"
 #include "manager.h"
@@ -9,6 +10,8 @@
 #include "packetHandler.h"
 #include "endpoint.h"
 #include "config.h"
+
+#include "linUCB.h"
 
 #define SWITCH_STR          "Switch"
 #define SWITCH_RX_EVENT_STR "switch rx"
@@ -21,6 +24,7 @@ enum SwitchType {
     BasicSwitchType,
     RandomDeflectSwitchType,
     MDCSwitchType,
+    ManhattanBanditDeflectionSwitchType,
 };
 
 Switch *createSwitch(json &switchNetConfig) {
@@ -28,6 +32,7 @@ Switch *createSwitch(json &switchNetConfig) {
         {"basic", BasicSwitchType},
         {"rand_deflect", RandomDeflectSwitchType},
         {"mdc", MDCSwitchType},
+        {"mbd", ManhattanBanditDeflectionSwitchType}
     };
 
 
@@ -54,6 +59,9 @@ Switch *createSwitch(json &switchNetConfig) {
             break;
         case MDCSwitchType:
             netSwitch = new MDCSwitch(switchNetConfig);
+            break;
+        case ManhattanBanditDeflectionSwitchType:
+            netSwitch = new ManhattanBanditDeflectionSwitch(switchNetConfig);
             break;
         default:
             throw runtime_error("Switch:\nInvalid switch type: " + switchTypeString);
@@ -534,6 +542,124 @@ void MDCSwitch::updateDeflectionCost(int flowId, int interfaceId, double cost) {
     int n = flowInterfaceCost[flowId][interfaceId].second;
 
     flowInterfaceCost[flowId][interfaceId].first += (cost - flowInterfaceCost[flowId][interfaceId].first) / n;
+}
+
+/* ManhattanBanditDeflectionSwitch */
+
+ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchConfig):
+    RandomDeflectionSwitch(switchConfig) {
+    this->regularizer = switchConfig["regularizer"];
+    this->delta = switchConfig["delta"];
+    this->numFlows = switchConfig["num_flows"];
+}
+
+json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchConfig(json &switchConfig) {
+    string message = "";
+    if (!hasMemberOfType(switchConfig, "regularizer", jsonDouble)) {
+        message += "No double with name 'regularizer'.\n";
+    }
+
+    if (!hasMemberOfType(switchConfig, "delta", jsonDouble)) {
+        message += "No double with name 'delta'.\n";
+    }
+
+    if (!hasMemberOfType(switchConfig, "num_flows", jsonInt)) {
+        message += "No integer with name 'num_flows'.\n";
+    }
+
+    if (!message.empty()) {
+        message = "ManhattanBanditDeflectionSwitch:\n" + message + switchConfig.dump(4);
+        throw runtime_error(message);
+    }
+
+    return switchConfig;
+}
+
+bool ManhattanBanditDeflectionSwitch::initSwitch() {
+    bool ret = RandomDeflectionSwitch::initSwitch();
+
+    // TODO setup action interface list
+    /*vector<int> actionInterfaces;*/ // add to class
+    for (auto it: interfaces) {
+        // if not endpoint TODO remove endpoints this is a hack
+        if (man.getEndpoint(it.first) == NULL) {
+            actionInterfaces.push_back(it.second);
+        }
+    }
+
+    int observeDims = this->numFlows;/* number of flow */
+    // neighbour Ifaces - destination iface
+    int numActions = switchNeighbourIfaces.size();/* number of interfaces +1 if drop*/;
+    int seed = man.random();/* get from manager random */
+    // initialize agent
+    agent = new LinUCB(observeDims, numActions, this->regularizer, this->delta, seed);
+
+    return ret;
+}
+
+int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
+    // at destination send to endpoint
+    if (getCoords(p->getDest(), networkSize) == coords) { // check if at dest TODO make check correct
+        // TODO this is a hack change it
+        fprintf(stderr, "arrived\n");
+        return Switch::routePacket(p);
+    }
+
+    // get state
+    vector<double> state;
+    int flowId = p->getFlow();
+    // flow ids go from 1-numFlows
+    for (int i = 1; i <= this->numFlows; i++) {
+        if (i == flowId) {
+            state.push_back(1);
+        } else {
+            state.push_back(0);
+        }
+    }
+
+    // select action using agent
+    int action = agent->selectAction(state);
+
+    // record action
+    recordAction(p, state, action);
+
+    if (action > this->numFlows) {
+        return NULL_ID;
+    }
+
+    // convert action into interface
+    return actionInterfaces[action];
+}
+
+void ManhattanBanditDeflectionSwitch::recordAction(Packet *p, vector<double> context, int action) {
+    actionStore.emplace(p->getId(), pair<vector<double>, int>{context, action});
+}
+
+pair<vector<double>, int> ManhattanBanditDeflectionSwitch::retrieveAction(int pId) {
+    auto it = actionStore.find(pId);
+    if (it == actionStore.end()) {
+        return {{}, -1};
+    }
+
+    // make copy
+    vector<double> state = it->second.first;
+    int action = it->second.second;
+    // remove
+    actionStore.erase(pId);
+    // return
+    return {state, action};
+}
+
+void ManhattanBanditDeflectionSwitch::rewardAction(int pId, double reward) {
+    // get context action pair
+    pair<vector<double>, int> stateAction = retrieveAction(pId);
+    // if there is no action
+    if (stateAction.second == -1) {
+        return;
+    }
+
+    // apply update
+    agent->updateAgent(stateAction.first, stateAction.second, reward);
 }
 
 #ifdef _TEST

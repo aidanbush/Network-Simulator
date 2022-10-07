@@ -128,6 +128,28 @@ void MDCPacket::updateSwitches(double lostCost, double resendCost) {
     }
 }
 
+/* ManhattanBanditDeflectionPacket */
+MBDPacket::MBDPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl, int headerSize,
+        int bodySize, bool sourcePacket): MDCPacket(id, sourceId, destId, flowId, dataId, ttl, headerSize,
+            bodySize, sourcePacket) {
+}
+
+void MBDPacket::updateSwitches(double lostCost, double resendCost) {
+    double dropCost = lostCost + resendCost;
+    double deflectionCost = 0;
+
+    // these updates are not correct if a switch is in deflection twice as those updates will be out of order
+    for (auto it : deflections) {
+        deflectionCost += 2; // add deflection cost
+
+        ManhattanBanditDeflectionSwitch *s = dynamic_cast<ManhattanBanditDeflectionSwitch *>(man.getSwitch(it.first));
+        // TODO normalize
+        s->rewardAction(id, -(deflectionCost + dropCost));
+    }
+}
+
+/* ECNPacket */
+
 ECNPacket::ECNPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
         int headerSize, int bodySize, bool sourcePacket): Packet(id, sourceId, destId, flowId, dataId, ttl,
             headerSize, bodySize, sourcePacket) {

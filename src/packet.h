@@ -88,6 +88,15 @@ class MDCPacket: public Packet {
         vector<pair<int, int>> deflections; // switchId, interfaceId
         int ttlInitial;
 
+        virtual void updateSwitches(double lostCost, double resendCost);
+};
+
+class MBDPacket: public MDCPacket {
+    public:
+        MBDPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
+                int headerSize, int bodySize, bool sourcePacket);
+
+    protected:
         void updateSwitches(double lostCost, double resendCost);
 };
 

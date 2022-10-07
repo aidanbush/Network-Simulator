@@ -657,6 +657,32 @@ void MDCFlow::packetArrived(Packet *p) {
     BasicFlow::packetArrived(p);
 }
 
+/* Manhattan Bandit Deflection Flow */
+
+MBDFlow::MBDFlow(json &flowConfig): MDCFlow(flowConfig) {
+}
+
+Packet *MBDFlow::getNextPacket(bool fromSource) {
+    Generator::PacketData pData;
+
+    if (!generator->getNextPacket(pData)) {
+        return NULL;
+    }
+
+    int pId = newPacketId(fromSource);
+
+    MBDPacket *p = new MBDPacket(pId, sourceId, destId, id, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource);
+
+    if (!addPacket(p)) {
+        delete p;
+        return NULL;
+    }
+
+    packetsCreated++;
+
+    return p;
+}
+
 /* Data Queue */
 
 DataQueue::DataQueue(int flowId) {

@@ -62,9 +62,9 @@ for seed in `seq $numTests`; do
         sleep 1
     done
 
-    echo time timeout $timer ./simulator -r $seed -q 0100 -d ${tempResultsDir} -f run_$seed $netConfig $paramFile \> ${resultsDir}/output_run_$seed
+    echo time timeout $timer ./build/simulator -r $seed -q 0100 -d ${tempResultsDir} -f run_$seed $netConfig $paramFile \> ${resultsDir}/output_run_$seed
     (
-    time timeout $timer ./simulator -r $seed -q 0100 -d ${tempResultsDir} -f run_$seed $netConfig $paramFile > ${resultsDir}/output_run_$seed
+    time timeout $timer ./build/simulator -r $seed -q 0100 -d ${tempResultsDir} -f run_$seed $netConfig $paramFile > ${resultsDir}/output_run_$seed
     if [ $? -eq 124 ]; then
         echo test $seed timed out
     fi
