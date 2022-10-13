@@ -601,7 +601,6 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
     // at destination send to endpoint
     if (getCoords(p->getDest(), networkSize) == coords) { // check if at dest TODO make check correct
         // TODO this is a hack change it
-        fprintf(stderr, "arrived\n");
         return Switch::routePacket(p);
     }
 
@@ -620,7 +619,7 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
     // select action using agent
     int action = agent->selectAction(state);
 
-    // record action
+    // record action in switch and packet
     recordAction(p, state, action);
 
     if (action > this->numFlows) {
@@ -632,7 +631,11 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
 }
 
 void ManhattanBanditDeflectionSwitch::recordAction(Packet *p, vector<double> context, int action) {
+    // TODO if exists add to queue else create queue
     actionStore.emplace(p->getId(), pair<vector<double>, int>{context, action});
+
+    MBDPacket *MBDP = dynamic_cast<MBDPacket *>(p);
+    MBDP->recordAction(id);
 }
 
 pair<vector<double>, int> ManhattanBanditDeflectionSwitch::retrieveAction(int pId) {

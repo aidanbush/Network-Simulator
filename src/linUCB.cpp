@@ -1,5 +1,6 @@
+#include <cstdio>
+
 #include "linUCB.h"
-#include <iostream>
 
 using namespace std;
 
@@ -18,11 +19,11 @@ LinUCB::LinUCB(int observeDims, int numActions, double regularizer, double delta
     generator.seed(seed);
 }
 
-
 void LinUCB::updateAgent(vector<double> observation, int action, double reward) {
     torch::Tensor obsTensor= torch::tensor(observation);
 
     this->timestep++;
+
     torch::Tensor prevActionContext = createActionContext(obsTensor, action);
     updateTheta(prevActionContext, reward);
 }

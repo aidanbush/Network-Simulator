@@ -28,6 +28,14 @@ switchConfig = {
         "deflect_thresh": 1.0
         }
 
+switchConfig = {
+        "type": "mbd",
+        "deflect_thresh": 1.0,
+        "regularizer": 1.0,
+        "delta": 1.0,
+        "num_flows": 3,
+        }
+
 # flows
 flowConfig = {
         "start_rate": 1500000,

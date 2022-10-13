@@ -134,17 +134,39 @@ MBDPacket::MBDPacket(int id, int sourceId, int destId, int flowId, int dataId, i
             bodySize, sourcePacket) {
 }
 
+void MBDPacket::recordAction(int switchId) {
+    switches.push_back(switchId);
+}
+
+// TODO move into manager
+double MBDPacket::shortestPath(int source, int dest) {
+    // assume manhattan
+    int size = 3;
+    int n = size + 1;
+    int sourceX = (source / n) % n; // x
+    int sourceY = source % n; // y
+    int destX = (dest / n) % n; // x
+    int destY = dest % n; // y
+
+    return double(abs(sourceX - destX) + abs(sourceY - destY));
+}
+
 void MBDPacket::updateSwitches(double lostCost, double resendCost) {
-    double dropCost = lostCost + resendCost;
-    double deflectionCost = 0;
+    double dropCost = (lostCost + resendCost);
+    if (dropCost != 0) {
+        dropCost = dropCost / shortestPath(sourceId, destId);
+    }
 
     // these updates are not correct if a switch is in deflection twice as those updates will be out of order
-    for (auto it : deflections) {
-        deflectionCost += 2; // add deflection cost
+    for (int i = switches.size() - 1; i >= 0; i--) {
+        ManhattanBanditDeflectionSwitch *s = dynamic_cast<ManhattanBanditDeflectionSwitch *>(man.getSwitch(switches[i]));
 
-        ManhattanBanditDeflectionSwitch *s = dynamic_cast<ManhattanBanditDeflectionSwitch *>(man.getSwitch(it.first));
-        // TODO normalize
-        s->rewardAction(id, -(deflectionCost + dropCost));
+        // calc reward
+        // total = ttlInitial - ttl
+        double minHops = shortestPath(switches[i], destId);
+        double reward = (ttlInitial - ttl - minHops) / minHops + dropCost;
+
+        s->rewardAction(id, -(reward));
     }
 }
 

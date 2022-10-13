@@ -182,7 +182,7 @@ class MDCFlow: public BasicFlow {
 
         int alphaLimiter = 1000;
 
-        Packet *getNextPacket(bool fromSource);
+        virtual Packet *getNextPacket(bool fromSource);
 
         void packetArrived(Packet *p);
 };

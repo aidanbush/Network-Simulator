@@ -96,8 +96,14 @@ class MBDPacket: public MDCPacket {
         MBDPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
                 int headerSize, int bodySize, bool sourcePacket);
 
+        void recordAction(int switchId);
+
     protected:
         void updateSwitches(double lostCost, double resendCost);
+
+        double shortestPath(int source, int dest);
+
+        vector<int> switches;
 };
 
 class ECNPacket: public Packet {

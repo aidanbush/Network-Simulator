@@ -49,6 +49,7 @@ enum FlowType {
     BasicFlowType,
     ECNFlowType,
     MDCFlowType,
+    MBDFlowType,
 #ifdef _TEST
     TestFlowType,
 #endif /* _TEST */
@@ -78,6 +79,7 @@ Flow *createFlow(json &flowNetConfig, json &flowTestConfig) {
         {"basic", BasicFlowType},
         {"ecn", ECNFlowType},
         {"mdc", MDCFlowType},
+        {"mbd", MBDFlowType},
 #ifdef _TEST
         {"test", TestFlowType},
 #endif /* _TEST */
@@ -109,6 +111,9 @@ Flow *createFlow(json &flowNetConfig, json &flowTestConfig) {
             break;
         case MDCFlowType:
             flow = new MDCFlow(flowNetConfig);
+            break;
+        case MBDFlowType:
+            flow = new MBDFlow(flowNetConfig);
             break;
 #ifdef _TEST
         case TestFlowType:
