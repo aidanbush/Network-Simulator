@@ -28,8 +28,8 @@ void LinUCB::updateAgent(vector<double> observation, int action, double reward) 
     updateTheta(prevActionContext, reward);
 }
 
-int LinUCB::selectAction(vector<double> observation) {
-    torch::Tensor obsTensor= torch::tensor(observation);
+int LinUCB::selectAction(vector<double> observation, vector<int> available_actions) {
+    torch::Tensor obsTensor = torch::tensor(observation);
 
     double beta = sqrt(this->regularizer) + sqrt(2 * log(1 / this->delta) + this->numActions *
             log(1 + (this->timestep-1) / (this->regularizer * this->numActions)));
@@ -37,7 +37,7 @@ int LinUCB::selectAction(vector<double> observation) {
     torch::Tensor ucb = torch::zeros(this->numActions);
     torch::Tensor inverseV = torch::inverse(this->V);
 
-    for (int action = 0; action < this->numActions; action++) {
+    for (int action : available_actions) {
         torch::Tensor actionContext = createActionContext(obsTensor, action);
         ucb[action] = actionContext.dot(this->theta) + beta *
             torch::sqrt(torch::matmul(actionContext, inverseV).dot(actionContext));
@@ -45,15 +45,20 @@ int LinUCB::selectAction(vector<double> observation) {
 
     // select highest ucb value
     // TODO ramdomly select equal actions
-    vector<int> actions = {0};
-    double actionValue = ucb[0].item().to<double>();
-    for (int i = 1; i < this->numActions; i++) {
-        double tmpActionValue = ucb[i].item().to<double>();
+    //vector<int> actions = {0};
+    vector<int> actions = {available_actions[0]};
+    //double actionValue = ucb[0].item().to<double>();
+    double actionValue = ucb[actions[0]].item().to<double>();
+
+    //for (int i = 1; i < this->numActions; i++) {
+    for (int i = 1; i < available_actions.size(); i++) {
+        int action = available_actions[i];
+        double tmpActionValue = ucb[action].item().to<double>();
         if (tmpActionValue > actionValue) {
-            actions = {i};
+            actions = {action};
             actionValue = tmpActionValue;
         } else if (tmpActionValue == actionValue) {
-            actions.push_back(i);
+            actions.push_back(action);
         }
     }
 

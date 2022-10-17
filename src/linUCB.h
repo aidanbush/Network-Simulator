@@ -13,7 +13,7 @@ class LinUCB {
         LinUCB(int observeDims, int numActions, double regularizer, double delta, int seed);
 
         void updateAgent(vector<double> observation, int action, double reward);
-        int selectAction(vector<double> observation);
+        int selectAction(vector<double> observation, vector<int> available_actions);
 
     private:
 

@@ -597,9 +597,25 @@ bool ManhattanBanditDeflectionSwitch::initSwitch() {
     return ret;
 }
 
+vector<int> ManhattanBanditDeflectionSwitch::availableInterfaces(Packet *p) {
+    vector<int> available;
+
+    //for (int ifaceId : actionInterfaces) {
+    for (int i = 0; i < actionInterfaces.size(); i++) {
+        int ifaceId = actionInterfaces[i];
+        Interface *interface = man.getInterface(ifaceId);
+        // check if there is room
+        if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
+            available.push_back(i);
+        }
+    }
+
+    return available;
+}
+
 int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
     // at destination send to endpoint
-    if (getCoords(p->getDest(), networkSize) == coords) { // check if at dest TODO make check correct
+    if (getCoords(p->getDest(), networkSize) == coords) {
         // TODO this is a hack change it
         return Switch::routePacket(p);
     }
@@ -616,8 +632,16 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
         }
     }
 
+    // get available actions
+    vector<int> nonBlockedActions = availableInterfaces(p);
+
     // select action using agent
-    int action = agent->selectAction(state);
+    int action = NULL_ID;
+    if (!nonBlockedActions.empty()) {
+        action = agent->selectAction(state, nonBlockedActions);
+    } else {
+        return NULL_ID;
+    }
 
     // record action in switch and packet
     recordAction(p, state, action);
