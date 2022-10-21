@@ -16,6 +16,8 @@
 #define SWITCH_STR          "Switch"
 #define SWITCH_RX_EVENT_STR "switch rx"
 
+#define DROP_ACTION         true
+
 using namespace std;
 
 using json = nlohmann::json;
@@ -587,9 +589,19 @@ bool ManhattanBanditDeflectionSwitch::initSwitch() {
         }
     }
 
+    // add drop action
+    if (DROP_ACTION) {
+        actionInterfaces.push_back(NULL_ID);
+    }
+
     int observeDims = this->numFlows;/* number of flow */
     // neighbour Ifaces - destination iface
-    int numActions = switchNeighbourIfaces.size();/* number of interfaces +1 if drop*/;
+    int numActions;
+    if (DROP_ACTION) {
+        numActions = switchNeighbourIfaces.size() + 1;/* number of interfaces +1 if drop*/;
+    } else {
+        numActions = switchNeighbourIfaces.size();/* number of interfaces +1 if drop*/;
+    }
     int seed = man.random();/* get from manager random */
     // initialize agent
     agent = new LinUCB(observeDims, numActions, this->regularizer, this->delta, seed);
@@ -603,8 +615,14 @@ vector<int> ManhattanBanditDeflectionSwitch::availableInterfaces(Packet *p) {
     //for (int ifaceId : actionInterfaces) {
     for (int i = 0; i < actionInterfaces.size(); i++) {
         int ifaceId = actionInterfaces[i];
+        // account for drop action
+        if (ifaceId == NULL_ID) {
+            available.push_back(i);
+            continue;
+        }
+
         Interface *interface = man.getInterface(ifaceId);
-        // check if there is room
+        // check if there is room to take the action
         if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
             available.push_back(i);
         }
@@ -636,19 +654,17 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
     vector<int> nonBlockedActions = availableInterfaces(p);
 
     // select action using agent
-    int action = NULL_ID;
-    if (!nonBlockedActions.empty()) {
-        action = agent->selectAction(state, nonBlockedActions);
-    } else {
+    if (!DROP_ACTION && nonBlockedActions.empty()) {
         return NULL_ID;
     }
+
+    int action = agent->selectAction(state, nonBlockedActions);
 
     // record action in switch and packet
-    recordAction(p, state, action);
-
-    if (action > this->numFlows) {
-        return NULL_ID;
+    if (actionInterfaces[action] == NULL_ID) {
+        fprintf(stderr, "dropAction %d\n", p->getId());
     }
+    recordAction(p, state, action);
 
     // convert action into interface
     return actionInterfaces[action];

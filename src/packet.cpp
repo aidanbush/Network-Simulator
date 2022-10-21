@@ -3,6 +3,8 @@
 #include "manager.h"
 #include "switch.h"
 
+#include <cstdio>
+
 class MDCSwitch;
 
 Packet::Packet(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
@@ -153,18 +155,30 @@ double MBDPacket::shortestPath(int source, int dest) {
 
 void MBDPacket::updateSwitches(double lostCost, double resendCost) {
     double dropCost = (lostCost + resendCost);
+    //TODO lost cost is too small - not cacluated properly
     if (dropCost != 0) {
         dropCost = dropCost / shortestPath(sourceId, destId);
     }
 
     // these updates are not correct if a switch is in deflection twice as those updates will be out of order
+    if (dropCost != 0) {
+        fprintf(stderr, "id %d drop %f lost %f resend %f shortest path %f\n", id, dropCost, lostCost, resendCost, shortestPath(sourceId, destId));
+    }
+
+    double hops = 0;
     for (int i = switches.size() - 1; i >= 0; i--) {
         ManhattanBanditDeflectionSwitch *s = dynamic_cast<ManhattanBanditDeflectionSwitch *>(man.getSwitch(switches[i]));
+        hops += 1;
 
         // calc reward
         // total = ttlInitial - ttl
         double minHops = shortestPath(switches[i], destId);
-        double reward = (ttlInitial - ttl - minHops) / minHops + dropCost;
+        //double reward = (ttlInitial - ttl - minHops) / minHops + dropCost;
+        double reward = hops / minHops + dropCost;
+
+        if (dropCost != 0) {
+            fprintf(stderr, "hops %f min hops %f hop cost %f reward %f\n", hops, minHops, hops / minHops, reward);
+        }
 
         s->rewardAction(id, -(reward));
     }
