@@ -657,7 +657,7 @@ void MDCFlow::packetArrived(Packet *p) {
         // update averageHopCount
         totalPacketsArrived += 1;
         averageHopCount += 1 / min(totalPacketsArrived, alphaLimiter) * (p->hopCount() - averageHopCount);
-        fprintf(stderr, "newAverageHops %f\n", averageHopCount);
+        //fprintf(stderr, "newAverageHops %f\n", averageHopCount);
     }
 
     BasicFlow::packetArrived(p);

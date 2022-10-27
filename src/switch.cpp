@@ -653,7 +653,7 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
     // get available actions
     vector<int> nonBlockedActions = availableInterfaces(p);
 
-    // select action using agent
+    // force a drop if drop actions are not being used
     if (!DROP_ACTION && nonBlockedActions.empty()) {
         return NULL_ID;
     }
@@ -661,9 +661,9 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
     int action = agent->selectAction(state, nonBlockedActions);
 
     // record action in switch and packet
-    if (actionInterfaces[action] == NULL_ID) {
+    /*if (actionInterfaces[action] == NULL_ID) {
         fprintf(stderr, "dropAction %d\n", p->getId());
-    }
+    }*/
     recordAction(p, state, action);
 
     // convert action into interface
