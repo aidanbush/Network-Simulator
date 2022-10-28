@@ -672,23 +672,25 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
 
 void ManhattanBanditDeflectionSwitch::recordAction(Packet *p, vector<double> context, int action) {
     // TODO if exists add to queue else create queue
-    actionStore.emplace(p->getId(), pair<vector<double>, int>{context, action});
+    actionStore[p->getId()].push(pair<vector<double>, int>{context, action});
+    //actionStore.emplace(p->getId(), pair<vector<double>, int>{context, action});
 
     MBDPacket *MBDP = dynamic_cast<MBDPacket *>(p);
     MBDP->recordAction(id);
 }
 
 pair<vector<double>, int> ManhattanBanditDeflectionSwitch::retrieveAction(int pId) {
-    auto it = actionStore.find(pId);
-    if (it == actionStore.end()) {
+    // TODO pop off queue if exists
+    // if last delete queue from map
+    if (actionStore[pId].empty()) {
         return {{}, -1};
     }
 
     // make copy
-    vector<double> state = it->second.first;
-    int action = it->second.second;
+    vector<double> state = actionStore[pId].top().first;
+    int action = actionStore[pId].top().second;
     // remove
-    actionStore.erase(pId);
+    actionStore[pId].pop();
     // return
     return {state, action};
 }

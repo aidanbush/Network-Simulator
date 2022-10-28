@@ -6,6 +6,7 @@
 #include <queue>
 #include <set>
 #include <random>
+#include <stack>
 
 #include "packetHandler.h"
 
@@ -136,7 +137,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         pair<vector<double>, int> retrieveAction(int pId);
         vector<int> availableInterfaces(Packet *p);
 
-        map<int, pair<vector<double>, int>> actionStore; // packet id -> (context, action)
+        map<int, stack<pair<vector<double>, int>>> actionStore; // packet id -> (context, action)
         vector<int> actionInterfaces;
         LinUCB *agent;
 
