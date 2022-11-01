@@ -64,37 +64,6 @@ class BasicGenerator: public Generator {
         void validateBasicGeneratorConfig(json &generatorConfig);
 };
 
-// creates packets followiong a predefined cycle
-class CycleGenerator: public Generator {
-    public:
-        CycleGenerator(json &generatorConfig);
-
-        void generatePacket();
-
-        double getAveragePacketSizeBytes();
-
-    private:
-        void validateCycleGeneratorConfig(json &generatorConfig);
-
-        struct cycleElement {
-            int headerSize;
-            int bodySize;
-            double rate;
-            int numPackets;
-        };
-
-        int getCycleHeaderSize();
-        int getCycleBodySize();
-        double getCycleRate();
-        int getCycleNumPackets();
-
-        // vector of tuples
-        vector<cycleElement> cycleData;
-        int packetsSent;
-        int cyclePos;
-        double averagePacketSizeBytes;
-};
-
 // Poisson model
 class PoissonGenerator: public Generator {
     public:
