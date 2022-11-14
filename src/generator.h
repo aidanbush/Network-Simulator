@@ -87,6 +87,33 @@ class PoissonGenerator: public Generator {
         void validatePoissonGeneratorConfig(json &generatorConfig);
 };
 
+// Compound Poisson
+class CompoundPoissonGenerator: public Generator {
+    public:
+        CompoundPoissonGenerator(json &generatorConfig);
+
+        void generatePacket();
+
+        double getAveragePacketSizeBytes();
+    private:
+        int getHeaderSize();
+        int getBodySize();
+        second_t nextGenTime();
+
+        default_random_engine generator;
+        exponential_distribution<double> burstDelayDistribution;
+        geometric_distribution<int> burstSizeDistribution;
+
+        int headerSize;
+        int bodySize;
+
+        int curBurstGen;
+        int burstSize;
+        double burstRate;
+
+        void validateCompoundPoissonGeneratorConfig(json &generatorConfig);
+};
+
 Generator *createGenerator(json &generatorConfig);
 
 #endif /* GENERATOR_H */

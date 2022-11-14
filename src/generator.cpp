@@ -11,15 +11,15 @@ using namespace std;
 /* Traffic generator */
 enum GeneratorType {
     BasicGeneratorType,
-    CycleGeneratorType,
     PoissonGeneratorType,
+    CompoundPoissonGeneratorType,
 };
 
 Generator *createGenerator(json &generatorConfig) {
     static map<string, GeneratorType> generatorTypeMap = {
         {"basic", BasicGeneratorType},
-        {"cycle", CycleGeneratorType},
         {"poisson", PoissonGeneratorType},
+        {"compound_poisson", CompoundPoissonGeneratorType},
     };
 
     if (!hasMemberOfType(generatorConfig, "type", jsonString)) {
@@ -40,11 +40,11 @@ Generator *createGenerator(json &generatorConfig) {
         case BasicGeneratorType:
             generator = new BasicGenerator(generatorConfig);
             break;
-        case CycleGeneratorType:
-            generator = new CycleGenerator(generatorConfig);
-            break;
         case PoissonGeneratorType:
             generator = new PoissonGenerator(generatorConfig);
+            break;
+        case CompoundPoissonGeneratorType:
+            generator = new CompoundPoissonGenerator(generatorConfig);
             break;
         default:
             throw runtime_error("Generator:\nInvalid generator type: " + generatorTypeString);
@@ -261,5 +261,114 @@ void PoissonGenerator::generatePacket() {
 }
 
 double PoissonGenerator::getAveragePacketSizeBytes() {
+    return headerSize + bodySize;
+}
+
+/* CompoundPoissonGenerator */
+
+CompoundPoissonGenerator::CompoundPoissonGenerator(json &generatorConfig):
+    Generator(generatorConfig) {
+    validateCompoundPoissonGeneratorConfig(generatorConfig);
+
+    // get burst rate
+    this->burstRate = generatorConfig["burst_rate"];
+
+    // get rho from burst mean size
+    double rho = 1 / double(generatorConfig["burst_mean"]);
+
+    // lambda for interburst delay
+    double lambda = 1 / double(generatorConfig["delay_mean"]);
+
+    this->headerSize = generatorConfig["header"];
+    this->bodySize = generatorConfig["body"];
+
+    this->curBurstGen = 0;
+    this->burstSize = 0;
+
+    // create distributions
+    this->burstDelayDistribution = exponential_distribution(lambda);
+    this->burstSizeDistribution = geometric_distribution(rho);
+    // seed generator
+    generator.seed(man.random()); // use man random
+}
+
+void CompoundPoissonGenerator::validateCompoundPoissonGeneratorConfig(json &generatorConfig) {
+    string message = "";
+
+    if (!hasMemberOfType(generatorConfig, "burst_rate", jsonDouble)) {
+        message += "No double with name 'burst_rate'.\n";
+    }
+
+    if (!hasMemberOfType(generatorConfig, "burst_mean", jsonDouble)) {
+        message += "No double with name 'burst_mean'.\n";
+    }
+
+    if (!hasMemberOfType(generatorConfig, "delay_mean", jsonDouble)) {
+        message += "No double with name 'delay_mean'.\n";
+    }
+
+    if (!hasMemberOfType(generatorConfig, "header", jsonInt)) {
+        message += "No integer with name 'header'.\n";
+    }
+
+    if (!hasMemberOfType(generatorConfig, "body", jsonInt)) {
+        message += "No integer with name 'body'.\n";
+    }
+
+    if (!message.empty()) {
+        message = "PoissonGenerator:\n" + message + generatorConfig.dump(4);
+        throw runtime_error(message);
+    }
+}
+
+int CompoundPoissonGenerator::getHeaderSize() {
+    return headerSize;
+}
+
+int CompoundPoissonGenerator::getBodySize() {
+    return bodySize;
+}
+
+second_t CompoundPoissonGenerator::nextGenTime() {
+    second_t interArrivalTime;
+    // if at end of burst then use the time between burst as calculated by lambda
+    if (curBurstGen >= burstSize) {
+        // reset curBurstGen
+        this->curBurstGen = 0;
+        // sample next burst size
+        this->burstSize = burstSizeDistribution(generator);
+        // sample burst interArrivalTime
+        interArrivalTime = burstDelayDistribution(generator);
+    } else { // else use rate and size
+        interArrivalTime = double(getHeaderSize() + getBodySize()) * BITS_PER_BYTE / burstRate;
+    }
+
+    return man.time + interArrivalTime;
+}
+
+void CompoundPoissonGenerator::generatePacket() {
+    if (!running) {
+        return;
+    }
+
+    // create packet, if there is room, else wait
+    int headerSize = getHeaderSize();
+    int bodySize = getBodySize();
+
+    int packetSize = headerSize + bodySize;
+    if (bufferCurSize + packetSize <= bufferMaxSize) {
+        this->curBurstGen++;
+        packetBuffer.push({headerSize, bodySize});
+        bufferCurSize += packetSize;
+    }
+
+    man.logEvent("PoissonGenerator", 0, "generatePacket", "Generated Packet of size" + to_string(packetSize));
+    Generator::generatePacket();
+
+    EventI *e = new Event<CompoundPoissonGenerator>(nextGenTime(), &CompoundPoissonGenerator::generatePacket, this);
+    man.pushEvent(e);
+}
+
+double CompoundPoissonGenerator::getAveragePacketSizeBytes() {
     return headerSize + bodySize;
 }
