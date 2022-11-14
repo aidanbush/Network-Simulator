@@ -12,6 +12,7 @@ enum JsonType {
     jsonDouble,
     jsonString,
     jsonArray,
+    jsonBool,
 };
 
 bool checkConfigObjType(json &obj, JsonType type);

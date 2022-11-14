@@ -141,6 +141,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         vector<int> actionInterfaces;
         LinUCB *agent;
 
+        bool dropAction;
         // agent variables
         double regularizer;
         double delta;

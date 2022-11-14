@@ -16,8 +16,6 @@
 #define SWITCH_STR          "Switch"
 #define SWITCH_RX_EVENT_STR "switch rx"
 
-#define DROP_ACTION         true
-
 using namespace std;
 
 using json = nlohmann::json;
@@ -549,14 +547,19 @@ void MDCSwitch::updateDeflectionCost(int flowId, int interfaceId, double cost) {
 /* ManhattanBanditDeflectionSwitch */
 
 ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchConfig):
-    RandomDeflectionSwitch(switchConfig) {
+    RandomDeflectionSwitch(validateManhattanBanditDeflectionSwitchConfig(switchConfig)) {
     this->regularizer = switchConfig["regularizer"];
     this->delta = switchConfig["delta"];
     this->numFlows = switchConfig["num_flows"];
+    this->dropAction = switchConfig["drop_action"];
 }
 
 json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchConfig(json &switchConfig) {
     string message = "";
+    if (!hasMemberOfType(switchConfig, "drop_action", jsonBool)) {
+        message += "No bool with name 'drop_action'.\n";
+    }
+
     if (!hasMemberOfType(switchConfig, "regularizer", jsonDouble)) {
         message += "No double with name 'regularizer'.\n";
     }
@@ -590,14 +593,14 @@ bool ManhattanBanditDeflectionSwitch::initSwitch() {
     }
 
     // add drop action
-    if (DROP_ACTION) {
+    if (this->dropAction) {
         actionInterfaces.push_back(NULL_ID);
     }
 
     int observeDims = this->numFlows;/* number of flow */
     // neighbour Ifaces - destination iface
     int numActions;
-    if (DROP_ACTION) {
+    if (this->dropAction) {
         numActions = switchNeighbourIfaces.size() + 1;/* number of interfaces +1 if drop*/;
     } else {
         numActions = switchNeighbourIfaces.size();/* number of interfaces +1 if drop*/;
@@ -654,7 +657,7 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
     vector<int> nonBlockedActions = availableInterfaces(p);
 
     // force a drop if drop actions are not being used
-    if (!DROP_ACTION && nonBlockedActions.empty()) {
+    if (!this->dropAction && nonBlockedActions.empty()) {
         return NULL_ID;
     }
 

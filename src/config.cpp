@@ -32,6 +32,8 @@ bool checkConfigObjType(json &obj, JsonType type) {
             return obj.is_string();
         case jsonArray:
             return obj.is_array();
+        case jsonBool:
+            return obj.is_boolean();
     }
 
     // error
