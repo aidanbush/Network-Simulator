@@ -14,6 +14,15 @@ LinUCB::LinUCB(int observeDims, int numActions, double regularizer, double delta
     this->V = torch::eye(this->observeDims * this->numActions) * this->regularizer;
     this->b = torch::zeros(this->observeDims * this->numActions);
 
+    /*
+    // modify V for drop action
+    torch::Tensor t = torch::ones(this->numActions * this->observeDims);
+    for (int i = (this->numActions-1) * this->observeDims; i < this->numActions * this->observeDims; i++ ) {
+        t[i] *= 5;
+    }
+    this->V = this->V * t;
+    */
+
     this->timestep = 1;
 
     generator.seed(seed);
