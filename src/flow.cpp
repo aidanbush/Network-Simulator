@@ -15,9 +15,6 @@
 #include "endpoint.h"
 #include "networkObject.h"
 #include "config.h"
-#include "agent.h"
-#include "actorCritic.h"
-#include "sarsa.h"
 #include "generator.h"
 #include "observer.h"
 
@@ -29,16 +26,11 @@
 #include "flowDefines.h"
 #else
 #define MIN_RATE 500.0
-#define NUM_AGENT_STEPS 100
-#define MI_TIME 10
-#define PACKET_HEADER_SIZE 20
-#define PACKET_BODY_SIZE 236
+#define MI_TIME 1
+#define ACK_HEADER_SIZE 20
+#define ACK_BODY_SIZE 10
 #define STAT_FILE_DIRECTORY "results"
 #define NO_PACKET_WAIT 0.01
-
-#define DEFAULT_REWARD_TYPE BasicReward
-
-#define INITIAL_STATE {0}
 #endif // __has_include
 
 #define MAX_RTT 1
@@ -122,59 +114,9 @@ Flow *createFlow(json &flowNetConfig, json &flowTestConfig) {
     return flow;
 }
 
-// TODO move out of Flow
-double Flow::initialAverageReward() {
-    double rBar = 0;
-    double expectedPackets = floor(this->rate*MI_TIME/(PACKET_HEADER_SIZE + PACKET_BODY_SIZE)/8); // new
-
-    switch (DEFAULT_REWARD_TYPE) {
-        case OffsetReward:
-        case ECNReward:
-        case BasicReward:
-            rBar = expectedPackets;
-            break;
-        case AdvancedReward:
-        case AdvancedPenaltyReward:
-        case RateReward:
-            rBar = expectedPackets / pow(this->rate, 0.5);
-            break;
-        case LogReward:
-            rBar = expectedPackets;
-            if (rBar != 0) {
-                rBar = log(rBar) + 1;
-            }
-            break;
-        case NegativeReward:
-            rBar = 0;
-            break;
-        case ExpertReward:
-            rBar = 1;
-            break;
-        case ThroughputReward:
-        case GoodputReward:
-        case ThroughputDemandReward:
-            rBar = 0;
-            break;
-        case LogThroughput:
-        case LogGoodput:
-            rBar = log(rate);
-            break;
-        case REMY1:
-            rBar = log(rate); // ignore RTT for now, average reward should increase
-            break;
-        case REMY2:
-            rBar = -1/rate;
-            break;
-    }
-
-    return rBar;
-}
-
 //flowConfig already validated
 Flow::Flow(json &flowConfig):
     NetworkObject(flowConfig["id"])
-    //TODO: Second parameter is initial state, should it be something other than 0?
-    //,agent(new AGENT_TYPE(man.getEndpoint(flowConfig["source_id"])->getWeights(), 0))
     {
     validateFlowConfig(flowConfig);
 
@@ -189,20 +131,6 @@ Flow::Flow(json &flowConfig):
 
     this->generator->setFlowId(flowConfig["id"]);
 
-    // TODO move agents into ECN Flow
-    vector<double> initialState = INITIAL_STATE;
-    switch (AGENT_TYPE) {
-        case ActorCriticAgent:
-            {
-                double rBar = initialAverageReward();
-
-                agent = new ActorCritic(initialState, flowConfig["id"], rBar, flowConfig["agent"]);
-                break;
-            }
-        case SarsaAgent:
-            agent = new Sarsa(initialState, flowConfig["id"], flowConfig["agent"]);
-            break;
-    }
     this->sourceId = flowConfig["source_id"];
     this->destId = flowConfig["dest"];
 
@@ -223,8 +151,6 @@ Flow::Flow(json &flowConfig):
     this->sendingPacket = NULL;
     this->ackHeadSize = ACK_HEADER_SIZE;
     this->ackBodySize = ACK_BODY_SIZE;
-
-    this->rewardType = DEFAULT_REWARD_TYPE;
 }
 
 void Flow::validateFlowConfig(json &flowConfig) {
@@ -255,11 +181,6 @@ void Flow::validateFlowConfig(json &flowConfig) {
         message += "No object with name 'generator'.\n";
     }
 
-    // agent
-    if (!hasMember(flowConfig, "agent")) {
-        message += "No object with name 'agent'.\n";
-    }
-
     if (!message.empty()) {
         message = "Flow:\n" + message + flowConfig.dump(4);
         throw runtime_error(message);
@@ -275,7 +196,6 @@ Flow::~Flow() {
         delete it.second;
     }
 
-    delete agent;
     delete generator;
 }
 
@@ -430,10 +350,6 @@ double Flow::getMaxRate() {
     return e->getMaxOutputRate();
 }
 
-double Flow::getTotalReward() {
-    return totalReward;
-}
-
 BasicFlow::BasicFlow(json &flowConfig): Flow(validateBasicFlowConfig(flowConfig)) {
 }
 
@@ -497,9 +413,6 @@ void BasicFlow::startFlow() {
 
 void BasicFlow::stopFlow() {
     running = false;
-}
-
-void BasicFlow::stepAgent() {
 }
 
 void BasicFlow::txPacketEvent() {

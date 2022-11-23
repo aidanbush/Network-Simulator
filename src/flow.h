@@ -6,7 +6,6 @@
 
 #include "networkObject.h"
 #include "manager.h"
-#include "agent.h"
 #include "generator.h"
 
 using namespace std;
@@ -22,7 +21,6 @@ class Flow: public NetworkObject {
         virtual void initializeFlow();
         virtual void startFlow() = 0;
         virtual void stopFlow() = 0;
-        virtual void stepAgent() = 0;
         virtual void txPacketEvent() = 0;
 
         virtual void packetArrived(Packet *p);
@@ -38,40 +36,15 @@ class Flow: public NetworkObject {
 
         bool validate();
 
-        double getTotalReward();
-
         virtual double getAveragePacketSizeBytes() = 0;
 
         virtual void packetGenerationNotification() = 0;
 
     protected:
-        // TODO move out of Flow into ECNFlow
-        enum RewardType {
-            BasicReward,
-            RateReward,
-            LogReward,
-            AdvancedReward,
-            AdvancedPenaltyReward,
-            NegativeReward,
-            OffsetReward,
-            ECNReward,
-            ExpertReward,
-            ThroughputReward,
-            GoodputReward,
-            ThroughputDemandReward,
-            LogThroughput,
-            LogGoodput,
-            REMY1,
-            REMY2,
-        };
-
-        RewardType rewardType;
 
         bool running;
 
         Packet *sendingPacket;
-
-        double initialAverageReward();
 
         Flow(json &flowConfig);
         bool validateSource();
@@ -120,15 +93,10 @@ class Flow: public NetworkObject {
         int totalPacketsSent;
         int totalPacketsDropped;
 
-        Agent *agent;
         second_t miTime = 0.01; // 10 ms
         double rate = 0; // bits/s
         double oldRate = 0;
-        double oldECN = 0;
         double maxRate;
-
-        // TODO move out of Flow into ECNFlow
-        double totalReward = 0;
 
         Generator *generator;
 
@@ -146,7 +114,6 @@ class BasicFlow: public Flow {
         void initializeFlow();
         void startFlow();
         void stopFlow();
-        void stepAgent();
         virtual void txPacketEvent();
 
         double getAveragePacketSizeBytes();

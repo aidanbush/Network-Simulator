@@ -132,8 +132,6 @@ class Manager {
         bool parametersSet = false;
         double initialWeights;
 
-        double totalReward = 0;
-
         int suppressOutput = 0;
 
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator> pq;

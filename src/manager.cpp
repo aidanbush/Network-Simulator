@@ -131,8 +131,6 @@ bool Manager::addFlow(Flow *flow) {
 }
 
 void Manager::removeFlow(int id) {
-    Flow *f = getFlow(id);
-    totalReward += f->getTotalReward();
     flows.erase(id);
 }
 
