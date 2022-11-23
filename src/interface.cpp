@@ -18,7 +18,6 @@
 #if __has_include("interfaceDefines.h")
 #include "interfaceDefines.h"
 #else
-#define DEFAULT_ECN_THRESHOLD 0.1
 #endif // __has_include
 
 using namespace std;
@@ -31,7 +30,6 @@ Interface::Interface(json &interfaceConfig): NetworkObject(validateInterfaceConf
     this->outBufCurSize = interfaceConfig["out_buf_size"];
     this->inBufCurSize = interfaceConfig["in_buf_size"];
     this->handlerId = interfaceConfig["handler_id"];
-    this->ECNThreshold = DEFAULT_ECN_THRESHOLD;
 }
 
 int Interface::validateInterfaceConfig(json &interfaceConfig) {
@@ -133,13 +131,6 @@ void Interface::txHandlerEvent() {
 }
 
 void Interface::tagPacket(Packet *p, int bufferCurrentSize, int bufferFullSize) {
-    ECNPacket *ecnP = dynamic_cast<ECNPacket*>(p);
-    if (ecnP != NULL) {
-        if ((double)bufferCurrentSize / bufferFullSize > ECNThreshold) {
-            ecnP->setECNBit();
-        }
-        ecnP->setECNScale((double)bufferCurrentSize / bufferFullSize);
-    }
 }
 
 void Interface::tagPacketIn(Packet *p) {

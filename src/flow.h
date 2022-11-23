@@ -307,55 +307,6 @@ class DataFlow: public Flow {
         void sinkPacketArrived(Packet *p);
 };
 
-class ECNFlow: public DataFlow {
-    friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
-    public:
-
-        void initializeFlow();
-        void startFlow();
-        void stopFlow();
-        void takeAction(pair<double, double> action);
-        void stepAgent();
-        void txPacketEvent();
-
-        double getAveragePacketSizeBytes();
-
-        void packetGenerationNotification();
-
-        void notifyPacketTimeout();
-
-    private:
-        ECNFlow(json &flowConfig);
-
-        Packet *getNextPacket(bool fromSource);
-        ECNPacket *createAckPacket(ECNPacket *toAck);
-
-        void txAck(ECNPacket *toAckPacket);
-
-        void packetArrived(Packet *p);
-        void packetDropped(Packet *p);
-        void packetError(Packet *p);
-
-        void sourcePacketArrived(Packet *p);
-        void sinkPacketArrived(Packet *p);
-
-        static json &validateECNFlowConfig(json &flowConfig);
-
-        int packetsUntagged;
-        double averageECN;
-        int totalPacketsUntagged;
-
-        int numSteps;
-        int maxSteps;
-
-        vector<double> getState();
-        double getReward();
-        void resetState();
-
-        void updateStats();
-        void updateStatsPostStep(pair<double, double> action);
-};
-
 /*
 class CUBICFlow: public DataFlow {
     friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);

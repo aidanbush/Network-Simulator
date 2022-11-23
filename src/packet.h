@@ -106,34 +106,6 @@ class MBDPacket: public MDCPacket {
         vector<int> switches;
 };
 
-class ECNPacket: public Packet {
-    public:
-        struct ackMetaData {
-            bool ECNBit;
-            double bufferOccupancy; // ECN Scale
-        };
-
-        ECNPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
-                int headerSize, int bodySize, bool sourcePacket); // TODO add ack data
-        ECNPacket(const Packet &p);
-        ~ECNPacket() = default;
-        ECNPacket *clone();
-
-        void setECNBit();
-        bool getECNBit();
-        void setECNScale(double scale);
-        double getECNScale();
-
-        // TODO set to bool and only allow setting once
-        void setAckData(second_t sendTime, int sizeBytes, bool ECNBit, double bufferOccupancy, int ackedId);
-        ackMetaData getAckData();
-
-    protected:
-        bool ECNBit;
-        double ECNScale;
-        ackMetaData ackData;
-};
-
 #ifdef _TEST
 int testPacket();
 #endif /* _TEST */

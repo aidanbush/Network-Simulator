@@ -189,63 +189,6 @@ void MBDPacket::updateSwitches(double lostCost, double resendCost) {
     }
 }
 
-/* ECNPacket */
-
-ECNPacket::ECNPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
-        int headerSize, int bodySize, bool sourcePacket): Packet(id, sourceId, destId, flowId, dataId, ttl,
-            headerSize, bodySize, sourcePacket) {
-    ECNBit = false;
-    ECNScale = 0;
-}
-
-ECNPacket::ECNPacket(const Packet &p): Packet(p) {
-    ECNBit = false;
-    ECNScale = 0;
-}
-
-ECNPacket *ECNPacket::clone() {
-    ECNPacket *p = new ECNPacket(id, sourceId, destId, flowId, dataId, ttl, headerSize, bodySize, sourcePacket);
-
-    p->createTime = this->createTime;
-    p->arrivalTime = this->arrivalTime;
-    p->ECNBit = this->ECNBit;
-    p->ECNScale = this->ECNScale;
-
-    p->ackedSendTime = this->ackedSendTime;
-    p->ackedSizeBytes = this->ackedSizeBytes;
-    p->ackedId = this->ackedId;
-    p->ackData.ECNBit = this->ackData.ECNBit;
-    p->ackData.bufferOccupancy = this->ackData.bufferOccupancy;
-
-    return p;
-}
-
-void ECNPacket::setECNBit() {
-    ECNBit = true;
-}
-
-bool ECNPacket::getECNBit() {
-    return ECNBit;
-}
-
-void ECNPacket::setECNScale(double scale) {
-    ECNScale = max(ECNScale, scale);
-}
-
-double ECNPacket::getECNScale() {
-    return ECNScale;
-}
-
-void ECNPacket::setAckData(second_t sendTime, int sizeBytes, bool ECNBit, double bufferOccupancy, int ackedId) {
-    Packet::setAckData(sendTime, sizeBytes, ackedId);
-    this->ackData.ECNBit = ECNBit;
-    this->ackData.bufferOccupancy = bufferOccupancy;
-}
-
-ECNPacket::ackMetaData ECNPacket::getAckData() {
-    return ackData;
-}
-
 #ifdef _TEST
 #include "tests/throwAssert.h"
 

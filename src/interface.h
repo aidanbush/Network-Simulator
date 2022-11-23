@@ -69,9 +69,6 @@ class Interface: public NetworkObject {
         void tagPacketIn(Packet *p);
 
         void tagPacketOut(Packet *p);
-
-        /* packet specific data */
-        double ECNThreshold;
 };
 
 #ifdef _TEST
