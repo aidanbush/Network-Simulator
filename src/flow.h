@@ -13,7 +13,6 @@ using namespace std;
 using json = nlohmann::json;
 
 class Packet;
-class ECNPacket;
 class Endpoint;
 
 class Flow: public NetworkObject {
@@ -195,120 +194,8 @@ class MBDFlow: public MDCFlow {
         Packet *getNextPacket(bool fromSource);
 };
 
-class DataQueue {
-    public:
-        DataQueue(int flowId);
-
-        void push_back(Packet *p, second_t timeoutTime);
-        bool pop(Generator::PacketData &pData, int &dataId);
-        int removeData(int dataId); // returns the maximum acked Byte
-
-        struct transitPacket {
-            Generator::PacketData pData;
-            int dataId;
-            second_t timeout;
-        };
-
-    private:
-        struct queuePacket {
-            second_t timeoutTime;
-            int uniqueId;
-        };
-
-        struct queuePacketComparator {
-            bool operator ()(const queuePacket lhs, const queuePacket rhs) const {
-                return lhs.timeoutTime > rhs.timeoutTime;
-            }
-        };
-
-        struct lookupElem {
-            int uniqueId;
-        };
-
-        struct dataElem {
-            Generator::PacketData pData;
-            int dataId;
-            bool deleted;
-        };
-
-        // queue for packets not timed out
-        priority_queue<queuePacket, vector<queuePacket>, queuePacketComparator> untimedoutQueue;
-        // queue for packets timed out
-        priority_queue<queuePacket, vector<queuePacket>, queuePacketComparator> timedoutQueue;
-
-        // uId is the key, contains the actual packets that the queues and lookup table refer to
-        unordered_map<int, dataElem> dataTable;
-        map<int, lookupElem> lookupTable; // dataId is the key
-
-        int curUId;
-
-        int flowId;
-
-        int newUId();
-
-        void timeoutEvent();
-};
-
-class DataFlow: public Flow {
-    public:
-        DataFlow(json &flowConfig);
-
-        ~DataFlow();
-
-        virtual void notifyPacketTimeout() = 0;
-
-    protected:
-        int curDataPId;
-
-        int newDataId(Generator::PacketData pData);
-
-        // used for goodput, is calculated using acks, only when a packet is acked is it counted towards
-        int maxAckedByte; // should be working
-        int ackedBytesArrived;
-        double goodput;
-        double oldGoodput;
-
-        DataQueue *queue;
-
-        second_t retransmitTimeout;
-        bool timeoutEventScheduled;
-
-        // track what has been recieved for TCP style acks
-        struct recievedPacket {
-            int dataId;
-            int size; // body size
-            friend bool operator >(const recievedPacket& lhs, const recievedPacket& rhs) {
-                return lhs.dataId > rhs.dataId;
-            }
-            friend bool operator <(const recievedPacket& lhs, const recievedPacket& rhs) {
-                return rhs > lhs;
-            }
-            friend bool operator ==(const recievedPacket& lhs, const recievedPacket& rhs) {
-                return lhs.dataId == rhs.dataId;
-            }
-        };
-
-
-        priority_queue<recievedPacket, vector<recievedPacket>, greater<recievedPacket>> recievedPackets;
-
-        void addRecievedPacket(Packet *p);
-        int getAckDataId();
-
-        bool nextRetransmitionPacket(DataQueue::transitPacket &p);
-        void addRetransmitPacket(Packet *p);
-
-        void packetTimeoutEvent();
-
-        Packet *createNextPacket(bool fromSource);
-        virtual Packet *getNextPacket(bool fromSource);
-
-        void packetArrived(Packet *p);
-        void sourcePacketArrived(Packet *p);
-        void sinkPacketArrived(Packet *p);
-};
-
 /*
-class CUBICFlow: public DataFlow {
+class CUBICFlow: public Flow {
     friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
     public:
         CUBICFlow(json &flowConfig);
