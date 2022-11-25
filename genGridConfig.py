@@ -24,39 +24,51 @@ n = size+1
 
 # switches
 switchConfig = {
-        "type": "mdc", #"rand_deflect",
+        "type": "rand_deflect",
         "deflect_thresh": 1.0
         }
 
 switchConfig = {
-        "type": "mbd",
+        #"type": "mbd",
+        "type": "rand_deflect",
         "deflect_thresh": 1.0,
         "regularizer": 1.0,
         "delta": 1.0,
         "num_flows": 3,
+        "drop_action": False,
         }
 
 # flows
 flowConfig = {
         "start_rate": 1500000,
-        "type": "mdc",
+        "type": "mbd",
         "start_time": 0,
         "end_time": 0,
+#        "generator": {
+#            "type": "poisson",
+#            "header": 20,
+#            "body": 1480,
+#            "bitrate": 1000000,
+#            "buffer_size": 150000
+#            }
         "generator": {
-            "type": "poisson",
+            "type": "compound_poisson",
             "header": 20,
             "body": 1480,
-            "bitrate": 1500000,
+            "burst_rate": 1500000,
+            "burst_mean_len": 6.25,# 75000 b (6.25 * pktsize * 8)
+            "mean_rate" : 1000000,
             "buffer_size": 150000
             }
         }
 #
 flowRoutes = [{
     "source_id": 21,
-    "dest": 31
+    "dest": 31,
+    "start_time": 25 # delayed start
     },{
     "source_id": 21,
-    "dest": 31
+    "dest": 29
     },{
     "source_id": 23,
     "dest": 29
@@ -191,7 +203,8 @@ for i in range(len(flowRoutes)):
             "id": i + 1
             }
     flow.update(route)
-    flow.update(flowConfig)
+    flow = dict(list(flowConfig.items()) + list(flow.items()))
+    #flow.update(flowConfig)
     config["flows"].append(flow)
 
 # print
