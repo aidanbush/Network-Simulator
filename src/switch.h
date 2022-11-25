@@ -22,6 +22,8 @@ class Switch: public PacketHandler {
 
         void rxPacket(Packet *p);
 
+        void txPacket(Packet *p);
+
         virtual bool initSwitch();
 
         int getInterfaceId(int destId);

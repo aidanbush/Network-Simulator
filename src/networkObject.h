@@ -1,5 +1,6 @@
 #ifndef NETWORK_OBJECT_H
 #define NETWORK_OBJECT_H
+
 using namespace std;
 
 class NetworkObject {

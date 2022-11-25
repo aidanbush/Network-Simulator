@@ -40,17 +40,15 @@ void Endpoint::rxPacket(Packet *p) {
     p->arrive();
 }
 
-int Endpoint::txPacket(Packet *p) {
+void Endpoint::txPacket(Packet *p) {
     auto interfaceIt = interfaces.begin();
     if (interfaceIt == interfaces.end()) {
-        fprintf(stderr, "interface not found to transmit packet on\n");
-        return 0;
+        throw runtime_error("Endpoint: txPacket: no interface on endpoint to send packet");
     }
 
     Interface *interface = man.getInterface(interfaceIt->second);
 
     interface->rxHandler(p);
-    return 1;
 }
 
 bool Endpoint::validate() {

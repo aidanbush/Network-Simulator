@@ -283,7 +283,7 @@ int Flow::getPacketsErrored() {
 }
 
 bool Flow::validateSource() {
-    if (man.getEndpoint(sourceId) == NULL) {
+    if (man.getHandler(sourceId) == NULL) {
         fprintf(stderr, "Flow: endpoint of flow %d is missing\n", id);
         return false;
     }
@@ -292,8 +292,8 @@ bool Flow::validateSource() {
 }
 
 bool Flow::validateDest() {
-    Endpoint *endpoint = man.getEndpoint(destId);
-    if (endpoint == NULL) {
+    PacketHandler *handler = man.getHandler(destId);
+    if (handler == NULL) {
         fprintf(stderr, "Flow: destination %d of flow %d is missing\n", destId, id);
         return false;
     }
@@ -346,8 +346,11 @@ second_t Flow::nextTxTime(Packet *p) {
 }
 
 double Flow::getMaxRate() {
-    Endpoint *e = man.getEndpoint(sourceId);
-    return e->getMaxOutputRate();
+    PacketHandler *h = man.getHandler(sourceId);
+    if (h == NULL) {
+        throw runtime_error("Flow: getMaxRate: could not find handler " + to_string(sourceId));
+    }
+    return h->getMaxOutputRate();
 }
 
 BasicFlow::BasicFlow(json &flowConfig): Flow(validateBasicFlowConfig(flowConfig)) {
@@ -420,13 +423,16 @@ void BasicFlow::txPacketEvent() {
         return;
     }
 
-    Endpoint *endpoint = man.getEndpoint(sourceId);
+    PacketHandler *handler = man.getHandler(sourceId);
+    if (handler == NULL) {
+        throw runtime_error("BasicFlow: txPacketEvent: sourceId " + to_string(sourceId) + " does not exist");
+    }
 
     man.logTxEvent(FLOW_STR, id, TX_PACKET_EVENT, sourceId, sendingPacket);
 
     man.logEvent("BasicFlow", this->id, "Flow Packet Tx", "Sent packet " + to_string(sendingPacket->getId()) +
                     " from flow " + to_string(this->id));
-    endpoint->txPacket(sendingPacket);
+    handler->txPacket(sendingPacket);
 
     packetsSent++;
     bytesSent += sendingPacket->fullSize();
@@ -453,13 +459,13 @@ Packet *BasicFlow::createAckPacket(Packet *toAck) {
 }
 
 void BasicFlow::txAck(Packet *toAckPacket) {
-    Endpoint *endpoint = man.getEndpoint(destId);
+    PacketHandler *handler = man.getHandler(destId);
 
     // create
     Packet *ackPacket = createAckPacket(toAckPacket);
 
     // send
-    endpoint->txPacket(ackPacket);
+    handler->txPacket(ackPacket);
 
     man.logEvent("BasicFlow", this->id, "Flow Ack Tx", "Sent Ack " + to_string(ackPacket->getId()) +
                     " from flow " + to_string(this->id));

@@ -16,7 +16,7 @@ class Endpoint: public PacketHandler {
     public:
         Endpoint(json &endpointConfig);
         void rxPacket(Packet *p);
-        int txPacket(Packet *p);
+        void txPacket(Packet *p);
         bool validate();
 
 #ifdef _TEST

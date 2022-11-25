@@ -90,6 +90,13 @@ json &Switch::validateSwitchConfig(json &switchConfig) {
 }
 
 void Switch::rxPacket(Packet *p) {
+    // if packet arrived then consume
+    if (p->getDest() == id) {
+        p->arrive();
+        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet arrived");
+        return;
+    }
+
     // if timeout drop
     if (p->outOfTime()) {
         p->drop();
@@ -101,23 +108,27 @@ void Switch::rxPacket(Packet *p) {
     // TODO if interface id == -1 then drop the packet
     if (interfaceId == NULL_ID) {
         p->drop();
-        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet dropped");
+        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet route drop");
         return;
     }
 
     Interface *interface = man.getInterface(interfaceId);
 
     // handle packets
-    //tagPacketOut(p, interface);
     p->decTTL();
 
     interface->rxHandler(p);
 }
 
+// send brand new packet, use rxPacket
+void Switch::txPacket(Packet *p) {
+    rxPacket(p);
+}
+
 int Switch::routePacket(Packet *p) {
     auto destId = routingTable.find(p->getDest());
     if (destId == routingTable.end()) {
-        throw runtime_error("Switch: routePacket: not able to route to destination\n");
+        throw runtime_error("Switch: routePacket: not able to route to destination");
     }
 
     return destId->second;
