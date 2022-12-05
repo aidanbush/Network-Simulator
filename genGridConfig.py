@@ -1,26 +1,10 @@
 import json
+import random
+import sys
 
-# 1,1 in the bottom left
-# n = network_size + 1
-# change to 1,1
-# coordinates: x, y
-#   switch:
-#       id = x*n + y
-#       id % n = y
-#       id / n = x (id / n % n = x, if endpoint)
-#   interface:
-#       id = switch id * 6 + direction (0 = up, 1 = right, 2 = down, 3 = left, 4 = switch, 5 = endpoint)
-#       id / 6 = switch id
-#       id % 6 = direction (0 = up, 1 = right, 2 = down, 3 = left, 4 = switch, 5 = endpoint)
-#   link:
-#       id = (left or down switch id) * 3 + direction (0 up, 1 right, 2 to endpoint)
-#       id / 3 = switch id (down or left)
-#       id % 3 = direction (0 up, 1 right, 2 to endpoint)
+random.seed(0)
 
-size = 3
-n = size+1
-
-# endpoints
+size = 5
 
 # switches
 switchConfig = {
@@ -29,18 +13,23 @@ switchConfig = {
         }
 
 switchConfig = {
-        #"type": "mbd",
-        "type": "rand_deflect",
+        "type": "mbd",
+        #"type": "rand_deflect",
         "deflect_thresh": 1.0,
         "regularizer": 1.0,
         "delta": 1.0,
-        "num_flows": 3,
         "drop_action": False,
+        }
+
+# links
+linkConfig = {
+        "speed": 1500000,
+        "time": 0.1 # propagation delay
         }
 
 # flows
 flowConfig = {
-        "start_rate": 1500000,
+        "start_rate": linkConfig["speed"], # TODO remove from flow class
         "type": "mbd",
         "start_time": 0,
         "end_time": 0,
@@ -55,157 +44,200 @@ flowConfig = {
             "type": "compound_poisson",
             "header": 20,
             "body": 1480,
-            "burst_rate": 1500000,
+            "burst_rate": linkConfig["speed"],
             "burst_mean_len": 6.25,# 75000 b (6.25 * pktsize * 8)
-            "mean_rate" : 1000000,
-            "buffer_size": 150000
+            "mean_rate" : 500000,
+            "buffer_size": 150000 # 100 packets TODO remove from generator class
             }
         }
 #
-flowRoutes = [{
-    "source_id": 21,
-    "dest": 31,
-    "start_time": 25 # delayed start
-    },{
-    "source_id": 21,
-    "dest": 29
-    },{
-    "source_id": 23,
-    "dest": 29
-    }
-        ]
 
 # interfaces
 interfaceConfig = {
-        "out_buf_size": flowConfig["generator"]["header"] + flowConfig["generator"]["body"],
-        "in_buf_size": flowConfig["generator"]["header"] + flowConfig["generator"]["body"]
+        "out_buf_size": 1*(flowConfig["generator"]["header"] + flowConfig["generator"]["body"]),
+        "in_buf_size": 1*(flowConfig["generator"]["header"] + flowConfig["generator"]["body"])
         }
 
-endpointInterfaceConfig = {
-        "out_buf_size": interfaceConfig["out_buf_size"] * 4,
-        "in_buf_size": interfaceConfig["in_buf_size"] * 4
-        }
+'''
+flowRoutes = [{
+    "source_id": 1,
+    "dest": 9,
+    "start_time": 25 # delayed start
+    }]
+'''
+flowRoutes = [{
+    "source_id": 1,
+    "dest": 9,
+    "start_time": 25 # delayed start
+    },{
+    "source_id": 1,
+    "dest": 3,
+    },{
+    "source_id": 7,
+    "dest": 3,
+    }]
 
-# links
-linkConfig = {
-        "speed": 1500000,
-        "time": 0.1 # propagation delay
-        }
-endpointLinkConfig = {
-        "speed": linkConfig["speed"] * 4, # update not true at edges
-        "time": 0.0 # propagation delay
-        }
+def calculate_id(x, y, n):
+    return y * n + x + 1
 
-# create base object
-config = {}
+def get_X(Id, n):
+    return (Id - 1) % n
 
-# create switches and endpoints - 1 endpoint per switch
-config["switches"] = []
-config["endpoints"] = []
-config["interfaces"] = []
-config["links"] = []
+def get_Y(Id, n):
+    return (Id - 1) // n
 
-for x in range(1,n):
-    for y in range(1,n):
-        # create switch and endpoint
-        switch = {
-                "id": x*n + y,
-                "internal_speed": 0,
-                "network_size": size
+def gen_nxn_network(n, config):
+    # create network
+    for y in range(n):
+        for x in range(n):
+            # create switch
+            switch = {
+                    "id": calculate_id(x, y, n),
+                    "internal_speed": 0,
+                    "network_size": n
+                    }
+            switch.update(switchConfig)
+
+            # create interfaces
+            # interface IDs i*n*4 + j*4 + (0-3, [up, right, down, left])
+            interfaces = []
+
+            # create up
+            if y > 0:
+                interfaces.append({
+                    "id": switch["id"] * 4 + 0,
+                    "handler_id": switch["id"]
+                    })
+                interfaces[-1].update(interfaceConfig)
+            # create right
+            if x < n - 1:
+                interfaces.append({
+                    "id": switch["id"] * 4 + 1,
+                    "handler_id": switch["id"]
+                    })
+                interfaces[-1].update(interfaceConfig)
+            # create down
+            if y < n - 1:
+                interfaces.append({
+                    "id": switch["id"] * 4 + 2,
+                    "handler_id": switch["id"]
+                    })
+                interfaces[-1].update(interfaceConfig)
+            # create left
+            if x > 0:
+                interfaces.append({
+                    "id": switch["id"] * 4 + 3,
+                    "handler_id": switch["id"]
+                    })
+                interfaces[-1].update(interfaceConfig)
+
+            # create up and right links
+            links = []
+            # create up link
+            if y > 0:
+                links.append({
+                    "id": switch["id"] * 2,
+                    "interfaces": [switch["id"] * 4 + 0, (switch["id"] - n) * 4 + 2] # switch up, neighbour down
+                    })
+                links[-1].update(linkConfig)
+            # create right link
+            if x < n - 1:
+                links.append({
+                    "id": switch["id"] * 2 + 1,
+                    "interfaces": [switch["id"] * 4 + 1, (switch["id"] + 1) * 4 + 3] # switch right, neighbour left
+                    })
+                links[-1].update(linkConfig)
+
+            config["switches"].append(switch)
+            config["interfaces"] += interfaces
+            config["links"] += links
+
+# generate flows
+
+def getValidSwitches(config):
+    switchIds = [s["id"] for s in config["switches"]]
+    switchMaxRate = [linkConfig["speed"] * sum([1 if i["handler_id"] == sId else 0 for i in config["interfaces"]])
+                     for sId in switchIds] # count number of interfaces per switch and multiply by rate
+    return list(map(list, zip(switchIds, switchMaxRate, [0 for _ in range(len(config["switches"]))])))
+
+def genRandomFlows(config, netUtil, n):
+    netBand = len(config["links"]) * linkConfig["speed"] * 2
+    flowBand = 0
+    flowId = 1
+    validSwitches = getValidSwitches(config)
+    flowRate = flowConfig["generator"]["mean_rate"]
+
+    while flowBand < netBand * netUtil:
+        sIndex = random.randint(0, len(validSwitches) - 1)
+        dIndex = random.randint(0, len(validSwitches) - 2)
+        if dIndex >= sIndex:
+            dIndex += 1
+
+        source = validSwitches[sIndex]
+        dest = validSwitches[dIndex]
+
+        sourceId = source[0]
+        destId = dest[0]
+
+        flow = {
+                "id": flowId,
+                "source_id": sourceId,
+                "dest": destId
                 }
-        switch.update(switchConfig)
+        flow = dict(list(flowConfig.items()) + list(flow.items()))
+        config["flows"].append(flow)
 
-        endpoint = {
-                "id": n**2 + switch["id"],
-                "internal_speed": 0
+        flowId += 1
+        num_hops = abs(get_X(sourceId, n) - get_X(destId, n)) + abs(get_Y(sourceId, n) - get_Y(destId, n))
+        flowBand += flowRate * num_hops# * number of links
+        # update
+        validSwitches[sIndex][2] += flowRate
+        validSwitches[dIndex][2] += flowRate
+
+        # if not able to accept another flow then remove
+        if validSwitches[sIndex][2] + flowRate > validSwitches[sIndex][1]:
+            validSwitches.pop(sIndex)
+        if dIndex >= sIndex:
+            dIndex -= 1
+        if validSwitches[dIndex][2] + flowRate > validSwitches[dIndex][1]:
+            validSwitches.pop(dIndex)
+
+    print(f"utilisation {flowBand/netBand}", file=sys.stderr)
+
+def addRoutes(config, flowRoutes):
+    for i in range(len(flowRoutes)):
+        route = flowRoutes[i]
+
+        flow = {
+                "id": i + 1
                 }
+        flow.update(route)
+        flow = dict(list(flowConfig.items()) + list(flow.items()))
+        config["flows"].append(flow)
 
-        # create interfaces
-        # interface IDs i*n*4 + j*4 + (0-3, [up, right, down, left])
-        interfaces = []
+def main():
+    # create base object
+    config = {}
 
-        # create up
-        if y != n - 1:
-            interfaces.append({
-                "id": switch["id"] * 6 + 0,
-                "handler_id": switch["id"]
-                })
-            interfaces[-1].update(interfaceConfig)
-        # create right
-        if x != n - 1:
-            interfaces.append({
-                "id": switch["id"] * 6 + 1,
-                "handler_id": switch["id"]
-                })
-            interfaces[-1].update(interfaceConfig)
-        # create down
-        if y != 0:
-            interfaces.append({
-                "id": switch["id"] * 6 + 2,
-                "handler_id": switch["id"]
-                })
-            interfaces[-1].update(interfaceConfig)
-        # create left
-        if x != 0:
-            interfaces.append({
-                "id": switch["id"] * 6 + 3,
-                "handler_id": switch["id"]
-                })
-            interfaces[-1].update(interfaceConfig)
+    # create switches and endpoints - 1 endpoint per switch
+    config["switches"] = []
+    config["endpoints"] = []
+    config["interfaces"] = []
+    config["links"] = []
+    config["flows"] = []
 
-        # create switch to endpoint
-        interfaces.append({
-            "id": switch["id"] * 6 + 4,
-            "handler_id": switch["id"]
-            })
-        interfaces[-1].update(endpointInterfaceConfig)
-        # create endpoint to switch
-        interfaces.append({
-            "id": switch["id"] * 6 + 5,
-            "handler_id": endpoint["id"]
-            })
-        interfaces[-1].update(endpointInterfaceConfig)
+    gen_nxn_network(size, config)
 
-        # create up and right links
-        links = []
-        # create up link
-        if y != n - 1:
-            links.append({
-                "id": switch["id"] * 3,
-                "interfaces": [switch["id"] * 6 + 0, (switch["id"] + 1) * 6 + 2] # switch up, neighbour down
-                })
-            links[-1].update(linkConfig)
-        # create right link
-        if x != n - 1:
-            links.append({
-                "id": switch["id"] * 3 + 1,
-                "interfaces": [switch["id"] * 6 + 1, (switch["id"] + n) * 6 + 3] # switch right, neighbour left
-                })
-            links[-1].update(linkConfig)
+    netUtil = .2
+    genRandomFlows(config, netUtil, size)
+    #addRoutes(config, flowRoutes)
 
-        links.append({
-            "id": switch["id"] * 3 + 2,
-            "interfaces": [switch["id"] * 6 + 4, switch["id"] * 6 + 5] # switch endpoint, endpoint switch
-            })
-        links[-1].update(endpointLinkConfig)
+    # update switch flow counts
+    for i in range(len(config["switches"])):
+        config["switches"][i]["num_flows"] = len(config["flows"])
 
-        config["switches"].append(switch)
-        config["endpoints"].append(endpoint)
-        config["interfaces"] += interfaces
-        config["links"] += links
+    # print
+    print(json.dumps(config, indent=4))
 
-# create flows
-config["flows"] = []
-for i in range(len(flowRoutes)):
-    route = flowRoutes[i]
-
-    flow = {
-            "id": i + 1
-            }
-    flow.update(route)
-    flow = dict(list(flowConfig.items()) + list(flow.items()))
-    #flow.update(flowConfig)
-    config["flows"].append(flow)
-
-# print
-print(json.dumps(config, indent=4))
+if __name__ == "__main__":
+    main()
