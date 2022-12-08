@@ -130,6 +130,7 @@ class Manager {
         void deleteEvents();
 
         bool parametersSet = false;
+        // TODO remove
         double initialWeights;
 
         int suppressOutput = 0;

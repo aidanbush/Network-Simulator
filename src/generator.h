@@ -39,7 +39,7 @@ class Generator {
 
         second_t nextGenTime(int size, double rate);
 
-        bool running; // TODO initialize
+        bool running;
 
         int flowId;
 

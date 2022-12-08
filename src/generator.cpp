@@ -104,6 +104,7 @@ bool Generator::startTraffic() {
 }
 
 void Generator::stopTraffic() {
+    // TODO can currently cause two events to exist at the same time if the traffic is restarted before the next event occurs
     running = false;
 }
 

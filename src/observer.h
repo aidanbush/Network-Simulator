@@ -18,6 +18,8 @@ class Observer {
 
         void writeData();
 
+        void deleteData();
+
     private:
         map<int, map<string, vector<double>>> flowData;
         string filenamePrefix;

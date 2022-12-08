@@ -155,6 +155,7 @@ int main(int argc, char **argv) {
     }
 
     observer.writeData();
+    observer.deleteData();
 
     man.deleteNetwork();
 

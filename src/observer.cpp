@@ -81,3 +81,7 @@ void Observer::writeFile(string filename, vector<double> data) {
 
     ofs.close();
 }
+
+void Observer::deleteData() {
+    flowData.clear();
+}

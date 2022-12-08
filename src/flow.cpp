@@ -191,10 +191,12 @@ Flow::~Flow() {
     for (auto it : sourcePackets) {
         delete it.second;
     }
+    sourcePackets.clear();
 
     for (auto it : sinkPackets) {
         delete it.second;
     }
+    sinkPackets.clear();
 
     delete generator;
 }
@@ -365,7 +367,6 @@ void BasicFlow::initializeFlow() {
         man.pushEvent(e2);
     }
 
-    // TODO move to start flow
     second_t nextRecord = man.time + miTime;
     EventI *e3 = new Event<BasicFlow>(nextRecord, &BasicFlow::recordData, this);
     man.pushEvent(e3);
@@ -432,10 +433,11 @@ void BasicFlow::txPacketEvent() {
 
     man.logEvent("BasicFlow", this->id, "Flow Packet Tx", "Sent packet " + to_string(sendingPacket->getId()) +
                     " from flow " + to_string(this->id));
-    handler->txPacket(sendingPacket);
-
+    // need to do before handler->txPacket as the packet may be deleted
     packetsSent++;
     bytesSent += sendingPacket->fullSize();
+
+    handler->txPacket(sendingPacket);
 
     sendingPacket = getNextPacket(true); // TODO should this be true
 

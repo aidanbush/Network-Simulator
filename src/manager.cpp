@@ -148,7 +148,7 @@ EventI *Manager::popEvent() {
     pq.pop();
 
     if (time > e->time) {
-        // TODO THIS IS BAD
+        throw runtime_error("Time reversed");
     }
 
     time = e->time;
