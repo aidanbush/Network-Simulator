@@ -22,16 +22,14 @@ class LinUCB {
         double regularizer;
         double delta;
 
-        torch::Tensor V;
-        torch::Tensor theta;
-        torch::Tensor b;
+        vector<torch::Tensor> V;
+        vector<torch::Tensor> theta;
+        vector<torch::Tensor> b;
 
         int timestep;
 
         // helpers
-        torch::Tensor createActionContext(torch::Tensor observation, int action);
-
-        void updateTheta(torch::Tensor oldActionContext, double reward);
+        void updateTheta(torch::Tensor oldContext, int action, double reward);
 
         default_random_engine generator;
 };
