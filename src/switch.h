@@ -135,6 +135,8 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
     protected:
         int routePacket(Packet *p);
 
+        vector<double> getState(Packet *p);
+
         void recordAction(Packet *p, vector<double> context, int action);
         pair<vector<double>, int> retrieveAction(int pId);
         vector<int> availableInterfaces(Packet *p);

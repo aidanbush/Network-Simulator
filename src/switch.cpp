@@ -645,15 +645,9 @@ vector<int> ManhattanBanditDeflectionSwitch::availableInterfaces(Packet *p) {
     return available;
 }
 
-int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
-    // at destination send to endpoint
-    if (getCoords(p->getDest(), networkSize) == coords) {
-        // TODO this is a hack change it
-        return Switch::routePacket(p);
-    }
-
-    // get state
+vector<double> ManhattanBanditDeflectionSwitch::getState(Packet *p) {
     vector<double> state;
+
     int flowId = p->getFlow();
     // flow ids go from 1-numFlows
     for (int i = 1; i <= this->numFlows; i++) {
@@ -663,6 +657,19 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
             state.push_back(0);
         }
     }
+
+    return state;
+}
+
+int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
+    // at destination send to endpoint
+    if (getCoords(p->getDest(), networkSize) == coords) {
+        // TODO this is a hack change it
+        return Switch::routePacket(p);
+    }
+
+    // get state
+    vector<double> state = getState(p);
 
     // get available actions
     vector<int> nonBlockedActions = availableInterfaces(p);
