@@ -82,7 +82,7 @@ for dataType in data.keys():
         plt.fill_between(range(len(flowData[0])), flowData[0]-flowData[1], flowData[0]+flowData[1], alpha=1/3)
         if (log and dataType in ["Rates", "MultActions", "MultMean", "MultStd"]):#, "Throughput"]):
             plt.yscale("log")
-        plt.legend()
+    plt.legend()
     try:
         plt.savefig(os.path.join(outputDir, "{}.{}".format(dataType, plotFormat)), format=plotFormat)
     except:
