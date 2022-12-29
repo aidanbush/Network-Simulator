@@ -133,8 +133,15 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         void rewardAction(int pId, double reward);
 
     protected:
+        enum StateType {
+            flowIdState,
+            destIdState,
+            hop1DestState,
+            hop2DestState
+        };
         int routePacket(Packet *p);
 
+        int getNumDims();
         vector<double> getState(Packet *p);
 
         void recordAction(Packet *p, vector<double> context, int action);
@@ -151,6 +158,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         double delta;
         // state variables
         int numFlows;
+        set<StateType> stateTypes;
 
     private:
         json &validateManhattanBanditDeflectionSwitchConfig(json &switchConfig);

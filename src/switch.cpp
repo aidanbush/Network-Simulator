@@ -559,10 +559,30 @@ void MDCSwitch::updateDeflectionCost(int flowId, int interfaceId, double cost) {
 
 ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchConfig):
     RandomDeflectionSwitch(validateManhattanBanditDeflectionSwitchConfig(switchConfig)) {
+    static map<string, StateType> stateTypeMap = {
+        {"flow_id", flowIdState},
+        {"dest_id", destIdState},
+        {"1_hop_dest", hop1DestState},
+        {"2_hop_dest", hop2DestState},
+    };
     this->regularizer = switchConfig["regularizer"];
     this->delta = switchConfig["delta"];
     this->numFlows = switchConfig["num_flows"];
     this->dropAction = switchConfig["drop_action"];
+    // load in state
+    for (json::iterator it = switchConfig["states"].begin(); it != switchConfig["states"].end(); ++it) {
+        // map to type
+        if (stateTypeMap.find(it.value()) ==  stateTypeMap.end()) {
+            string message = SWITCH_STR + string(" state type ") + string(it.value()) + " is not supported\n";
+            throw runtime_error(message);
+        }
+        StateType type = stateTypeMap[it.value()];
+        stateTypes.emplace(type);// TODO sort to improve performance
+    }
+
+    if (stateTypes.empty()) {
+        throw runtime_error("no states provided\n");
+    }
 }
 
 json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchConfig(json &switchConfig) {
@@ -583,12 +603,42 @@ json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchCo
         message += "No integer with name 'num_flows'.\n";
     }
 
+    if (!hasMemberOfType(switchConfig, "states", jsonArray)) {
+        message += "No array with name 'states'";
+    } else if(!checkArrayType(switchConfig["states"], jsonString)) {
+        message += "Array states does not have all elements of type string";
+    }
+
     if (!message.empty()) {
         message = "ManhattanBanditDeflectionSwitch:\n" + message + switchConfig.dump(4);
         throw runtime_error(message);
     }
 
     return switchConfig;
+}
+
+int ManhattanBanditDeflectionSwitch::getNumDims() {
+    int numDims = 0;
+    for (auto it: stateTypes) {
+        switch (it) {
+            case flowIdState:
+                numDims += numFlows;
+                break;
+            case destIdState:
+                numDims += networkSize * networkSize;
+                break;
+            case hop1DestState:
+                runtime_error("hop 1 dest state not supported");
+                //numDims += 4; // one for each direction
+                break;
+            case hop2DestState:
+                runtime_error("hop 2 dest state not supported");
+                //numDims += ???; // one for each neighbours neighbour excluding else
+                break;
+        }
+    }
+
+    return numDims;
 }
 
 bool ManhattanBanditDeflectionSwitch::initSwitch() {
@@ -608,7 +658,7 @@ bool ManhattanBanditDeflectionSwitch::initSwitch() {
         actionInterfaces.push_back(NULL_ID);
     }
 
-    int observeDims = this->numFlows;/* number of flow */
+    int observeDims = getNumDims();
     // neighbour Ifaces - destination iface
     int numActions;
     if (this->dropAction) {
@@ -648,13 +698,49 @@ vector<int> ManhattanBanditDeflectionSwitch::availableInterfaces(Packet *p) {
 vector<double> ManhattanBanditDeflectionSwitch::getState(Packet *p) {
     vector<double> state;
 
-    int flowId = p->getFlow();
-    // flow ids go from 1-numFlows
-    for (int i = 1; i <= this->numFlows; i++) {
-        if (i == flowId) {
-            state.push_back(1);
-        } else {
-            state.push_back(0);
+    for (auto it: stateTypes) {
+        switch (it) {
+            case flowIdState:
+                {
+                    // flow state
+                    int flowId = p->getFlow();
+                    // flow ids go from 1-numFlows
+                    for (int i = 1; i <= this->numFlows; i++) {
+                        if (i == flowId) {
+                            state.push_back(1);
+                        } else {
+                            state.push_back(0);
+                        }
+                    }
+                }
+                break;
+
+            case destIdState:
+                {
+                    // destination state
+                    int dest = p->getDest();
+                    for (int i = 1; i <= this->networkSize * this->networkSize; i++) {
+                        if (i == dest) {
+                            state.push_back(1);
+                        } else {
+                            state.push_back(0);
+                        }
+                    }
+                }
+                break;
+
+            case hop1DestState:
+                // relative destination state one hop
+                // if up is closest
+                // if right is closest
+                // if down is closest
+                // if left is closest
+                runtime_error("hop 1 dest state not supported");
+                break;
+
+            case hop2DestState:
+                runtime_error("hop 2 dest state not supported");
+                break;
         }
     }
 

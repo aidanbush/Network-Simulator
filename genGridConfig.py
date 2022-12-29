@@ -4,14 +4,7 @@ import sys
 
 random.seed(0)
 
-size = 5
-
 # switches
-switchConfig = {
-        "type": "rand_deflect",
-        "deflect_thresh": 1.0
-        }
-
 switchConfig = {
         "type": "mbd",
         #"type": "rand_deflect",
@@ -19,6 +12,7 @@ switchConfig = {
         "regularizer": 1.0,
         "delta": 1.0,
         "drop_action": False,
+        "states": ["flow_id"],
         }
 
 # links
@@ -58,24 +52,24 @@ interfaceConfig = {
         "in_buf_size": 1*(flowConfig["generator"]["header"] + flowConfig["generator"]["body"])
         }
 
-'''
 flowRoutes = [{
     "source_id": 1,
-    "dest": 9,
+    "dest": 3,#9,
     "start_time": 25 # delayed start
     }]
 '''
 flowRoutes = [{
     "source_id": 1,
-    "dest": 9,
+    "dest": 3,#9,
     "start_time": 25 # delayed start
     },{
-    "source_id": 1,
-    "dest": 3,
+    "source_id": 4,#1,
+    "dest": 6,#3,
     },{
     "source_id": 7,
-    "dest": 3,
+    "dest": 9,#3,
     }]
+'''
 
 def calculate_id(x, y, n):
     return y * n + x + 1
@@ -215,7 +209,7 @@ def addRoutes(config, flowRoutes):
         flow = dict(list(flowConfig.items()) + list(flow.items()))
         config["flows"].append(flow)
 
-def main():
+def create_config(size, traffic_type, net_util, agent_type, states, flowRoutes=None):
     # create base object
     config = {}
 
@@ -228,16 +222,32 @@ def main():
 
     gen_nxn_network(size, config)
 
-    netUtil = .2
-    genRandomFlows(config, netUtil, size)
+    genRandomFlows(config, net_util, size)
     #addRoutes(config, flowRoutes)
 
     # update switch flow counts
     for i in range(len(config["switches"])):
         config["switches"][i]["num_flows"] = len(config["flows"])
 
-    # print
-    print(json.dumps(config, indent=4))
+    filename = f"{size}x{size}_{traffic_type}_{net_util}_{agent_type}_[{','.join(states)}].json"
+    print("writing to file:", filename)
+    with open(filename, "w") as f:
+        f.write(json.dumps(config, indent=4))
+
+def main():
+    size = 5
+
+    traffic_type = "bursty"
+    net_utils = [0.1,0.2,0.3,0.4,0.5]
+    agent_type = "mbd"
+    states = [["dest_id"],["flow_id"]]
+
+    switchConfig["states"] = states
+    switchConfig["type"] = agent_type
+
+    for net_util in net_utils:
+        for state in states:
+            create_config(size, traffic_type, net_util, agent_type, state)
 
 if __name__ == "__main__":
     main()
