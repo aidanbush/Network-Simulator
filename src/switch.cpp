@@ -562,8 +562,8 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
     static map<string, StateType> stateTypeMap = {
         {"flow_id", flowIdState},
         {"dest_id", destIdState},
-        {"1_hop_dest", hop1DestState},
-        {"2_hop_dest", hop2DestState},
+        {"1_hop_shortest", hop1ShortState},
+        {"2_hop_shortest", hop2ShortState},
     };
     this->regularizer = switchConfig["regularizer"];
     this->delta = switchConfig["delta"];
@@ -617,36 +617,13 @@ json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchCo
     return switchConfig;
 }
 
-int ManhattanBanditDeflectionSwitch::getNumDims() {
-    int numDims = 0;
-    for (auto it: stateTypes) {
-        switch (it) {
-            case flowIdState:
-                numDims += numFlows;
-                break;
-            case destIdState:
-                numDims += networkSize * networkSize;
-                break;
-            case hop1DestState:
-                runtime_error("hop 1 dest state not supported");
-                //numDims += 4; // one for each direction
-                break;
-            case hop2DestState:
-                runtime_error("hop 2 dest state not supported");
-                //numDims += ???; // one for each neighbours neighbour excluding else
-                break;
-        }
-    }
-
-    return numDims;
-}
-
 bool ManhattanBanditDeflectionSwitch::initSwitch() {
     bool ret = RandomDeflectionSwitch::initSwitch();
 
     // TODO setup action interface list
     /*vector<int> actionInterfaces;*/ // add to class
     for (auto it: interfaces) {
+        // TODO remove??? no longer using endpoints
         // if not endpoint TODO remove endpoints this is a hack
         if (man.getEndpoint(it.first) == NULL) {
             actionInterfaces.push_back(it.second);
@@ -672,6 +649,40 @@ bool ManhattanBanditDeflectionSwitch::initSwitch() {
 
     return ret;
 }
+
+int ManhattanBanditDeflectionSwitch::getNumDims() {
+    int numDims = 0;
+    for (auto it: stateTypes) {
+        switch (it) {
+            case flowIdState:
+                numDims += numFlows;
+                break;
+            case destIdState:
+                numDims += networkSize * networkSize;
+                break;
+            case hop1ShortState:
+                numDims += actionInterfaces.size(); // one for each direction
+                break;
+            case hop2ShortState:
+                //setup2HopShortState();
+                runtime_error("hop 2 shortest state not supported");
+                //numDims += ???; // one for each neighbours neighbour excluding else
+                break;
+        }
+    }
+
+    return numDims;
+}
+
+/*
+void ManhattanBanditDeflectionSwitch::setup1HopShortState() {
+    for each destination: create a set of shortest paths
+}
+
+void ManhattanBanditDeflectionSwitch::setup2HopShortState() {
+    TODO
+}
+*/
 
 vector<int> ManhattanBanditDeflectionSwitch::availableInterfaces(Packet *p) {
     vector<int> available;
@@ -729,16 +740,21 @@ vector<double> ManhattanBanditDeflectionSwitch::getState(Packet *p) {
                 }
                 break;
 
-            case hop1DestState:
+            case hop1ShortState:
                 // relative destination state one hop
-                // if up is closest
-                // if right is closest
-                // if down is closest
-                // if left is closest
-                runtime_error("hop 1 dest state not supported");
+                // for every interface on the switch
+                for (int interfaceId : actionInterfaces) {
+                    // if that interface is the shortest path then set to 1
+                    // TODO doesn't address mutiple best actions
+                    if (routingTable[p->getDest()] == interfaceId) {
+                        state.push_back(1);
+                    } else {
+                        state.push_back(0);
+                    }
+                }
                 break;
 
-            case hop2DestState:
+            case hop2ShortState:
                 runtime_error("hop 2 dest state not supported");
                 break;
         }

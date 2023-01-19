@@ -136,8 +136,8 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         enum StateType {
             flowIdState,
             destIdState,
-            hop1DestState,
-            hop2DestState
+            hop1ShortState,
+            hop2ShortState
         };
         int routePacket(Packet *p);
 
