@@ -39,6 +39,17 @@ PacketHandler *Manager::getHandler(int id) {
     return handler->second;
 }
 
+// make copy and return that vector
+vector<int> Manager::getHandlers() {
+    vector<int> handlers;
+
+    for (auto &it : packetHandlers) {
+        handlers.push_back(it.first);
+    }
+
+    return handlers;
+}
+
 // switch
 bool Manager::addSwitch(Switch *netSwitch) {
     return addHandler(netSwitch);

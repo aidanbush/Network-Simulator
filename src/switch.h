@@ -44,18 +44,17 @@ class Switch: public PacketHandler {
             }
         };
 
-        map<int, int> routingTable; // dest Id to interface Id
+        map<int, pair<double, set<int>>> routingTable; // dest Id to cost and interface Id's
         vector<pair<int, int>> switchNeighbourIfaces; // all the interfaces that connect to a switch (interface id, switch id)
 
         virtual int routePacket(Packet *p);
 
+        static double txCost(int sourceId, int destId);
         static double txCost(Switch *source, int destId);
         static double txCost(Interface *interface);
 
-        static void initializeNeighbours(priority_queue<routingSearchElem> &fringe,
-                Switch *netSwitch);
-        static void addNeighbours(priority_queue<routingSearchElem> &fringe,
-                set<int> &explored, routingSearchElem curElem);
+        static vector<int> getNeighbours(int switchId);
+        static int findSmallest(set<int> unvisited, map<int, double> dist);
 
         bool setupRoutingTable();
         void printRoutingTable();

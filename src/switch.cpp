@@ -1,5 +1,6 @@
 #include <map>
 #include <set>
+#include <limits>
 #include <nlohmann/json.hpp>
 #include <torch/torch.h>
 
@@ -131,7 +132,7 @@ int Switch::routePacket(Packet *p) {
         throw runtime_error("Switch: routePacket: not able to route to destination");
     }
 
-    return destId->second;
+    return *destId->second.second.begin();
 }
 
 int Switch::getInterfaceId(int destId) {
@@ -144,6 +145,11 @@ int Switch::getInterfaceId(int destId) {
 }
 
 // time / speed
+double Switch::txCost(int sourceId, int destId) {
+    Switch *source = man.getSwitch(sourceId);
+    return txCost(source, destId);
+}
+
 double Switch::txCost(Switch *source, int destId) {
     int interfaceId = source->getInterfaceId(destId);
     Interface *interface = man.getInterface(interfaceId);
@@ -152,59 +158,7 @@ double Switch::txCost(Switch *source, int destId) {
 }
 
 double Switch::txCost(Interface *interface) {
-    return interface->getLinkTxTime() / interface->getLinkSpeed();
-}
-
-void Switch::initializeNeighbours(priority_queue<routingSearchElem> &fringe,
-        Switch *netSwitch) {
-    double cost;
-    routingSearchElem newElem;
-    Interface *interface;
-
-    map<int, int> neighbours = netSwitch->interfaces;
-
-    for (auto const& [handlerId, interfaceId] : neighbours) {
-        interface = man.getInterface(interfaceId);
-        cost = Switch::txCost(interface);
-
-        newElem = {
-            .cost = cost,
-            .curId = handlerId,
-            .firstId = interfaceId,
-        };
-
-        fringe.push(newElem);
-    }
-}
-
-// only add neighbours ir switch
-void Switch::addNeighbours(priority_queue<routingSearchElem> &fringe,
-        set<int> &explored, routingSearchElem curElem) {
-    Switch *netSwitch = man.getSwitch(curElem.curId);
-    if (netSwitch == NULL) {
-        return;
-    }
-
-    vector<int> neighbours = netSwitch->getNeighbours();
-    double cost;
-    routingSearchElem newElem;
-
-    for (int neighbourId : neighbours) {
-        if (explored.find(neighbourId) != explored.end()) {
-            continue;
-        }
-
-        cost = Switch::txCost(netSwitch, neighbourId) + curElem.cost;
-
-        // add to
-        newElem = {
-            .cost = cost,
-            .curId = neighbourId,
-            .firstId = curElem.firstId,
-        };
-
-        fringe.push(newElem);
-    }
+    return interface->getLinkTxTime() / double(interface->getLinkSpeed());
 }
 
 void Switch::setNeighbours() {
@@ -223,43 +177,79 @@ void Switch::setNeighbours() {
     copy(interfaceSet.begin(), interfaceSet.end(), switchNeighbourIfaces.begin());
 }
 
-bool Switch::setupRoutingTable() {
-    priority_queue<routingSearchElem> fringe;
-    set<int> explored; // explored packetHandlers
-    routingSearchElem curElem;
+vector<int> Switch::getNeighbours(int handlerId) {
+    PacketHandler *handler = man.getHandler(handlerId);
+    return handler->getNeighbours();
+}
 
-    explored.insert(id);
+int Switch::findSmallest(set<int> unvisited, map<int, double> dist) {
+    int minId = *unvisited.begin();
+    double minCost = dist[minId];
 
-    // add neigbours
-    Switch::initializeNeighbours(fringe, this);
-
-    // while fringe not empty
-    while (!fringe.empty()) {
-        curElem = fringe.top();
-        fringe.pop();
-
-        // continue if not new element
-        if (!explored.insert(curElem.curId).second) {
-            continue;
-        }
-
-        if (man.getEndpoint(curElem.curId) != NULL) {
-            routingTable.insert(pair<int, int>(curElem.curId, curElem.firstId));
-        } else if (man.getSwitch(curElem.curId) != NULL) {
-            Switch::addNeighbours(fringe, explored, curElem);
-        } else {
-            // TODO: handle error
-            fprintf(stderr, "Error in routing UCS unkown packetHandler type\n");
+    for (int it: unvisited) {
+        double newCost = dist[it];
+        if (newCost < minCost) {
+            minCost = newCost;
+            minId = it;
         }
     }
 
-    // validate routing table
-    vector<int> endpoints = man.getEndpoints();
-    for (int eId : endpoints) {
-        if (routingTable.find(eId) == routingTable.end()) {
-            fprintf(stderr, "Error: Switch: %d routing table does not have endpoint %d\n", id, eId);
+    return minId;
+}
+
+// dijkstra
+bool Switch::setupRoutingTable() {
+    map<int, double> dist; // map int to double
+    map<int, set<int>> prev; // map int to set of ints
+    set<int> unvisited; // set?
+
+    vector<int> handlers = man.getHandlers();
+
+    for (int handler: handlers) {
+        dist[handler] = numeric_limits<double>::infinity();
+        prev[handler] = set<int>({});
+        unvisited.emplace(handler);
+    }
+    dist[id] = 0;
+
+    // setup neighbours and initial actions
+    unvisited.erase(id);
+    for (pair<int, int> neighbour: interfaces) {
+        double altCost = dist[id] + txCost(id, neighbour.first);
+
+        dist[neighbour.first] = altCost;
+        prev[neighbour.first] = set<int>{neighbour.second};
+    }
+
+    while (!unvisited.empty()) {
+        int handler = findSmallest(unvisited, dist);
+        unvisited.erase(handler);
+
+        vector<int> neighbours = getNeighbours(handler);
+
+        for (int neighbourHandler: neighbours) {
+            double altCost = dist[handler] + txCost(handler, neighbourHandler);
+
+            if (altCost < dist[neighbourHandler]) {
+                dist[neighbourHandler] = altCost;
+                prev[neighbourHandler] = prev[handler];
+            } else if (altCost == dist[neighbourHandler]) {
+                prev[neighbourHandler].insert(prev[handler].begin(), prev[handler].end());
+            }
+        }
+    }
+
+    // create routing table
+    for (int handler: handlers) {
+        if (handler == id) {
+            continue;
+        }
+
+        if (dist[handler] == numeric_limits<double>::infinity()) {
             return false;
         }
+
+        routingTable[handler] = {dist[handler], prev[handler]};
     }
 
     return true;
@@ -268,7 +258,11 @@ bool Switch::setupRoutingTable() {
 void Switch::printRoutingTable() {
     printf("switch: %d routingTable:\n", id);
     for (auto it : routingTable) {
-        printf("\tdest: %d interface: %d\n", it.first, it.second);
+        printf("\tdest: %d cost: %e interface:", it.first, it.second.first);
+        for (int interface: it.second.second) {
+            printf(" %d", interface);
+        }
+        printf("\n");
     }
 }
 
@@ -746,7 +740,8 @@ vector<double> ManhattanBanditDeflectionSwitch::getState(Packet *p) {
                 for (int interfaceId : actionInterfaces) {
                     // if that interface is the shortest path then set to 1
                     // TODO doesn't address mutiple best actions
-                    if (routingTable[p->getDest()] == interfaceId) {
+                    //if (routingTable[p->getDest()] == interfaceId) {
+                    if (routingTable[p->getDest()].second.find(interfaceId) != routingTable[p->getDest()].second.end()) { // TODO test
                         state.push_back(1);
                     } else {
                         state.push_back(0);

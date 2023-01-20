@@ -70,6 +70,7 @@ class Manager {
         // global stats
 
         PacketHandler *getHandler(int id);
+        vector<int> getHandlers();
 
         Switch *getSwitch(int id);
         bool addSwitch(Switch *netSwitch);
