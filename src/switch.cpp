@@ -158,7 +158,8 @@ double Switch::txCost(Switch *source, int destId) {
 }
 
 double Switch::txCost(Interface *interface) {
-    return interface->getLinkTxTime() / double(interface->getLinkSpeed());
+    return 1.0;
+    //return interface->getLinkTxTime() / double(interface->getLinkSpeed());
 }
 
 void Switch::setNeighbours() {
@@ -266,9 +267,17 @@ void Switch::printRoutingTable() {
     }
 }
 
+double Switch::costToDest(int destId) {
+    return routingTable[destId].first;
+}
+
 bool Switch::initSwitch() {
     setNeighbours();
-    return setupRoutingTable();
+    bool ret = setupRoutingTable();
+    return ret;
+}
+
+void Switch::startSwitch() {
 }
 
 bool Switch::validate() {
@@ -370,6 +379,10 @@ bool RandomDeflectionSwitch::initSwitch() {
     generator.seed(man.random());
 
     return ret;
+}
+
+void RandomDeflectionSwitch::startSwitch() {
+    Switch::startSwitch();
 }
 
 int RandomDeflectionSwitch::manhattanDistance(pair<int, int> coord1, pair<int, int> coord2) {
@@ -557,6 +570,7 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
         {"flow_id", flowIdState},
         {"dest_id", destIdState},
         {"1_hop_shortest", hop1ShortState},
+        {"1-2_hop_shortest", hop1_2ShortState},
         {"2_hop_shortest", hop2ShortState},
     };
     this->regularizer = switchConfig["regularizer"];
@@ -612,7 +626,11 @@ json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchCo
 }
 
 bool ManhattanBanditDeflectionSwitch::initSwitch() {
-    bool ret = RandomDeflectionSwitch::initSwitch();
+    return RandomDeflectionSwitch::initSwitch();
+}
+
+void ManhattanBanditDeflectionSwitch::startSwitch() {
+    RandomDeflectionSwitch::startSwitch();
 
     // TODO setup action interface list
     /*vector<int> actionInterfaces;*/ // add to class
@@ -629,6 +647,8 @@ bool ManhattanBanditDeflectionSwitch::initSwitch() {
         actionInterfaces.push_back(NULL_ID);
     }
 
+    setupStates();
+
     int observeDims = getNumDims();
     // neighbour Ifaces - destination iface
     int numActions;
@@ -640,8 +660,93 @@ bool ManhattanBanditDeflectionSwitch::initSwitch() {
     int seed = man.random();/* get from manager random */
     // initialize agent
     agent = new LinUCB(observeDims, numActions, this->regularizer, this->delta, seed);
+}
 
-    return ret;
+map<int, set<int>> ManhattanBanditDeflectionSwitch::createShortestLookupTable(vector<int> switchIds) {
+    map<int, set<int>> shortStateMap;
+    // for all destinations
+    vector<int> destinations = man.getHandlers();
+
+    for (int dest: destinations) {
+        if (dest == id) {
+            continue;
+        }
+
+        set<int> closestSwitches = set<int>{0};
+        int switchId = switchIds[0];
+        Switch *s = man.getSwitch(switchId);
+
+        double minCost = s->costToDest(dest);
+
+        // for all closest switches
+        for (int i = 1; i < switchIds.size(); i++) {
+            Switch *s = man.getSwitch(switchIds[i]);
+            double cost = s->costToDest(dest);
+
+            if (cost < minCost) {
+                closestSwitches = set<int>{i};
+                minCost = cost;
+            } else if (cost == minCost) {
+                closestSwitches.insert(i);
+            }
+        }
+
+        shortStateMap[dest] = closestSwitches;
+    }
+
+    return shortStateMap;
+}
+
+void ManhattanBanditDeflectionSwitch::setupStates() {
+    for (auto it: stateTypes) {
+        switch (it) {
+            case hop1ShortState:
+                {
+                    // go through routing table and create list of switches 1 hop away
+                    vector<int> switchIds;
+                    for (auto it: routingTable) {
+                        if (it.second.first == 1.0) {
+                            switchIds.push_back(it.first);
+                        }
+                    }
+
+                    hop1ShortStateDims = switchIds.size();
+
+                    hop1ShortStateMap = createShortestLookupTable(switchIds);
+                }
+                break;
+            case hop1_2ShortState:
+                {
+                    // go through routing table and create list of switches 1 hop away
+                    vector<int> switchIds;
+                    for (auto it: routingTable) {
+                        if (it.second.first == 1.0 || it.second.first == 2.0) {
+                            switchIds.push_back(it.first);
+                        }
+                    }
+
+                    hop1_2ShortStateDims = switchIds.size();
+
+                    hop1_2ShortStateMap = createShortestLookupTable(switchIds);
+                }
+                break;
+            case hop2ShortState:
+                {
+                    // go through routing table and create list of switches 2 hop away
+                    vector<int> switchIds;
+                    for (auto it: routingTable) {
+                        if (it.second.first == 2.0) {
+                            switchIds.push_back(it.first);
+                        }
+                    }
+
+                    hop2ShortStateDims = switchIds.size();
+
+                    hop2ShortStateMap = createShortestLookupTable(switchIds);
+                }
+                break;
+        }
+    }
 }
 
 int ManhattanBanditDeflectionSwitch::getNumDims() {
@@ -655,28 +760,19 @@ int ManhattanBanditDeflectionSwitch::getNumDims() {
                 numDims += networkSize * networkSize;
                 break;
             case hop1ShortState:
-                numDims += actionInterfaces.size(); // one for each direction
+                numDims += hop1ShortStateDims;
+                break;
+            case hop1_2ShortState:
+                numDims += hop1_2ShortStateDims;
                 break;
             case hop2ShortState:
-                //setup2HopShortState();
-                runtime_error("hop 2 shortest state not supported");
-                //numDims += ???; // one for each neighbours neighbour excluding else
+                numDims += hop2ShortStateDims;
                 break;
         }
     }
 
     return numDims;
 }
-
-/*
-void ManhattanBanditDeflectionSwitch::setup1HopShortState() {
-    for each destination: create a set of shortest paths
-}
-
-void ManhattanBanditDeflectionSwitch::setup2HopShortState() {
-    TODO
-}
-*/
 
 vector<int> ManhattanBanditDeflectionSwitch::availableInterfaces(Packet *p) {
     vector<int> available;
@@ -735,22 +831,45 @@ vector<double> ManhattanBanditDeflectionSwitch::getState(Packet *p) {
                 break;
 
             case hop1ShortState:
-                // relative destination state one hop
-                // for every interface on the switch
-                for (int interfaceId : actionInterfaces) {
-                    // if that interface is the shortest path then set to 1
-                    // TODO doesn't address mutiple best actions
-                    //if (routingTable[p->getDest()] == interfaceId) {
-                    if (routingTable[p->getDest()].second.find(interfaceId) != routingTable[p->getDest()].second.end()) { // TODO test
-                        state.push_back(1);
-                    } else {
+                {
+                    int stateOffset = state.size();
+
+                    for (int i = 0; i < hop1ShortStateDims; i++) {
                         state.push_back(0);
+                    }
+
+                    for (int i: hop1ShortStateMap[p->getDest()]) {
+                        state[stateOffset + i] = 1;
+                    }
+                }
+                break;
+
+            case hop1_2ShortState:
+                {
+                    int stateOffset = state.size();
+
+                    for (int i = 0; i < hop1_2ShortStateDims; i++) {
+                        state.push_back(0);
+                    }
+
+                    for (int i: hop1_2ShortStateMap[p->getDest()]) {
+                        state[stateOffset + i] = 1;
                     }
                 }
                 break;
 
             case hop2ShortState:
-                runtime_error("hop 2 dest state not supported");
+                {
+                    int stateOffset = state.size();
+
+                    for (int i = 0; i < hop2ShortStateDims; i++) {
+                        state.push_back(0);
+                    }
+
+                    for (int i: hop2ShortStateMap[p->getDest()]) {
+                        state[stateOffset + i] = 1;
+                    }
+                }
                 break;
         }
     }

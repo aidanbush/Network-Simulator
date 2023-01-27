@@ -25,8 +25,11 @@ class Switch: public PacketHandler {
         void txPacket(Packet *p);
 
         virtual bool initSwitch();
+        virtual void startSwitch();
 
         int getInterfaceId(int destId);
+
+        double costToDest(int destId);
 
         bool validate();
 
@@ -35,6 +38,7 @@ class Switch: public PacketHandler {
 #endif /* _TEST */
 
     protected:
+        /*
         struct routingSearchElem {
             double cost;
             int curId;
@@ -43,6 +47,7 @@ class Switch: public PacketHandler {
                 return lhs.cost > rhs.cost;
             }
         };
+        */
 
         map<int, pair<double, set<int>>> routingTable; // dest Id to cost and interface Id's
         vector<pair<int, int>> switchNeighbourIfaces; // all the interfaces that connect to a switch (interface id, switch id)
@@ -70,6 +75,7 @@ class RandomDeflectionSwitch: public Switch {
         RandomDeflectionSwitch(json &switchConfig);
 
         virtual bool initSwitch();
+        virtual void startSwitch();
 
     protected:
         int networkSize;
@@ -128,6 +134,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         ManhattanBanditDeflectionSwitch(json &switchConfig);
 
         bool initSwitch();
+        void startSwitch();
 
         void rewardAction(int pId, double reward);
 
@@ -136,10 +143,24 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
             flowIdState,
             destIdState,
             hop1ShortState,
+            hop1_2ShortState,
             hop2ShortState
         };
+
+        map<int, set<int>> createShortestLookupTable(vector<int> switches);
+
+        // state variables
+        int hop1ShortStateDims;
+        int hop1_2ShortStateDims;
+        int hop2ShortStateDims;
+
+        map<int, set<int>> hop1ShortStateMap; // destination to index of closest switches
+        map<int, set<int>> hop1_2ShortStateMap; // destination to index of closest switches
+        map<int, set<int>> hop2ShortStateMap; // destination to index of closest switches
+
         int routePacket(Packet *p);
 
+        void setupStates();
         int getNumDims();
         vector<double> getState(Packet *p);
 

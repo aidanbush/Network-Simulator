@@ -260,13 +260,25 @@ bool Manager::validateNetwork() {
     return valid;
 }
 
-bool Manager::startSimulator() {
+// do any prior work that does not start the simulator but gets the network ready eg routing tables
+bool Manager::setupSimulatorNetwork() {
     for (auto &it : packetHandlers) {
         Switch *netSwitch = dynamic_cast<Switch *>(it.second);
         if (netSwitch != NULL) {
             if (!netSwitch->initSwitch()) {
                 return false;
             }
+        }
+    }
+
+    return true;
+}
+
+bool Manager::startSimulator() {
+    for (auto &it : packetHandlers) {
+        Switch *netSwitch = dynamic_cast<Switch *>(it.second);
+        if (netSwitch != NULL) {
+            netSwitch->startSwitch();
         }
     }
 

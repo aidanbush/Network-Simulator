@@ -112,6 +112,7 @@ class Manager {
         void logTxEvent(string objName, int objId, string eventName, int destId, Packet *p);
         void logEvent(string objName, int objId, string eventName, string message);
 
+        bool setupSimulatorNetwork();
         bool startSimulator();
 
         void setExitTime(second_t time);

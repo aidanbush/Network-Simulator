@@ -135,6 +135,11 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    if (!man.setupSimulatorNetwork()) {
+        man.deleteNetwork();
+        return 1;
+    }
+
     if (!man.startSimulator()) {
         man.deleteNetwork();
         return 1;
