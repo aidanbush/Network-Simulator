@@ -13,6 +13,7 @@
 #include "manager.h"
 #include "packet.h"
 #include "endpoint.h"
+#include "switch.h"
 #include "networkObject.h"
 #include "config.h"
 #include "generator.h"
@@ -140,8 +141,9 @@ Flow::Flow(json &flowConfig):
     this->packetsDropped = 0;
     this->packetsErrored = 0;
     this->bytesArrived = 0;
+    this->averageRTT = 0;
+    this->averageHops = 0;
     this->throughput = 0;
-    this->oldThroughput = 0;
     this->sentRate = this->rate;
     this->curSourcePId = 0;
     this->curSinkPId = 0;
@@ -203,6 +205,12 @@ Flow::~Flow() {
 
 void Flow::initializeFlow() {
     this->maxRate = getMaxRate();
+
+    Switch *s = man.getSwitch(sourceId);
+    if (s == NULL) {
+        throw runtime_error("Switch id " + to_string(sourceId) + " doesn't exist");
+    }
+    this->minHops = int(s->costToDest(destId));
 }
 
 void Flow::removePacket(Packet *p) {
@@ -232,6 +240,8 @@ void Flow::sourcePacketArrived(Packet *p) {
     bytesArrived += p->fullSize();
 
     packetsArrived++;
+
+    this->averageHops += 1 / packetsArrived * (p->hopCount() - averageHops);
 
     removePacket(p);
     delete p;
@@ -506,6 +516,7 @@ void BasicFlow::resetData() {
     bytesSent = 0;
     bytesArrived = 0;
     averageRTT = 0;
+    averageHops = 0;
     minRTT = MAX_RTT;
 
     packetsArrived = 0;
@@ -515,7 +526,9 @@ void BasicFlow::resetData() {
 void BasicFlow::recordData() {
     throughput = bytesArrived * BITS_PER_BYTE / miTime;
     sentRate = bytesSent * BITS_PER_BYTE / miTime;
+    double hop_ratio = averageHops / double(minHops);
 
+    observer.logFlowData(id, "HopRatio", hop_ratio);
     observer.logFlowData(id, "Throughput", throughput);
     observer.logFlowData(id, "AverageRTT", averageRTT);
     observer.logFlowData(id, "MinRTT", minRTT);
@@ -573,7 +586,6 @@ void MDCFlow::packetArrived(Packet *p) {
         // update averageHopCount
         totalPacketsArrived += 1;
         averageHopCount += 1 / min(totalPacketsArrived, alphaLimiter) * (p->hopCount() - averageHopCount);
-        //fprintf(stderr, "newAverageHops %f\n", averageHopCount);
     }
 
     BasicFlow::packetArrived(p);

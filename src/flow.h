@@ -13,6 +13,7 @@ using json = nlohmann::json;
 
 class Packet;
 class Endpoint;
+class Switch;
 
 class Flow: public NetworkObject {
     public:
@@ -72,6 +73,7 @@ class Flow: public NetworkObject {
         int destId;
 
         int ttl;
+        int minHops;
 
         second_t nextTxTime(Packet *p);
 
@@ -86,7 +88,7 @@ class Flow: public NetworkObject {
         int bytesArrived;
         double throughput; // bytes/s
         double sentRate;
-        double oldThroughput;
+        double averageHops;
         second_t averageRTT;
         second_t minRTT;
 
@@ -138,7 +140,6 @@ class BasicFlow: public Flow {
 class MDCFlow: public BasicFlow {
     friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
     public:
-
         double getAverageHops() {return averageHopCount; }
 
     protected:
