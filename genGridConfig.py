@@ -154,10 +154,11 @@ def getValidSwitches(config):
                      for sId in switchIds] # count number of interfaces per switch and multiply by rate
     return list(map(list, zip(switchIds, switchMaxRate, [0 for _ in range(len(config["switches"]))])))
 
-def genRandomFlows(config, netUtil, n):
+flowId = 1
+def genRandomFlows(config, netUtil, n, start_time, end_time):
     netBand = len(config["links"]) * linkConfig["speed"] * 2
     flowBand = 0
-    flowId = 1
+    global flowId
     validSwitches = getValidSwitches(config)
     flowRate = flowConfig["generator"]["mean_rate"]
 
@@ -176,7 +177,9 @@ def genRandomFlows(config, netUtil, n):
         flow = {
                 "id": flowId,
                 "source_id": sourceId,
-                "dest": destId
+                "dest": destId,
+                "start_time": start_time,
+                "end_time": end_time
                 }
         flow = dict(list(flowConfig.items()) + list(flow.items()))
         config["flows"].append(flow)
@@ -209,7 +212,7 @@ def addRoutes(config, flowRoutes):
         flow = dict(list(flowConfig.items()) + list(flow.items()))
         config["flows"].append(flow)
 
-def create_config(size, traffic_type, net_util, agent_type, states, flowRoutes=None):
+def create_config(size, traffic_type, net_util, agent_type, states, simulation_length, num_flow_sets, flowRoutes=None):
     # create base object
     config = {}
 
@@ -222,14 +225,28 @@ def create_config(size, traffic_type, net_util, agent_type, states, flowRoutes=N
 
     gen_nxn_network(size, config)
 
-    genRandomFlows(config, net_util, size)
+    if num_flow_sets == 1:
+        start_time = 0
+        end_time = 0
+        genRandomFlows(config, net_util, size, start_time, end_time)
+    else:
+        for i in range(num_flow_sets):
+            start_time = simulation_length / num_flow_sets * (i-1)
+            end_time = simulation_length / num_flow_sets * (i)
+            genRandomFlows(config, net_util, size, start_time, end_time)
     #addRoutes(config, flowRoutes)
 
     # update switch flow counts
     for i in range(len(config["switches"])):
         config["switches"][i]["num_flows"] = len(config["flows"])
 
-    filename = f"{size}x{size}_{traffic_type}_{net_util}_{agent_type}_[{','.join(states)}].json"
+    fname_state = ""
+    if states != None:
+        fname_state = f"_[{','.join(states)}]"
+    fname_flow_sets = ""
+    if num_flow_sets != 1:
+        fname_flow_sets = f"_fs_{num_flow_sets}"
+    filename = f"{size}x{size}_{traffic_type}_{net_util}_{agent_type}{fname_state}{fname_flow_sets}.json"
     print("writing to file:", filename)
     with open(filename, "w") as f:
         f.write(json.dumps(config, indent=4))
@@ -237,17 +254,20 @@ def create_config(size, traffic_type, net_util, agent_type, states, flowRoutes=N
 def main():
     size = 5
 
+    simulation_length = 200
+    num_flow_sets = 1
+
     traffic_type = "bursty"
     net_utils = [0.1,0.2,0.3,0.4,0.5]
-    agent_type = "mbd"
-    states = [["dest_id"],["flow_id"]]
-
-    switchConfig["states"] = states
-    switchConfig["type"] = agent_type
+    agent_type = "rand_deflect"#"mbd"
+    states = [None]#["2_hop_shortest","1_hop_shortest"]]#["1-2_hop_shortest"]]#["2_hop_shortest"]]#["1_hop_shortest"]]#[["dest_id"],["flow_id"]]
 
     for net_util in net_utils:
         for state in states:
-            create_config(size, traffic_type, net_util, agent_type, state)
+            switchConfig["states"] = state
+            switchConfig["type"] = agent_type
+
+            create_config(size, traffic_type, net_util, agent_type, state, simulation_length, num_flow_sets)
 
 if __name__ == "__main__":
     main()
