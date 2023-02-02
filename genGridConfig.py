@@ -1,8 +1,9 @@
 import json
 import random
 import sys
+import os
 
-random.seed(0)
+seed = 0
 
 # switches
 switchConfig = {
@@ -212,7 +213,8 @@ def addRoutes(config, flowRoutes):
         flow = dict(list(flowConfig.items()) + list(flow.items()))
         config["flows"].append(flow)
 
-def create_config(size, traffic_type, net_util, agent_type, states, simulation_length, num_flow_sets, flowRoutes=None):
+def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, simulation_length, num_flow_sets, flowRoutes=None):
+    random.seed(seed)
     # create base object
     config = {}
 
@@ -231,8 +233,8 @@ def create_config(size, traffic_type, net_util, agent_type, states, simulation_l
         genRandomFlows(config, net_util, size, start_time, end_time)
     else:
         for i in range(num_flow_sets):
-            start_time = simulation_length / num_flow_sets * (i-1)
-            end_time = simulation_length / num_flow_sets * (i)
+            start_time = simulation_length / num_flow_sets * (i)
+            end_time = simulation_length / num_flow_sets * (i+1)
             genRandomFlows(config, net_util, size, start_time, end_time)
     #addRoutes(config, flowRoutes)
 
@@ -247,27 +249,29 @@ def create_config(size, traffic_type, net_util, agent_type, states, simulation_l
     if num_flow_sets != 1:
         fname_flow_sets = f"_fs_{num_flow_sets}"
     filename = f"{size}x{size}_{traffic_type}_{net_util}_{agent_type}{fname_state}{fname_flow_sets}.json"
-    print("writing to file:", filename)
-    with open(filename, "w") as f:
+    pathname = os.path.join(dest_dir, filename)
+    print("writing to file:", pathname)
+    with open(pathname, "w") as f:
         f.write(json.dumps(config, indent=4))
 
 def main():
     size = 5
-
     simulation_length = 200
-    num_flow_sets = 1
+    num_flow_sets = 2
+
+    dest_dir = "configs"
 
     traffic_type = "bursty"
     net_utils = [0.1,0.2,0.3,0.4,0.5]
-    agent_type = "rand_deflect"#"mbd"
-    states = [None]#["2_hop_shortest","1_hop_shortest"]]#["1-2_hop_shortest"]]#["2_hop_shortest"]]#["1_hop_shortest"]]#[["dest_id"],["flow_id"]]
+    agent_type = ["mbd", "rand_deflect"][0]
+    states = [[None],["2_hop_shortest","1_hop_shortest"],["1-2_hop_shortest"],["2_hop_shortest"],["1_hop_shortest"],["dest_id"],["flow_id"]][1:-1]
 
     for net_util in net_utils:
         for state in states:
             switchConfig["states"] = state
             switchConfig["type"] = agent_type
 
-            create_config(size, traffic_type, net_util, agent_type, state, simulation_length, num_flow_sets)
+            create_config(dest_dir, size, traffic_type, net_util, agent_type, state, simulation_length, num_flow_sets)
 
 if __name__ == "__main__":
     main()
