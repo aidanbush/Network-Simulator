@@ -137,24 +137,7 @@ class BasicFlow: public Flow {
         void sourcePacketArrived(Packet *p);
 };
 
-class MDCFlow: public BasicFlow {
-    friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
-    public:
-        double getAverageHops() {return averageHopCount; }
-
-    protected:
-        MDCFlow(json &flowConfig);
-        double averageHopCount;
-        int totalPacketsArrived;
-
-        int alphaLimiter = 1000;
-
-        virtual Packet *getNextPacket(bool fromSource);
-
-        void packetArrived(Packet *p);
-};
-
-class MBDFlow: public MDCFlow {
+class MBDFlow: public BasicFlow {
     friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
 
     protected:

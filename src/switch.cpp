@@ -24,7 +24,6 @@ using json = nlohmann::json;
 enum SwitchType {
     BasicSwitchType,
     RandomDeflectSwitchType,
-    MDCSwitchType,
     ManhattanBanditDeflectionSwitchType,
 };
 
@@ -32,7 +31,6 @@ Switch *createSwitch(json &switchNetConfig) {
     static map<string, SwitchType> switchTypeMap = {
         {"basic", BasicSwitchType},
         {"rand_deflect", RandomDeflectSwitchType},
-        {"mdc", MDCSwitchType},
         {"mbd", ManhattanBanditDeflectionSwitchType}
     };
 
@@ -57,9 +55,6 @@ Switch *createSwitch(json &switchNetConfig) {
             break;
         case RandomDeflectSwitchType:
             netSwitch = new RandomDeflectionSwitch(switchNetConfig);
-            break;
-        case MDCSwitchType:
-            netSwitch = new MDCSwitch(switchNetConfig);
             break;
         case ManhattanBanditDeflectionSwitchType:
             netSwitch = new ManhattanBanditDeflectionSwitch(switchNetConfig);
@@ -452,114 +447,6 @@ int RandomDeflectionSwitch::routePacket(Packet *p) {
 
     // drop packet
     return NULL_ID;
-}
-
-/* MinimalDeflectionCostSwitch */
-
-MDCSwitch::MDCSwitch(json &switchConfig):
-    RandomDeflectionSwitch(validateMDCSwitchConfig(switchConfig)) {
-}
-
-json &MDCSwitch::validateMDCSwitchConfig(json &switchConfig) {
-    return switchConfig;
-}
-
-void MDCSwitch::initializeInterfaceCost(Packet *p) {
-    vector<int> allDeflectInterfaces = availableRouteSets(p).second;
-    int flowId = p->getFlow();
-
-    // for all interfaces add into flow map elements
-    for (auto it : allDeflectInterfaces) {
-        flowInterfaceCost[flowId][it] = {2.0, 0};
-    }
-}
-
-int MDCSwitch::getLowestCostDeflect(Packet *p, vector<int> deflectInterfaces) {
-    int flowId = p->getFlow();
-
-    // if flow entry doesn't exists create
-    if (flowInterfaceCost[flowId].empty()) {
-        initializeInterfaceCost(p);
-    }
-
-    map<int, pair<double, int>> interfaceCosts = flowInterfaceCost[flowId];
-
-    // go through list of deflect interfaces removing elements that are not max
-    double minCost = interfaceCosts[deflectInterfaces[0]].first;
-    vector<int> interfaces;
-    for (auto it : deflectInterfaces) {
-        double cost = interfaceCosts[it].first;
-        // if < min cost replace
-        if (cost < minCost) {
-            minCost = cost;
-            interfaces.clear();
-            interfaces.push_back(it);
-        } else if (cost == minCost) { // if = min cost add to
-            interfaces.push_back(it);
-        }
-    }
-    // randomly select from remaining interfaces
-    return interfaces[generator() % interfaces.size()];
-}
-
-int MDCSwitch::routePacket(Packet *p) {
-    pair<vector<int>, vector<int>> routes = availableRouteSets(p);
-
-    // at destination send to endpoint
-    if (routes.first.empty() && routes.second.empty()) {
-        // TODO this is a hack change it
-        return Switch::routePacket(p);
-    }
-
-    vector<int> optimalInterfaces;
-    vector<int> deflectInterfaces;
-
-    for (auto it : routes.first) {
-        // if room add to optimal
-        Interface *interface = man.getInterface(it);
-        if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
-            optimalInterfaces.push_back(it);
-        }
-    }
-
-    // if not empty randomly send to one
-    if (!optimalInterfaces.empty()) {
-        return optimalInterfaces[generator() % optimalInterfaces.size()];
-    }
-
-    // get list of interfaces it can deflect on
-    for (auto it : routes.second) {
-        // if room add to deflect
-        Interface *interface = man.getInterface(it);
-        if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
-            deflectInterfaces.push_back(it);
-        }
-    }
-
-    // if empty drop
-    if (deflectInterfaces.empty()) {
-        return NULL_ID;
-    }
-
-    // else find flow or create entry
-    // find lowest valued interface
-    int deflectIface = getLowestCostDeflect(p, deflectInterfaces);
-
-    // mark packet
-    MDCPacket *MDCP = dynamic_cast<MDCPacket *>(p);
-    MDCP->recordDeflection(id, deflectIface);
-
-    return deflectIface;
-}
-
-void MDCSwitch::updateDeflectionCost(int flowId, int interfaceId, double cost) {
-    if (flowInterfaceCost[flowId][interfaceId].second < alphaLimiter) {
-        flowInterfaceCost[flowId][interfaceId].second++;
-    }
-
-    int n = flowInterfaceCost[flowId][interfaceId].second;
-
-    flowInterfaceCost[flowId][interfaceId].first += (cost - flowInterfaceCost[flowId][interfaceId].first) / n;
 }
 
 /* ManhattanBanditDeflectionSwitch */

@@ -74,32 +74,18 @@ class Packet: public NetworkObject {
         second_t arrivalTime; // currently not used
 };
 
-class MDCPacket: public Packet {
-    public:
-        MDCPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
-                int headerSize, int bodySize, bool sourcePacket);
-
-        void recordDeflection(int switchId, int interfaceId);
-
-        void arrive();
-        void drop();
-
-    protected:
-        vector<pair<int, int>> deflections; // switchId, interfaceId
-        int ttlInitial;
-
-        virtual void updateSwitches(double lostCost, double resendCost);
-};
-
-class MBDPacket: public MDCPacket {
+class MBDPacket: public Packet {
     public:
         MBDPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
                 int headerSize, int bodySize, bool sourcePacket);
 
+        void arrive();
+        void drop();
+
         void recordAction(int switchId);
 
     protected:
-        void updateSwitches(double lostCost, double resendCost);
+        void updateSwitches(bool arrived);
 
         double shortestPath(int source, int dest);
 

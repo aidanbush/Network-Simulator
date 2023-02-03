@@ -40,7 +40,6 @@ using namespace std;
 
 enum FlowType {
     BasicFlowType,
-    MDCFlowType,
     MBDFlowType,
 #ifdef _TEST
     TestFlowType,
@@ -69,7 +68,6 @@ void combineFlowConfigs(json &flowNetConfig, json &flowTestConfig) {
 Flow *createFlow(json &flowNetConfig, json &flowTestConfig) {
     static map<string, FlowType> flowTypeMap = {
         {"basic", BasicFlowType},
-        {"mdc", MDCFlowType},
         {"mbd", MBDFlowType},
 #ifdef _TEST
         {"test", TestFlowType},
@@ -96,9 +94,6 @@ Flow *createFlow(json &flowNetConfig, json &flowTestConfig) {
     switch (flowType) {
         case BasicFlowType:
             flow = new BasicFlow(flowNetConfig);
-            break;
-        case MDCFlowType:
-            flow = new MDCFlow(flowNetConfig);
             break;
         case MBDFlowType:
             flow = new MBDFlow(flowNetConfig);
@@ -553,47 +548,9 @@ void BasicFlow::recordData() {
     man.pushEvent(e);
 }
 
-/* MinimalDeflectionCostFlow */
-
-MDCFlow::MDCFlow(json &flowConfig): BasicFlow(flowConfig) {
-    this->averageHopCount = 0;
-    this->totalPacketsArrived = 0;
-}
-
-Packet *MDCFlow::getNextPacket(bool fromSource) {
-    Generator::PacketData pData;
-
-    if (!generator->getNextPacket(pData)) {
-        return NULL;
-    }
-
-    int pId = newPacketId(fromSource);
-
-    MDCPacket *p = new MDCPacket(pId, sourceId, destId, id, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource);
-
-    if (!addPacket(p)) {
-        delete p;
-        return NULL;
-    }
-
-    packetsCreated++;
-
-    return p;
-}
-
-void MDCFlow::packetArrived(Packet *p) {
-    if (p->isSourcePacket()) {
-        // update averageHopCount
-        totalPacketsArrived += 1;
-        averageHopCount += 1 / min(totalPacketsArrived, alphaLimiter) * (p->hopCount() - averageHopCount);
-    }
-
-    BasicFlow::packetArrived(p);
-}
-
 /* Manhattan Bandit Deflection Flow */
 
-MBDFlow::MBDFlow(json &flowConfig): MDCFlow(flowConfig) {
+MBDFlow::MBDFlow(json &flowConfig): BasicFlow(flowConfig) {
 }
 
 Packet *MBDFlow::getNextPacket(bool fromSource) {

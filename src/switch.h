@@ -110,25 +110,6 @@ class RandomDeflectionSwitch: public Switch {
         json &validateRandomDeflectionSwitchConfig(json &switchConfig);
 };
 
-class MDCSwitch: public RandomDeflectionSwitch {
-    public:
-        MDCSwitch(json &switchConfig);
-
-        void updateDeflectionCost(int flowId, int interfaceId, double cost);
-    protected:
-        // flowId -> interfaceId -> (cost, deflectCount)
-        map<int, map<int, pair<double, int>>> flowInterfaceCost;
-        int alphaLimiter = 1000;
-
-        void initializeInterfaceCost(Packet *p);
-        int getLowestCostDeflect(Packet *p, vector<int> deflectInterfaces);
-
-        int routePacket(Packet *p);
-
-    private:
-        json &validateMDCSwitchConfig(json &switchConfig);
-};
-
 class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
     public:
         ManhattanBanditDeflectionSwitch(json &switchConfig);

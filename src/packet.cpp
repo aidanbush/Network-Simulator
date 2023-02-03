@@ -5,8 +5,6 @@
 
 #include <cstdio>
 
-class MDCSwitch;
-
 Packet::Packet(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
         int headerSize, int bodySize, bool sourcePacket): NetworkObject(id) {
     this->sourceId = sourceId;
@@ -92,48 +90,25 @@ bool Packet::validate() {
     return true;
 }
 
-/* MinimalDeflectionCostPacket */
-MDCPacket::MDCPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl, int headerSize,
+/* ManhattanBanditDeflectionPacket */
+MBDPacket::MBDPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl, int headerSize,
         int bodySize, bool sourcePacket): Packet(id, sourceId, destId, flowId, dataId, ttl, headerSize,
             bodySize, sourcePacket) {
-    this->ttlInitial = ttl;
 }
 
-void MDCPacket::recordDeflection(int switchId, int interfaceId) {
-    deflections.emplace_back(pair<int, int>({switchId, interfaceId}));
-}
-
-void MDCPacket::arrive() {
+void MBDPacket::arrive() {
     // update switches
-    updateSwitches(0, 0);
+    updateSwitches(true);
 
     Packet::arrive();
 }
 
-void MDCPacket::drop() {
+void MBDPacket::drop() {
     // update switches
-    MDCFlow *f = dynamic_cast<MDCFlow *>(man.getFlow(flowId));
-    updateSwitches(hopCount(), f->getAverageHops());
+    MBDFlow *f = dynamic_cast<MBDFlow *>(man.getFlow(flowId));
+    updateSwitches(false);
 
     Packet::drop();
-}
-
-void MDCPacket::updateSwitches(double lostCost, double resendCost) {
-    double cost = lostCost + resendCost;
-
-    // these updates are not correct if a switch is in deflection twice as those updates will be out of order
-    for (auto it : deflections) {
-        cost += 2; // add deflection cost
-
-        MDCSwitch *s = dynamic_cast<MDCSwitch *>(man.getSwitch(it.first));
-        s->updateDeflectionCost(flowId, it.second, cost);
-    }
-}
-
-/* ManhattanBanditDeflectionPacket */
-MBDPacket::MBDPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl, int headerSize,
-        int bodySize, bool sourcePacket): MDCPacket(id, sourceId, destId, flowId, dataId, ttl, headerSize,
-            bodySize, sourcePacket) {
 }
 
 void MBDPacket::recordAction(int switchId) {
@@ -153,7 +128,7 @@ double MBDPacket::shortestPath(int source, int dest) {
     return double(abs(sourceX - destX) + abs(sourceY - destY));
 }
 
-void MBDPacket::updateSwitches(double lostCost, double resendCost) {
+void MBDPacket::updateSwitches(bool arrived) {
     /*double dropCost = (lostCost + resendCost);
     //TODO lost cost is too small - not cacluated properly
     if (dropCost != 0) {
@@ -176,7 +151,7 @@ void MBDPacket::updateSwitches(double lostCost, double resendCost) {
         //double reward = (ttlInitial - ttl - minHops) / minHops + dropCost;
         //double reward = hops / minHops + dropCost;
         double reward = 0;
-        if (resendCost == 0) {
+        if (arrived) {
             reward = minHops / hops;
         }
 
