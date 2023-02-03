@@ -10,20 +10,22 @@ plot_format = "pdf"
 
 # plot averages of multiple runs throughputs
 def multiple_run_throughput():
-    fig_name = "5x5 Bursty 0.4 Utilization Throughputs"
+    fig_name = "5x5 Bursty 0.3 fs 4 Utilization Throughputs"
     output_name = fig_name.replace(' ', '_')
 
     directory = "results/"
-    run_prefix = "5x5_bursty_0.4_"
-    run_suffixes = ["mbd_[1-2_hop_shortest]", "mbd_[dest_id]", "rand_deflect", "mbd_[1_hop_shortest]", "mbd_[2_hop_shortest]", "mbd_[2_hop_shortest,1_hop_shortest]", "mbd_[flow_id]"]
-    #run_suffixes = ["mbd_[dest_id]", "rand_deflect", "mbd_[1_hop_shortest]", "mbd_[2_hop_shortest,1_hop_shortest]", "mbd_[flow_id]"]
+    run_prefix = "5x5_bursty_0.3_"
+    #run_infixes = ["mbd_[1-2_hop_shortest]", "mbd_[dest_id]", "rand_deflect", "mbd_[1_hop_shortest]", "mbd_[2_hop_shortest]", "mbd_[2_hop_shortest,1_hop_shortest]", "mbd_[flow_id]"]
+    run_infixes = ["mbd_[2_hop_shortest,1_hop_shortest]", "mbd_[1_hop_shortest]", "mbd_[dest_id]", "rand_deflect"]
+    #run_suffix = ""
+    run_suffix = "_fs_4"
     file_suffix = "/results.csv"
 
     data = {}
 
     # for each run calculate averages
-    for run_suffix in run_suffixes:
-        run_name = run_prefix + run_suffix
+    for run_infix in run_infixes:
+        run_name = run_prefix + run_infix + run_suffix
         filename = directory + run_name + file_suffix
 
         means = []
@@ -46,10 +48,14 @@ def multiple_run_throughput():
                 row_stdevs = []
                 # all rows that have a throughput mean
                 for mean_field in mean_fieldnames:
-                    row_means.append(float(row[mean_field]))
+                    val = float(row[mean_field])
+                    if val != 0.0: # ignore 0s as they are from flows that are not currently on
+                        row_means.append(val)
                 # all rows that have a throughput stdev
                 for stdev_field in stdev_fieldnames:
-                    row_stdevs.append(float(row[stdev_field]))
+                    val = float(row[stdev_field])
+                    if val != 0.0: # ignore 0s as they are from flows that are not currently on
+                        row_stdevs.append(val)
 
                 means.append(statistics.mean(row_means))
                 stdevs.append((sum([stdev**2 for stdev in row_stdevs]))**.5)
