@@ -5,6 +5,8 @@ import os
 
 seed = 0
 
+flowId = 1
+
 # switches
 switchConfig = {
         "type": "mbd",
@@ -155,7 +157,6 @@ def getValidSwitches(config):
                      for sId in switchIds] # count number of interfaces per switch and multiply by rate
     return list(map(list, zip(switchIds, switchMaxRate, [0 for _ in range(len(config["switches"]))])))
 
-flowId = 1
 def genRandomFlows(config, netUtil, n, start_time, end_time):
     netBand = len(config["links"]) * linkConfig["speed"] * 2
     flowBand = 0
@@ -227,6 +228,9 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, si
 
     gen_nxn_network(size, config)
 
+    global flowId
+    flowId = 1
+
     if num_flow_sets == 1:
         start_time = 0
         end_time = 0
@@ -257,14 +261,14 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, si
 def main():
     size = 5
     simulation_length = 200
-    num_flow_sets = 2
+    num_flow_sets = 4
 
     dest_dir = "configs"
 
     traffic_type = "bursty"
     net_utils = [0.1,0.2,0.3,0.4,0.5]
-    agent_type = ["mbd", "rand_deflect"][0]
-    states = [[None],["2_hop_shortest","1_hop_shortest"],["1-2_hop_shortest"],["2_hop_shortest"],["1_hop_shortest"],["dest_id"],["flow_id"]][1:-1]
+    agent_type = ["mbd", "rand_deflect"][1]
+    states = [[None],["2_hop_shortest","1_hop_shortest"],["1-2_hop_shortest"],["2_hop_shortest"],["1_hop_shortest"],["dest_id"],["flow_id"]][0]
 
     for net_util in net_utils:
         for state in states:
