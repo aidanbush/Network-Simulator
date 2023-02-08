@@ -24,6 +24,7 @@ using json = nlohmann::json;
 enum SwitchType {
     BasicSwitchType,
     RandomDeflectSwitchType,
+    RandomForwardSwitchType,
     ManhattanBanditDeflectionSwitchType,
 };
 
@@ -31,6 +32,7 @@ Switch *createSwitch(json &switchNetConfig) {
     static map<string, SwitchType> switchTypeMap = {
         {"basic", BasicSwitchType},
         {"rand_deflect", RandomDeflectSwitchType},
+        {"rand_forward", RandomForwardSwitchType},
         {"mbd", ManhattanBanditDeflectionSwitchType}
     };
 
@@ -55,6 +57,9 @@ Switch *createSwitch(json &switchNetConfig) {
             break;
         case RandomDeflectSwitchType:
             netSwitch = new RandomDeflectionSwitch(switchNetConfig);
+            break;
+        case RandomForwardSwitchType:
+            netSwitch = new RandomForwardSwitch(switchNetConfig);
             break;
         case ManhattanBanditDeflectionSwitchType:
             netSwitch = new ManhattanBanditDeflectionSwitch(switchNetConfig);
@@ -283,6 +288,51 @@ bool Switch::validate() {
     }
 
     return valid;
+}
+
+/* RandomForwardSwitch */
+
+RandomForwardSwitch::RandomForwardSwitch(json &switchConfig):
+    Switch(validateRandomForwardSwitchConfig(switchConfig)){
+}
+
+json &RandomForwardSwitch::validateRandomForwardSwitchConfig(json &switchConfig) {
+    return switchConfig;
+}
+
+bool RandomForwardSwitch::initSwitch() {
+    bool ret = Switch::initSwitch();
+
+    generator.seed(man.random());
+
+    return ret;
+}
+
+void RandomForwardSwitch::startSwitch() {
+    Switch::startSwitch();
+}
+
+int RandomForwardSwitch::routePacket(Packet *p) {
+    // go through forwarding ports and select aviable ones
+    vector<int> forwardingIfaces;
+
+    set<int> routingIfaces = routingTable[p->getDest()].second;
+    for (int iface : routingIfaces) {
+        // if free
+        Interface *interface = man.getInterface(iface);
+        if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
+            forwardingIfaces.push_back(iface);
+        }
+    }
+
+    // if there are any
+    if (!forwardingIfaces.empty()) {
+        // randomly select one
+        return forwardingIfaces[generator() % forwardingIfaces.size()];
+    }
+
+    // drop
+    return NULL_ID;
 }
 
 /* RandomDeflectionSwitch */

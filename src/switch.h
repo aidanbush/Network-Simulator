@@ -70,6 +70,22 @@ class Switch: public PacketHandler {
         static json &validateSwitchConfig(json &switchConfig);
 };
 
+class RandomForwardSwitch: public Switch {
+    public:
+        RandomForwardSwitch(json &switchConfig);
+
+        virtual bool initSwitch();
+        virtual void startSwitch();
+
+    protected:
+        int routePacket(Packet *p);
+
+        default_random_engine generator;
+
+    private:
+        json &validateRandomForwardSwitchConfig(json &switchConfig);
+};
+
 class RandomDeflectionSwitch: public Switch {
     public:
         RandomDeflectionSwitch(json &switchConfig);
