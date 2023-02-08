@@ -296,7 +296,7 @@ void Manager::setExitTime(second_t time) {
 }
 
 bool Manager::checkExitTime() {
-    return time >= exitTime;
+    return time > exitTime;
 }
 
 void Manager::setSuppressOutput(int value) {
