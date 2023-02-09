@@ -523,6 +523,7 @@ void BasicFlow::recordData() {
     sentRate = bytesSent * BITS_PER_BYTE / miTime;
     double hop_ratio = averageHops / double(minHops);
 
+    observer.logFlowData(id, "AverageHops", averageHops);
     observer.logFlowData(id, "HopRatio", hop_ratio);
     observer.logFlowData(id, "Throughput", throughput);
     observer.logFlowData(id, "AverageRTT", averageRTT);
