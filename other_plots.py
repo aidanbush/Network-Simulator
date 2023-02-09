@@ -10,9 +10,20 @@ plot_format = "pdf"
 
 # plot averages of multiple runs throughputs
 def multiple_run_throughput():
+    mean_field = "Throughput mean"
+    stdev_field = "Throughput stdev"
+    multiple_run_plot(mean_field, stdev_field, "Throughputs", (0, 500000))
+
+# plot averages of multiple runs throughputs
+def multiple_run_hop_ratio():
+    mean_field = "HopRatio mean"
+    stdev_field = "HopRatio stdev"
+    multiple_run_plot(mean_field, stdev_field, "Hop Ratios", (0, 5))
+
+def multiple_run_plot(mean_field, stdev_field, fig_type, ylim):
     utilization = "0.1"
-    #fig_name = f"5x5 Bursty {utilization} Utilization Throughputs"
-    fig_name = f"5x5 Bursty {utilization} fs 4 Utilization Throughputs"
+    #fig_name = f"5x5 Bursty {utilization} Utilization {fig_type}"
+    fig_name = f"5x5 Bursty {utilization} fs 4 Utilization {fig_type}"
     output_name = fig_name.replace(' ', '_')
 
     directory = "results/"
@@ -40,22 +51,22 @@ def multiple_run_throughput():
             stdev_fieldnames = []
 
             for name in reader.fieldnames:
-                if "Throughput mean" in name:
+                if mean_field in name:
                     mean_fieldnames.append(name)
-                if "Throughput stdev" in name:
+                if stdev_field in name:
                     stdev_fieldnames.append(name)
 
             for row in reader:
                 row_means = []
                 row_stdevs = []
                 # all rows that have a throughput mean
-                for mean_field in mean_fieldnames:
-                    val = float(row[mean_field])
+                for field in mean_fieldnames:
+                    val = float(row[field])
                     if val != 0.0: # ignore 0s as they are from flows that are not currently on
                         row_means.append(val)
                 # all rows that have a throughput stdev
-                for stdev_field in stdev_fieldnames:
-                    val = float(row[stdev_field])
+                for field in stdev_fieldnames:
+                    val = float(row[field])
                     if val != 0.0: # ignore 0s as they are from flows that are not currently on
                         row_stdevs.append(val)
 
@@ -74,7 +85,7 @@ def multiple_run_throughput():
         #plt.fill_between(range(len(run_data[0])), run_data[0] - run_data[1], run_data[0] + run_data[1], alpha=1/3)
     plt.legend()
 
-    plt.ylim(bottom=0, top=500000)
+    plt.ylim(bottom=ylim[0], top=ylim[1])
     plt.grid()
 
     try:
@@ -85,4 +96,4 @@ def multiple_run_throughput():
         print("failed to plot", output_name, "exception", str(e))
 
 multiple_run_throughput()
-
+multiple_run_hop_ratio()
