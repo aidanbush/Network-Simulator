@@ -267,7 +267,7 @@ def main():
 
     traffic_type = "bursty"
     net_utils = [0.1,0.2,0.3,0.4,0.5]
-    agent_type = ["mbd", "rand_deflect"][1]
+    agent_type = ["mbd", "rand_deflect", "rand_forward"][2]
     states = [[None],["2_hop_shortest","1_hop_shortest"],["1-2_hop_shortest"],["2_hop_shortest"],["1_hop_shortest"],["dest_id"],["flow_id"]][0]
 
     for net_util in net_utils:

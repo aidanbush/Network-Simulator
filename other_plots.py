@@ -10,13 +10,15 @@ plot_format = "pdf"
 
 # plot averages of multiple runs throughputs
 def multiple_run_throughput():
-    fig_name = "5x5 Bursty 0.3 fs 4 Utilization Throughputs"
+    utilization = "0.1"
+    #fig_name = f"5x5 Bursty {utilization} Utilization Throughputs"
+    fig_name = f"5x5 Bursty {utilization} fs 4 Utilization Throughputs"
     output_name = fig_name.replace(' ', '_')
 
     directory = "results/"
-    run_prefix = "5x5_bursty_0.3_"
+    run_prefix = f"5x5_bursty_{utilization}_"
     #run_infixes = ["mbd_[1-2_hop_shortest]", "mbd_[dest_id]", "rand_deflect", "mbd_[1_hop_shortest]", "mbd_[2_hop_shortest]", "mbd_[2_hop_shortest,1_hop_shortest]", "mbd_[flow_id]"]
-    run_infixes = ["mbd_[2_hop_shortest,1_hop_shortest]", "mbd_[1_hop_shortest]", "mbd_[dest_id]", "rand_deflect"]
+    run_infixes = ["mbd_[2_hop_shortest,1_hop_shortest]", "mbd_[1_hop_shortest]", "mbd_[dest_id]", "rand_deflect", "rand_forward"]
     #run_suffix = ""
     run_suffix = "_fs_4"
     file_suffix = "/results.csv"
