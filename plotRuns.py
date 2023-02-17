@@ -4,13 +4,15 @@ import os, sys
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
+import networkx as nx
 
 #plt.rcParams['agg.path.chunksize'] = 100000000
 
 STATS_ELEM_TO_INDEX = {"mean": 0, "stdev": 1}
 FIGSIZE=(16,9)
 
-csvFile = sys.argv[1]
+flowCsvFile = sys.argv[1]
+linkCsvFile = sys.argv[2]
 
 outputDir = "results"
 if "-d" in sys.argv:
@@ -39,51 +41,112 @@ combine = 1
 if "-c" in sys.argv:
     combine = int(sys.argv[sys.argv.index("-c") + 1])
 
-# data type {flow [mean, std]}
-data = defaultdict(lambda: defaultdict(lambda: [[],[]]))
+def flowPlots():
+    # data type {flow [mean, std]}
+    data = defaultdict(lambda: defaultdict(lambda: [[],[]]))
 
-# open csv
-with open(csvFile) as f:
-    reader = csv.DictReader(f)
-    c = 0
+    # open csv
+    with open(flowCsvFile) as f:
+        reader = csv.DictReader(f)
+        c = 0
 
-    for row in reader:
-        if plotRange != None and (c < plotRange[0] or c > plotRange[1]):
-            continue
-        for key in row.keys():
-            flow, dataType, statsElem = key.split()
+        for row in reader:
+            if plotRange != None and (c < plotRange[0] or c > plotRange[1]):
+                continue
+            for key in row.keys():
+                flow, dataType, statsElem = key.split()
 
-            if c % combine == 0:
-                data[dataType][flow][STATS_ELEM_TO_INDEX[statsElem]].append(float(row[key]))
-            else:
-                oldVal = data[dataType][flow][STATS_ELEM_TO_INDEX[statsElem]][-1]
-                data[dataType][flow][STATS_ELEM_TO_INDEX[statsElem]][-1] = oldVal + (float(row[key]) - oldVal) / ((c % combine) + 1)
-        c += 1
+                if c % combine == 0:
+                    data[dataType][flow][STATS_ELEM_TO_INDEX[statsElem]].append(float(row[key]))
+                else:
+                    oldVal = data[dataType][flow][STATS_ELEM_TO_INDEX[statsElem]][-1]
+                    data[dataType][flow][STATS_ELEM_TO_INDEX[statsElem]][-1] = oldVal + (float(row[key]) - oldVal) / ((c % combine) + 1)
+            c += 1
 
-# make plots
-for dataType in data.keys():
+    # make plots
+    for dataType in data.keys():
+        plt.figure(figsize=FIGSIZE)
+
+        if titlePostfix != "":
+            plt.title(dataType + " " + titlePostfix)
+        else:
+            plt.title(dataType)
+
+        for flow in sorted(data[dataType].keys()):
+            flowData = data[dataType][flow]
+
+            if type(flowData[0]) != np.ndarray:
+                flowData[0] = np.array(flowData[0])
+            if type(flowData[1]) != np.ndarray:
+                flowData[1] = np.array(flowData[1])
+
+            # plot line with stdev
+            plt.plot(flowData[0], label=flow, alpha = 0.7)
+            plt.fill_between(range(len(flowData[0])), flowData[0]-flowData[1], flowData[0]+flowData[1], alpha=1/3)
+            if (log and dataType in ["Rates", "MultActions", "MultMean", "MultStd"]):#, "Throughput"]):
+                plt.yscale("log")
+        plt.legend()
+        try:
+            plt.savefig(os.path.join(outputDir, "{}.{}".format(dataType, plotFormat)), format=plotFormat)
+        except:
+            print("failed to plot", dataType)
+
+def plotLinks():
+    # plot grid {pair: [mean, std]}
+    rawData = defaultdict(lambda: [])
+    with open(linkCsvFile) as f:
+        reader = csv.DictReader(f)
+
+        for row in reader:
+            for key in row.keys():
+                source_dest, statsElem = key.split()
+                source, dest = source_dest[4:].split('-')
+                source_dest = (source, dest)
+
+                if statsElem == "mean":
+                    rawData[source_dest].append(float(row[key]))
+
+    edges = rawData.keys()
+
+    nodes = set()
+    meanData = {}
+
+    for edge in rawData.keys():
+        meanData[edge] = np.array(rawData[edge]).mean(0)
+        nodes.add(edge[0])
+        nodes.add(edge[1])
+
+    G = nx.DiGraph()
+    G.add_nodes_from(nodes)
+
+    maxEdgeWeight = 5
+
+    edgeLabels = {}
+    for edge in meanData.keys():
+        G.add_edge(edge[0], edge[1], weight=meanData[edge] * maxEdgeWeight)
+        edgeLabels[edge] = f"{meanData[edge]:.4f}" # TODO add to plot
+
     plt.figure(figsize=FIGSIZE)
 
-    if titlePostfix != "":
-        plt.title(dataType + " " + titlePostfix)
-    else:
-        plt.title(dataType)
+    edges = G.edges()
+    weights = [G[u][v]['weight'] for u,v in edges]
+    weights2 = [maxEdgeWeight for u,v in edges]
 
-    for flow in sorted(data[dataType].keys()):
-        flowData = data[dataType][flow]
+    # TODO add integer values
+    # TODO only draw the edges halfway
 
-        if type(flowData[0]) != np.ndarray:
-            flowData[0] = np.array(flowData[0])
-        if type(flowData[1]) != np.ndarray:
-            flowData[1] = np.array(flowData[1])
-
-        # plot line with stdev
-        plt.plot(flowData[0], label=flow, alpha = 0.7)
-        plt.fill_between(range(len(flowData[0])), flowData[0]-flowData[1], flowData[0]+flowData[1], alpha=1/3)
-        if (log and dataType in ["Rates", "MultActions", "MultMean", "MultStd"]):#, "Throughput"]):
-            plt.yscale("log")
-    plt.legend()
+    pos = nx.spring_layout(G, iterations=500)
+    nx.draw_networkx_nodes(G, pos, cmap=plt.get_cmap('jet'), node_size = 200)
+    nx.draw_networkx_labels(G, pos)
+    nx.draw_networkx_edges(G, pos, width=weights2, alpha = 0.5, arrows=True, connectionstyle="arc3,rad=0.2")
+    nx.draw_networkx_edges(G, pos, width=weights, arrows=True, connectionstyle="arc3,rad=0.2")
+    #nx.draw_networkx_edge_labels(G, pos, edgeLabels)
+    #plt.show()
+    linkFigName = "linkUsage"
     try:
-        plt.savefig(os.path.join(outputDir, "{}.{}".format(dataType, plotFormat)), format=plotFormat)
+        plt.savefig(os.path.join(outputDir, "{}.{}".format(linkFigName, plotFormat)), format=plotFormat)
     except:
-        print("failed to plot", dataType)
+        print("failed to plot", linkFigName)
+
+flowPlots()
+plotLinks()

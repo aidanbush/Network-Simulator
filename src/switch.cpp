@@ -11,6 +11,7 @@
 #include "packetHandler.h"
 #include "endpoint.h"
 #include "config.h"
+#include "observer.h"
 
 #include "linUCB.h"
 
@@ -88,6 +89,30 @@ json &Switch::validateSwitchConfig(json &switchConfig) {
         throw runtime_error(message);
     }
     return switchConfig;
+}
+
+void Switch::resetData() {
+    //for all neighbours
+    for (auto it : switchNeighbourIfaces) {
+        Interface *iface = man.getInterface(it.first);
+        iface->resetLinkUsage();
+    }
+}
+
+void Switch::recordData() {
+    for (auto it : switchNeighbourIfaces) {
+        Interface *iface = man.getInterface(it.first);
+        double usage = iface->getLinkUsage();
+        // TODO record with destination switch id
+        observer.logLinkData(id, it.second, "LinkUsage", usage);
+    }
+    //observer.logSwitchData(id, "value name", value);
+
+    resetData();
+
+    second_t nextRecord = man.time + man.miTime;
+    EventI *e = new Event<Switch>(nextRecord, &Switch::recordData, this);
+    man.pushEvent(e);
 }
 
 void Switch::rxPacket(Packet *p) {
@@ -272,6 +297,10 @@ double Switch::costToDest(int destId) {
 }
 
 bool Switch::initSwitch() {
+    second_t nextRecord = man.time + man.miTime;
+    EventI *e = new Event<Switch>(nextRecord, &Switch::recordData, this);
+    man.pushEvent(e);
+
     setNeighbours();
     bool ret = setupRoutingTable();
     return ret;

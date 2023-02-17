@@ -271,6 +271,11 @@ bool Manager::setupSimulatorNetwork() {
         }
     }
 
+    for (auto &it : interfaces) {
+        Interface *iface = it.second;
+        iface->initInterface();
+    }
+
     return true;
 }
 

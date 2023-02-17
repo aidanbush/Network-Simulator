@@ -18,6 +18,9 @@ using json = nlohmann::json;
 class Interface: public NetworkObject {
     public:
         Interface(json &interfaceConfig);
+
+        void initInterface();
+
         bool setLink(int linkId, vector<int> neighbours);
         int getLinkId();
 
@@ -41,6 +44,9 @@ class Interface: public NetworkObject {
 
         bool validate();
 
+        double getLinkUsage();
+        void resetLinkUsage();
+
 #ifdef _TEST
         static int interfaceToInterface();
 #endif /* _TEST */
@@ -54,7 +60,6 @@ class Interface: public NetworkObject {
         int linkId;
         int handlerId;
 
-
         int outBufTotalSize; // bytes
         int inBufTotalSize; // bytes
 
@@ -64,10 +69,12 @@ class Interface: public NetworkObject {
         queue<Packet*> outBuffer;
         queue<Packet*> inBuffer;
 
+        int outBufferUsage; // bytes
+        int linkMaxUsage; // bytes
+
+        //TODO remove
         void tagPacket(Packet *p, int bufferCurrentSize, int bufferFullSize);
-
         void tagPacketIn(Packet *p);
-
         void tagPacketOut(Packet *p);
 };
 

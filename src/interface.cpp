@@ -30,6 +30,14 @@ Interface::Interface(json &interfaceConfig): NetworkObject(validateInterfaceConf
     this->outBufCurSize = interfaceConfig["out_buf_size"];
     this->inBufCurSize = interfaceConfig["in_buf_size"];
     this->handlerId = interfaceConfig["handler_id"];
+    this->outBufferUsage = 0;
+    this->linkId = NULL_ID;
+}
+
+void Interface::initInterface() {
+    // get link max usage
+    Link *l = man.getLink(linkId);
+    linkMaxUsage = l->getSpeed() * man.miTime / BITS_PER_BYTE;
 }
 
 int Interface::validateInterfaceConfig(json &interfaceConfig) {
@@ -98,6 +106,7 @@ void Interface::txLinkEvent() {
     man.logTxEvent(IFACE_STR, id, TX_LINK_EVENT_STR, linkId, p);
 
     outBufCurSize += p->fullSize();
+    outBufferUsage += p->fullSize();
 
     Link *netLink = man.getLink(linkId);
     netLink->txPacket(p, id);
@@ -147,7 +156,7 @@ void Interface::rxLink(Packet *p) {
         man.logEvent(IFACE_STR, id, RX_LINK_EVENT_STR, "Packet dropped");
         return;
     }
-    
+
     inBufCurSize -= p->fullSize();
     inBuffer.push(p);
     tagPacketIn(p);
@@ -286,6 +295,14 @@ bool Interface::validate() {
     }
 
     return valid;
+}
+
+double Interface::getLinkUsage() {
+    return outBufferUsage / double(linkMaxUsage);
+}
+
+void Interface::resetLinkUsage() {
+    outBufferUsage = 0;
 }
 
 #ifdef _TEST

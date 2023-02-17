@@ -52,6 +52,10 @@ void Observer::logFlowDataBulk(int flowId, string type, vector<double> data) {
     flowData[flowId][type] = data;
 }
 
+void Observer::logLinkData(int sourceId, int destId, string type, double data) {
+    linkData[pair<int,int>(sourceId, destId)][type].push_back(data);
+}
+
 void Observer::writeData() {
     if (man.getSuppressOutput(CSV)) {
         fprintf(stderr, "suppressing observer output\n");
@@ -62,8 +66,15 @@ void Observer::writeData() {
     for (auto& it : flowData) {
         string filename = filenamePrefix + "_Flow" + to_string(it.first);
         // data elements
-        for (auto& it : it.second) {
-            writeFile(filename + "_" + it.first + ".csv", it.second);
+        for (auto& itt : it.second) {
+            writeFile(filename + "_" + itt.first + ".csv", itt.second);
+        }
+    }
+
+    for (auto& it : linkData) {
+        string filename = filenamePrefix + "_link" + to_string(it.first.first) + "-" + to_string(it.first.second);
+        for (auto& itt : it.second) {
+            writeFile(filename + "_" + itt.first + ".csv", itt.second);
         }
     }
 }

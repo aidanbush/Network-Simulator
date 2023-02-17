@@ -52,6 +52,9 @@ class Switch: public PacketHandler {
         map<int, pair<double, set<int>>> routingTable; // dest Id to cost and interface Id's
         vector<pair<int, int>> switchNeighbourIfaces; // all the interfaces that connect to a switch (interface id, switch id)
 
+        void recordData();
+        void resetData();
+
         virtual int routePacket(Packet *p);
 
         static double txCost(int sourceId, int destId);

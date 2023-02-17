@@ -27,7 +27,6 @@
 #include "flowDefines.h"
 #else
 #define MIN_RATE 500.0
-#define MI_TIME 1
 #define ACK_HEADER_SIZE 20
 #define ACK_BODY_SIZE 10
 #define STAT_FILE_DIRECTORY "results"
@@ -142,7 +141,6 @@ Flow::Flow(json &flowConfig):
     this->sentRate = this->rate;
     this->curSourcePId = 0;
     this->curSinkPId = 0;
-    this->miTime = MI_TIME;
     this->ttl = 15; // TODO use define
     this->running = false;
     this->sendingPacket = NULL;
@@ -372,7 +370,7 @@ void BasicFlow::initializeFlow() {
         man.pushEvent(e2);
     }
 
-    second_t nextRecord = man.time + miTime;
+    second_t nextRecord = man.time + man.miTime;
     EventI *e3 = new Event<BasicFlow>(nextRecord, &BasicFlow::recordData, this);
     man.pushEvent(e3);
 
@@ -519,8 +517,8 @@ void BasicFlow::resetData() {
 }
 
 void BasicFlow::recordData() {
-    throughput = bytesArrived * BITS_PER_BYTE / miTime;
-    sentRate = bytesSent * BITS_PER_BYTE / miTime;
+    throughput = bytesArrived * BITS_PER_BYTE / man.miTime;
+    sentRate = bytesSent * BITS_PER_BYTE / man.miTime;
     double hop_ratio = averageHops / double(minHops);
 
     observer.logFlowData(id, "AverageHops", averageHops);
@@ -544,7 +542,7 @@ void BasicFlow::recordData() {
 
     resetData();
 
-    second_t nextRecord = man.time + miTime;
+    second_t nextRecord = man.time + man.miTime;
     EventI *e = new Event<BasicFlow>(nextRecord, &BasicFlow::recordData, this);
     man.pushEvent(e);
 }
@@ -699,7 +697,7 @@ void TestFlow::startFlow() {
     EventI *e1 = new Event<TestFlow>(nextTx, &TestFlow::txPacketEvent, this);
     man.pushEvent(e1);
 
-    EventI *e2 = new Event<TestFlow>(man.time + miTime, &TestFlow::stepAgent, this);
+    EventI *e2 = new Event<TestFlow>(man.time + man.miTime, &TestFlow::stepAgent, this);
     man.pushEvent(e2);
 
     generator->startTraffic();

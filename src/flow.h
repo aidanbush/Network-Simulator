@@ -95,7 +95,6 @@ class Flow: public NetworkObject {
         int totalPacketsSent;
         int totalPacketsDropped;
 
-        second_t miTime = 0.01; // 10 ms
         double rate = 0; // bits/s
         double oldRate = 0;
         double maxRate;

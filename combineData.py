@@ -3,7 +3,9 @@ from collections import defaultdict
 import numpy as np
 
 dataPath = sys.argv[1]
-csvfile = sys.argv[2]
+resultPath = sys.argv[2]
+datacsvfile = sys.argv[3]
+linkcsvfile = sys.argv[4]
 
 def getFileData(path):
     data = []
@@ -11,81 +13,153 @@ def getFileData(path):
         data = list(map(float, f.readline().split(',')))
     return data
 
-dataPattern = re.compile("^(.+)_Flow(\d+)_(RateChange|DroppedPackets|Throughput|MinRTT|AverageRTT|PacketsArrived|AcksArrived|SentRate|ErroredPackets|SentPackets|Goodput|HopRatio).csv$")
+# Flow Data
 
-DATA_TYPES = ["RateChange", "DroppedPackets", "Throughput", "MinRTT", "AverageRTT", "PacketsArrived", "AcksArrived", "SentRate", "ErroredPackets", "SentPackets", "Goodput", "HopRatio"]
+def combineFlowData():
+    dataPattern = re.compile("^(.+)_Flow(\d+)_(RateChange|DroppedPackets|Throughput|MinRTT|AverageRTT|PacketsArrived|AcksArrived|SentRate|ErroredPackets|SentPackets|Goodput|HopRatio).csv$")
 
-NUM_ELEMENTS = len(DATA_TYPES)
+    DATA_TYPES = ["RateChange", "DroppedPackets", "Throughput", "MinRTT", "AverageRTT", "PacketsArrived", "AcksArrived", "SentRate", "ErroredPackets", "SentPackets", "Goodput", "HopRatio"]
 
-# structure: {flowId { tests [ runs []] }}
-rawData = defaultdict(lambda: [[] for i in range(NUM_ELEMENTS)])
+    NUM_ELEMENTS = len(DATA_TYPES)
 
-for filename in os.listdir(dataPath):
-    match = dataPattern.match(filename)
-    if (not match):
-        continue
+    # structure: {flowId { tests [ runs []] }}
+    rawData = defaultdict(lambda: [[] for i in range(NUM_ELEMENTS)])
 
-    dataType = match.group(3)
-    flowId = match.group(2)
+    for filename in os.listdir(dataPath):
+        match = dataPattern.match(filename)
+        if (not match):
+            continue
 
-    data = getFileData(os.path.join(dataPath, filename))
-    if data != [] and dataType in DATA_TYPES:
-        rawData[flowId][DATA_TYPES.index(dataType)].append(data)
+        dataType = match.group(3)
+        flowId = match.group(2)
 
-# convert to numpy array
-for flowId in rawData.keys():
-    for i in range(len(rawData[flowId])):
-        # reduce to the minimum number of samples of all runs
-        minSamples = 0
-        maxSamples = 0
-        if rawData[flowId][i] != []:
-            minSamples = min([len(run) for run in rawData[flowId][i]])
-            maxSamples = max([len(run) for run in rawData[flowId][i]])
+        data = getFileData(os.path.join(dataPath, filename))
+        if data != [] and dataType in DATA_TYPES:
+            rawData[flowId][DATA_TYPES.index(dataType)].append(data)
+
+    # convert to numpy array
+    for flowId in rawData.keys():
+        for i in range(len(rawData[flowId])):
+            # reduce to the minimum number of samples of all runs
+            minSamples = 0
+            maxSamples = 0
+            if rawData[flowId][i] != []:
+                minSamples = min([len(run) for run in rawData[flowId][i]])
+                maxSamples = max([len(run) for run in rawData[flowId][i]])
+
+            if minSamples < maxSamples:
+                print("up to", maxSamples - minSamples, "sample(s) dropped from flow", flowId, "i", DATA_TYPES[i])
+
+            #rawData[flowId][i] = np.array(rawData[flowId][i])
+            rawData[flowId][i] = np.array([subList[:minSamples] for subList in rawData[flowId][i]])
+
+    maxSamples = max([len(rawData[flowId][run][dataType])
+        for flowId in rawData.keys()
+        for run in range(len(rawData[flowId]))
+        for dataType in range(len(rawData[flowId][run]))])
+
+    combinedData = defaultdict(lambda: [None for i in range(NUM_ELEMENTS * 2)])
+
+    # combine data
+    for flowId in rawData.keys():
+        for i in range(len(rawData[flowId])):
+            if len(rawData[flowId][i]) != 0:
+                combinedData[flowId][i * 2] = rawData[flowId][i].mean(0)
+                combinedData[flowId][i * 2 + 1] = rawData[flowId][i].std(0)
+            else:
+                combinedData[flowId][i * 2] = None
+                combinedData[flowId][i * 2 + 1] = None
+
+    flowIds = rawData.keys() # TODO use flowId's so ordering of dict doesn't matter
+
+    # create headers
+    rowHeaders = ["flow{} {} {}".format(flowId, DATA_TYPES[testIndex], statsElement)
+            for flowId in flowIds for testIndex in range(len(rawData[flowId])) for statsElement in ["mean", "stdev"]]
+
+    csvfile = os.path.join(resultPath, datacsvfile)
+    with open(csvfile, 'w') as f:
+        writer = csv.writer(f)
+
+        # write headers
+        writer.writerow(rowHeaders)
+
+        # for each row
+        for r in range(maxSamples):
+            row = []
+            for flowId in flowIds:
+                # for each test
+                for i in range(len(combinedData[flowId])):
+                    if isinstance(combinedData[flowId][i], np.ndarray):
+                        row.append(combinedData[flowId][i][r])
+                    else:
+                        row.append(float("nan"))
+            # print row
+            writer.writerow(row)
+
+# Link Data
+def combineLinkData():
+    # link usage
+    dataPattern = re.compile("^(.+)_link(\d+)-(\d+)_LinkUsage.csv")
+
+    # structure: {source id + dest id [ runs ]}
+    rawData = defaultdict(lambda: [])
+
+    for filename in os.listdir(dataPath):
+        match = dataPattern.match(filename)
+        if (not match):
+            continue
+
+        # filename contains link data
+        sourceId = match.group(2)
+        destId = match.group(3)
+        idPair = sourceId + "-" + destId
+
+        # extract data from file
+        data = getFileData(os.path.join(dataPath, filename))
+        if data != []:
+            rawData[idPair].append(data)
+
+    # for all pairs
+    for idPair in rawData.keys():
+        #for all runs
+        minSamples = min([len(run) for run in rawData[idPair]])
+        maxSamples = max([len(run) for run in rawData[idPair]])
 
         if minSamples < maxSamples:
-            print("up to", maxSamples - minSamples, "sample(s) dropped from flow", flowId, "i", DATA_TYPES[i])
+            print("up to", maxSamples - minSamples, "sample(s) dropped from link", idPair)
 
-        #rawData[flowId][i] = np.array(rawData[flowId][i])
-        rawData[flowId][i] = np.array([subList[:minSamples] for subList in rawData[flowId][i]])
+        rawData[idPair] = np.array([subList[:minSamples] for subList in rawData[idPair]])
 
-maxSamples = max([len(rawData[flowId][run][dataType])
-    for flowId in rawData.keys()
-    for run in range(len(rawData[flowId]))
-    for dataType in range(len(rawData[flowId][run]))])
+    maxSamples = max([len(rawData[idPair][run]) \
+        for idPair in rawData.keys() \
+        for run in range(len(rawData[idPair]))])
 
-combinedData = defaultdict(lambda: [None for i in range(NUM_ELEMENTS * 2)])
+    combinedData = defaultdict(lambda: [None, None]) # {idPair: [mean, stdev]}
 
-# combine data
-for flowId in rawData.keys():
-    for i in range(len(rawData[flowId])):
-        if len(rawData[flowId][i]) != 0:
-            combinedData[flowId][i * 2] = rawData[flowId][i].mean(0)
-            combinedData[flowId][i * 2 + 1] = rawData[flowId][i].std(0)
+    # combine data
+    for idPair in rawData.keys():
+        if len(rawData[idPair]) != 0:
+            # mean and stdev
+            combinedData[idPair][0] = rawData[idPair].mean(0)
+            combinedData[idPair][1] = rawData[idPair].std(0)
         else:
-            combinedData[flowId][i * 2] = None
-            combinedData[flowId][i * 2 + 1] = None
+            combinedData[idPair][0] = None
+            combinedData[idPair][1] = None
 
-flowIds = rawData.keys() # TODO use flowId's so ordering of dict doesn't matter
+    idPairs = rawData.keys()
+    rowHeaders = [f"link{idPair} {statsElement}"
+                  for idPair in idPairs for statsElement in ["mean", "stdev"]]
 
-# create headers
-rowHeaders = ["flow{} {} {}".format(flowId, DATA_TYPES[testIndex], statsElement)
-        for flowId in flowIds for testIndex in range(len(rawData[flowId])) for statsElement in ["mean", "stdev"]]
+    # write to file - column for each pair
+    csvfile = os.path.join(resultPath, linkcsvfile)
+    with open(csvfile, 'w') as f:
+        writer = csv.writer(f)
 
-with open(csvfile, 'w') as f:
-    writer = csv.writer(f)
+        writer.writerow(rowHeaders)
+        for i in range(maxSamples):
+            row = [combinedData[idPair][j][i] for idPair in idPairs for j in range(2)]
 
-    # write headers
-    writer.writerow(rowHeaders)
+            writer.writerow(row)
 
-    # for each row
-    for r in range(maxSamples):
-        row = []
-        for flowId in flowIds:
-            # for each test
-            for i in range(len(combinedData[flowId])):
-                if isinstance(combinedData[flowId][i], np.ndarray):
-                    row.append(combinedData[flowId][i][r])
-                else:
-                    row.append(float("nan"))
-        # print row
-        writer.writerow(row)
+combineFlowData()
+combineLinkData()

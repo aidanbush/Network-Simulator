@@ -3,6 +3,7 @@
 
 #define NULL_TIME   -1.0
 #define NULL_ID     -1
+#define MI_TIME     1
 
 #include <queue>
 #include <map>
@@ -67,6 +68,9 @@ class Manager {
         };
 
         second_t time;
+
+        second_t miTime = MI_TIME;
+
         // global stats
 
         PacketHandler *getHandler(int id);

@@ -74,16 +74,16 @@ done
 wait
 
 # combine data
-echo python combineData.py $tempResultsDir ${resultsDir}/results.csv
-time python combineData.py $tempResultsDir ${resultsDir}/results.csv
+echo python combineData.py $tempResultsDir ${resultsDir} results.csv links.csv
+time python combineData.py $tempResultsDir ${resultsDir} results.csv links.csv
 
 # copy weights
-echo cp ${tempResultsDir}/*_Weights.csv ${resultsDir}/weights/
-cp ${tempResultsDir}/*_Weights.csv ${resultsDir}/weights/
+#echo cp ${tempResultsDir}/*_Weights.csv ${resultsDir}/weights/
+#cp ${tempResultsDir}/*_Weights.csv ${resultsDir}/weights/
 
 # plot data
-echo python plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat} -t $testName
-time python plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat} -t $testName
+echo python plotRuns.py ${resultsDir}/results.csv ${resultsDir}/links.csv -d ${resultsDir} -f ${plotFormat} -t $testName
+time python plotRuns.py ${resultsDir}/results.csv ${resultsDir}/links.csv -d ${resultsDir} -f ${plotFormat} -t $testName
 
 # clean up
 rm -r $tempResultsDir
