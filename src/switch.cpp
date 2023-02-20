@@ -538,6 +538,7 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
         {"1_hop_shortest", hop1ShortState},
         {"1-2_hop_shortest", hop1_2ShortState},
         {"2_hop_shortest", hop2ShortState},
+        {"3x3_section", SectionState3x3},
     };
     this->regularizer = switchConfig["regularizer"];
     this->delta = switchConfig["delta"];
@@ -734,6 +735,9 @@ int ManhattanBanditDeflectionSwitch::getNumDims() {
             case hop2ShortState:
                 numDims += hop2ShortStateDims;
                 break;
+            case SectionState3x3:
+                numDims += 9;
+                break;
         }
     }
 
@@ -835,6 +839,23 @@ vector<double> ManhattanBanditDeflectionSwitch::getState(Packet *p) {
                     for (int i: hop2ShortStateMap[p->getDest()]) {
                         state[stateOffset + i] = 1;
                     }
+                }
+                break;
+            case SectionState3x3:
+                {
+                    int stateOffset = state.size();
+
+                    for (int i = 0; i < hop2ShortStateDims; i++) {
+                        state.push_back(0);
+                    }
+
+                    int numSections = 3;
+                    pair<int, int> dest = getCoords(p->getDest(), networkSize);
+
+                    int section = int(double(dest.first)/networkSize) * numSections
+                        + numSections * (int(double(dest.second)/networkSize) * numSections);
+
+                    state[stateOffset + section] = 1;
                 }
                 break;
         }
