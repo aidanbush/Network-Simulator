@@ -20,19 +20,27 @@ def multiple_run_hop_ratio():
     stdev_field = "HopRatio stdev"
     multiple_run_plot(mean_field, stdev_field, "Hop Ratios", (0, 5))
 
+def multiple_run_drop_rate():
+    mean_field = "DroppedPackets mean"
+    stdev_field = "DroppedPackets stdev"
+    multiple_run_plot(mean_field, stdev_field, "Drop Rate", (0, 1))
+
 def multiple_run_plot(mean_field, stdev_field, fig_type, ylim):
-    utilization = "0.1"
-    #fig_name = f"5x5 Bursty {utilization} Utilization {fig_type}"
-    fig_name = f"5x5 Bursty {utilization} fs 4 Utilization {fig_type}"
+    utilization = "0.4"
+    fig_name = f"8x8 Bursty {utilization} Utilization {fig_type}"
+    #fig_name = f"5x5 Bursty {utilization} fs 4 Utilization {fig_type}"
     output_name = fig_name.replace(' ', '_')
 
     directory = "results/"
-    run_prefix = f"5x5_bursty_{utilization}_"
+    run_prefix = f"8x8_bursty_{utilization}_"
     #run_infixes = ["mbd_[1-2_hop_shortest]", "mbd_[dest_id]", "rand_deflect", "mbd_[1_hop_shortest]", "mbd_[2_hop_shortest]", "mbd_[2_hop_shortest,1_hop_shortest]", "mbd_[flow_id]"]
-    run_infixes = ["mbd_[2_hop_shortest,1_hop_shortest]", "mbd_[1_hop_shortest]", "mbd_[dest_id]", "rand_deflect", "rand_forward"]
-    #run_suffix = ""
-    run_suffix = "_fs_4"
+    #run_infixes = ["mbd_[2_hop_shortest,1_hop_shortest]", "mbd_[1_hop_shortest]", "mbd_[dest_id]", "rand_deflect", "rand_forward"]
+    run_infixes = ["mbd_[2_hop_shortest,1_hop_shortest]", "mbd_[1_hop_shortest]", "mbd_[dest_id]", "mbd_[1_hop_shortest,3x3_section]", "rand_deflect", "rand_forward"]
+    run_suffix = ""
+    #run_suffix = "_fs_4"
     file_suffix = "/results.csv"
+
+    run_infixes = sorted(run_infixes)
 
     data = {}
 
@@ -71,7 +79,8 @@ def multiple_run_plot(mean_field, stdev_field, fig_type, ylim):
                         row_stdevs.append(val)
 
                 means.append(statistics.mean(row_means))
-                stdevs.append((sum([stdev**2 for stdev in row_stdevs]))**.5)
+                #stdevs.append((sum([stdev**2 for stdev in row_stdevs]))**.5)
+                stdevs.append(statistics.stdev(row_means))
 
         data[run_name] = (np.array(means), np.array(stdevs))
 
@@ -97,3 +106,4 @@ def multiple_run_plot(mean_field, stdev_field, fig_type, ylim):
 
 multiple_run_throughput()
 multiple_run_hop_ratio()
+multiple_run_drop_rate()
