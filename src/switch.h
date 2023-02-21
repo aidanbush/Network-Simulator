@@ -145,7 +145,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
             hop1ShortState,
             hop1_2ShortState,
             hop2ShortState,
-            SectionState3x3
+            sectionState3x3
         };
 
         map<int, set<int>> createShortestLookupTable(vector<int> switches);
