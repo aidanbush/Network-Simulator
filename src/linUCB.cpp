@@ -11,6 +11,7 @@ LinUCB::LinUCB(int observeDims, int numActions, double regularizer, double delta
     this->delta = delta;
 
     for (int i = 0; i < numActions; i++) {
+        torch::manual_seed(seed);
         this->theta.push_back(torch::rand(this->observeDims));
         this->V.push_back(torch::eye(this->observeDims) * this->regularizer);
         this->b.push_back(torch::zeros(this->observeDims));
