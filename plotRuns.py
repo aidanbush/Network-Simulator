@@ -91,6 +91,50 @@ def flowPlots():
         except:
             print("failed to plot", dataType)
 
+def dataPlots():
+    # data type [mean, std]
+    data = defaultdict(lambda: [[],[]])
+
+    #open file
+    with open(flowCsvFile) as f:
+        reader = csv.DictReader(f)
+        c = 0
+
+        for row in reader:
+            if plotRange != None and (c < plotRange[0] or c > plotRange[1]):
+                continue
+
+            for key in row.keys():
+                dataType, statsElem = key.split()
+
+                if c % combine == 0:
+                    data[dataType][STATS_ELEM_TO_INDEX[statsElem]].append(float(row[key]))
+                else:
+                    oldVal = data[dataType][STATS_ELEM_TO_INDEX[statsElem]][-1]
+                    data[dataType][STATS_ELEM_TO_INDEX[statsElem]][-1] = oldVal + (float(row[key]) - oldVal) / ((c % combine) + 1)
+            c += 1
+
+    #for each data type:
+    for dataType in data.keys():
+        plt.figure(figsize=FIGSIZE)
+
+        if titlePostfix != "":
+            plt.title(dataType + " " + titlePostfix)
+        else:
+            plt.title(dataType)
+
+        plotData = data[dataType]
+        plotData[0] = np.array(plotData[0])
+        plotData[1] = np.array(plotData[1])
+
+        # plot line with stdev
+        plt.plot(plotData[0], alpha = 0.7)
+        plt.fill_between(range(len(plotData[0])), plotData[0]-plotData[1], plotData[0]+plotData[1], alpha=1/3)
+        try:
+            plt.savefig(os.path.join(outputDir, "{}.{}".format(dataType, plotFormat)), format=plotFormat)
+        except:
+            print("failed to plot", dataType)
+
 def plotLinks():
     # plot grid {pair: [mean, std]}
     rawData = defaultdict(lambda: [])
@@ -148,5 +192,6 @@ def plotLinks():
     except:
         print("failed to plot", linkFigName)
 
-flowPlots()
+#flowPlots()
+dataPlots()
 plotLinks()

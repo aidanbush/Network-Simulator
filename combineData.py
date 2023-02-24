@@ -22,6 +22,67 @@ def combineFlowData():
 
     NUM_ELEMENTS = len(DATA_TYPES)
 
+    # structure: {test: [ data ]}
+    rawData = defaultdict(lambda: [])
+
+    for filename in os.listdir(dataPath):
+        match = dataPattern.match(filename)
+        if (not match):
+            continue
+
+        dataType = match.group(3)
+
+        data = getFileData(os.path.join(dataPath, filename))
+        if data != [] and dataType in DATA_TYPES:
+            rawData[dataType].append(data)
+
+    # convert to numpy arrays
+    for dataType in rawData.keys():
+        minSamples = 0
+        maxSamples = 0
+
+        if rawData[dataType] != []:
+            minSamples = min([len(sample) for sample in rawData[dataType]])
+            maxSamples = max([len(sample) for sample in rawData[dataType]])
+
+        if minSamples < maxSamples:
+            print("up to", maxSamples - minSamples, "sample(s) dropped from", dataType)
+
+        rawData[dataType] = np.array([sample[:minSamples] for sample in rawData[dataType]])
+
+    combinedData = defaultdict(lambda: [None, None])
+    for dataType in rawData.keys():
+        combinedData[dataType][0] = np.nanmean(rawData[dataType], 0)
+        combinedData[dataType][1] = np.nanstd(rawData[dataType], 0)
+
+    rowHeaders = [f"{dataType} {statsElem}" for dataType in sorted(combinedData.keys()) for statsElem in ["mean", "stdev"]]
+
+    csvfile = os.path.join(resultPath, datacsvfile)
+    with open(csvfile, 'w') as f:
+        writer = csv.writer(f)
+
+        # write headers
+        writer.writerow(rowHeaders)
+
+        # for each row
+        for r in range(maxSamples):
+            row = []
+
+            for dataType in sorted(combinedData.keys()):
+                # append mean then stdev
+                row.append(combinedData[dataType][0][r])
+                row.append(combinedData[dataType][1][r])
+
+            writer.writerow(row)
+
+
+def combineFlowDataByFlow():
+    dataPattern = re.compile("^(.+)_Flow(\d+)_(RateChange|DroppedPackets|Throughput|MinRTT|AverageRTT|PacketsArrived|AcksArrived|SentRate|ErroredPackets|SentPackets|Goodput|HopRatio).csv$")
+
+    DATA_TYPES = ["RateChange", "DroppedPackets", "Throughput", "MinRTT", "AverageRTT", "PacketsArrived", "AcksArrived", "SentRate", "ErroredPackets", "SentPackets", "Goodput", "HopRatio"]
+
+    NUM_ELEMENTS = len(DATA_TYPES)
+
     # structure: {flowId { tests [ runs []] }}
     rawData = defaultdict(lambda: [[] for i in range(NUM_ELEMENTS)])
 
@@ -161,5 +222,6 @@ def combineLinkData():
 
             writer.writerow(row)
 
+#combineFlowDataByFlow()
 combineFlowData()
 combineLinkData()

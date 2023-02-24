@@ -3,7 +3,7 @@ source ~/.bashrc
 
 procLimit=1
 timer=200
-numTests=5
+numRuns=5
 offset=0
 plotFormat=pdf
 
@@ -15,7 +15,7 @@ while getopts "o:n:f:p:t:" c; do
             ;;
         n)
             # number of tests to run
-            numTests=${OPTARG}
+            numRuns=${OPTARG}
             ;;
         f)
             # plot format (eg png or pdf)
@@ -54,17 +54,19 @@ mkdir ${resultsDir}/weights
 cp $paramFile $resultsDir
 
 # run tests
-for seed in `seq $numTests`; do
-    seed=$(($seed + $offset))
+for run in `seq 0 $(($numRuns - 1))`; do
+    seed=$(($run + $offset))
 
     # ensure only create new processes when less than procLimit exist
     while [ `ps -u $(whoami) -o comm | grep simulator | wc -l` -ge $procLimit ] ; do
         sleep 1
     done
 
-    echo time timeout $timer ./build/simulator -r $seed -q 0100 -d ${tempResultsDir} -f run_$seed $netConfig $paramFile \> ${resultsDir}/output_run_$seed
+    runConfig=${netConfig}/run_${run}
+
+    echo time timeout $timer ./build/simulator -r $seed -q 0100 -d ${tempResultsDir} -f run_$seed $runConfig $paramFile \> ${resultsDir}/output_run_$seed
     (
-    time timeout $timer ./build/simulator -r $seed -q 0100 -d ${tempResultsDir} -f run_$seed $netConfig $paramFile > ${resultsDir}/output_run_$seed
+    time timeout $timer ./build/simulator -r $seed -q 0100 -d ${tempResultsDir} -f run_$seed $runConfig $paramFile > ${resultsDir}/output_run_$seed
     if [ $? -eq 124 ]; then
         echo test $seed timed out
     fi
