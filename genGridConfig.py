@@ -151,55 +151,69 @@ def gen_nxn_network(n, config):
 
 # generate flows
 
-def getValidSwitches(config):
+def createValidSwitches(config):
+    # structure
+    # {id: available speed}
     switchIds = [s["id"] for s in config["switches"]]
     switchMaxRate = [linkConfig["speed"] * sum([1 if i["handler_id"] == sId else 0 for i in config["interfaces"]])
                      for sId in switchIds] # count number of interfaces per switch and multiply by rate
     return list(map(list, zip(switchIds, switchMaxRate, [0 for _ in range(len(config["switches"]))])))
 
+def add_random_flow(config, size, flowBand, switches, fullSwitches, start_time, end_time):
+    global flowId
+
+    flowRate = flowConfig["generator"]["mean_rate"]
+
+    sIndex = random.randint(0, len(switches) - 1)
+    dIndex = random.randint(0, len(switches) - 2)
+    if dIndex >= sIndex:
+        dIndex += 1
+
+    source = switches[sIndex]
+    dest = switches[dIndex]
+
+    sourceId = source[0]
+    destId = dest[0]
+
+    flow = {
+            "id": flowId,
+            "source_id": sourceId,
+            "dest": destId,
+            "start_time": start_time,
+            "end_time": end_time
+            }
+    flow = dict(list(flowConfig.items()) + list(flow.items()))
+    config["flows"].append(flow)
+
+    flowId += 1
+    num_hops = abs(get_X(sourceId, size) - get_X(destId, size)) + abs(get_Y(sourceId, size) - get_Y(destId, size))
+    flowBand += flowRate * num_hops# * number of links
+    # update
+    switches[sIndex][2] += flowRate
+    switches[dIndex][2] += flowRate
+
+    # if not able to accept another flow then remove
+    if switches[sIndex][2] + flowRate > switches[sIndex][1]:
+        switches.pop(sIndex)
+        fullSwitches.push(sIndex)
+    if dIndex >= sIndex:
+        dIndex -= 1
+    if switches[dIndex][2] + flowRate > switches[dIndex][1]:
+        switches.pop(dIndex)
+        fullSwitches.push(dIndex)
+
+    return flowBand
+
 def genRandomFlows(config, netUtil, n, start_time, end_time):
     netBand = len(config["links"]) * linkConfig["speed"] * 2
     flowBand = 0
     global flowId
-    validSwitches = getValidSwitches(config)
+    validSwitches = createValidSwitches(config)
+    fullSwitches = {} # structure {id: available speed}
     flowRate = flowConfig["generator"]["mean_rate"]
 
     while flowBand < netBand * netUtil:
-        sIndex = random.randint(0, len(validSwitches) - 1)
-        dIndex = random.randint(0, len(validSwitches) - 2)
-        if dIndex >= sIndex:
-            dIndex += 1
-
-        source = validSwitches[sIndex]
-        dest = validSwitches[dIndex]
-
-        sourceId = source[0]
-        destId = dest[0]
-
-        flow = {
-                "id": flowId,
-                "source_id": sourceId,
-                "dest": destId,
-                "start_time": start_time,
-                "end_time": end_time
-                }
-        flow = dict(list(flowConfig.items()) + list(flow.items()))
-        config["flows"].append(flow)
-
-        flowId += 1
-        num_hops = abs(get_X(sourceId, n) - get_X(destId, n)) + abs(get_Y(sourceId, n) - get_Y(destId, n))
-        flowBand += flowRate * num_hops# * number of links
-        # update
-        validSwitches[sIndex][2] += flowRate
-        validSwitches[dIndex][2] += flowRate
-
-        # if not able to accept another flow then remove
-        if validSwitches[sIndex][2] + flowRate > validSwitches[sIndex][1]:
-            validSwitches.pop(sIndex)
-        if dIndex >= sIndex:
-            dIndex -= 1
-        if validSwitches[dIndex][2] + flowRate > validSwitches[dIndex][1]:
-            validSwitches.pop(dIndex)
+        flowBand = add_random_flow(config, n, flowBand, validSwitches, fullSwitches, start_time, end_time)
 
     print(f"utilisation {flowBand/netBand}", file=sys.stderr)
 
