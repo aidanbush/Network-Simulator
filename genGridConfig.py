@@ -159,7 +159,7 @@ def createValidSwitches(config):
 
     return {switchId: [0, switch_max_rate[switchId]] for switchId in switchIds}
 
-def add_random_flow(config, size, flowBand, switches, open_switches, fullSwitches, start_time, end_time):
+def add_random_flow(config, size, switches, open_switches, fullSwitches, start_time, end_time):
     global flowId
 
     flowRate = flowConfig["generator"]["mean_rate"]
@@ -183,8 +183,6 @@ def add_random_flow(config, size, flowBand, switches, open_switches, fullSwitche
     config["flows"].append(flow)
 
     flowId += 1
-    num_hops = abs(get_X(sourceId, size) - get_X(destId, size)) + abs(get_Y(sourceId, size) - get_Y(destId, size))
-    flowBand += flowRate * num_hops# * number of links
     # update
     switches[sourceId][0] += flowRate
     switches[destId][0] += flowRate
@@ -199,19 +197,69 @@ def add_random_flow(config, size, flowBand, switches, open_switches, fullSwitche
         open_switches.pop(destId)
         fullSwitches.push(destId)
 
-    return flowBand
+    num_hops = abs(get_X(sourceId, size) - get_X(destId, size)) + abs(get_Y(sourceId, size) - get_Y(destId, size))
+    return flowRate * num_hops, (sourceId, destId) # utilization of the flow
+
+def genChangingFlows(config, net_util, net_size, num_changes, sim_end_time):
+    net_band = len(config["links"]) * linkConfig["speed"] * 2
+    flows_band = 0
+    valid_switches = createValidSwitches(config)
+    full_switches = [] # structure [id]
+    available_switches = [switchId for switchId in valid_switches.keys()]
+    flow_rate = flowConfig["generator"]["mean_rate"]
+    # track flows structure [(end_time, utilization, source_id, dest_id)]
+    flows = []
+
+    flow_i = 0
+    start_time = 0
+
+    avg_util = 0
+
+    # queue of flows by their end times
+    while start_time < sim_end_time:
+        end_time = sim_end_time / num_changes * flow_i
+        flow_i += 1
+        # generate and track flow
+        flow_util, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, start_time, end_time)
+        flows.append((end_time, flow_util, source_dest[0], source_dest[1]))
+        flows_band += flow_util
+
+        # move forward start_time to next time flows_band is low
+        while flows_band > net_band * net_util:
+            # remove top flow and to update parameters
+            new_start_time, flow_util, source_id, dest_id = flows.pop(0)
+            time_delta = new_start_time - start_time
+            start_time = new_start_time
+
+            valid_switches[source_id][0] -= flow_rate
+            valid_switches[dest_id][0] -= flow_rate
+
+            # if source or dest were full then remove and put in available list
+            if source_id in full_switches:
+                available_switches.append(source_id)
+                full_switches.remove(source_id)
+            if dest_id in full_switches:
+                available_switches.append(dest_id)
+                full_switches.remove(dest_id)
+
+            # update average util since time has passed
+            avg_util += flows_band / net_band * time_delta / sim_end_time
+
+            flows_band -= flow_util
+
+    print(f"average utilisation {avg_util}", file=sys.stderr)
 
 def genRandomFlows(config, netUtil, n, start_time, end_time):
     netBand = len(config["links"]) * linkConfig["speed"] * 2
     flowBand = 0
-    global flowId
     validSwitches = createValidSwitches(config)
     fullSwitches = [] # structure [id]
     availableSwitches = [switchId for switchId in validSwitches.keys()]
     flowRate = flowConfig["generator"]["mean_rate"]
 
     while flowBand < netBand * netUtil:
-        flowBand = add_random_flow(config, n, flowBand, validSwitches, availableSwitches, fullSwitches, start_time, end_time)
+        flow_util, _ = add_random_flow(config, n, validSwitches, availableSwitches, fullSwitches, start_time, end_time)
+        flowBand += flow_util
 
     print(f"utilisation {flowBand/netBand}", file=sys.stderr)
 
@@ -226,7 +274,7 @@ def addRoutes(config, flowRoutes):
         flow = dict(list(flowConfig.items()) + list(flow.items()))
         config["flows"].append(flow)
 
-def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, simulation_length, num_flow_sets, runs, flowRoutes=None):
+def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, simulation_length, num_flow_sets, num_flow_changes, runs, flowRoutes=None):
     random.seed(seed)
 
     for run in range(runs):
@@ -246,9 +294,12 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, si
         flowId = 1
 
         if num_flow_sets == 1:
-            start_time = 0
-            end_time = 0
-            genRandomFlows(config, net_util, size, start_time, end_time)
+            if num_flow_changes == 0:
+                start_time = 0
+                end_time = 0
+                genRandomFlows(config, net_util, size, start_time, end_time)
+            else:
+                genChangingFlows(config, net_util, size, num_flow_changes, simulation_length)
         else:
             for i in range(num_flow_sets):
                 start_time = simulation_length / num_flow_sets * (i)
@@ -271,7 +322,10 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, si
         #pathname = os.path.join(dest_dir, filename)
 
         if num_flow_sets == 1:
-            filepath = os.path.join(dest_dir, f"{size}x{size}", f"{agent_type}{fname_state}", f"u_{net_util}")
+            if num_flow_changes == 0:
+                filepath = os.path.join(dest_dir, f"{size}x{size}", f"{agent_type}{fname_state}", f"u_{net_util}")
+            else:
+                filepath = os.path.join(dest_dir, f"{size}x{size}", f"{agent_type}{fname_state}", f"fc_{num_flow_changes}", f"u_{net_util}")
         else:
             filepath = os.path.join(dest_dir, f"{size}x{size}", f"{agent_type}{fname_state}", f"fs_{num_flow_sets}", f"u_{net_util}")
 
@@ -288,11 +342,12 @@ def main():
     runs = 20
     simulation_length = 200
     num_flow_sets = 1
+    num_flow_changes = 20
 
     dest_dir = "configs"
 
     traffic_type = "bursty"
-    net_utils = [0.1,0.2,0.3,0.4] #, 0.5]
+    net_utils = [0.1]#[0.1,0.2,0.3,0.4] #, 0.5]
     agent_type = ["mbd", "rand_deflect", "rand_forward"][0]
     states = [[None],["2_hop_shortest","1_hop_shortest"],["1-2_hop_shortest"],["2_hop_shortest"],\
             ["1_hop_shortest"],["1_hop_shortest", "3x3_section"],["dest_id"],["flow_id"]][4:5]
@@ -302,7 +357,7 @@ def main():
             switchConfig["states"] = state
             switchConfig["type"] = agent_type
 
-            create_config(dest_dir, size, traffic_type, net_util, agent_type, state, simulation_length, num_flow_sets, runs)
+            create_config(dest_dir, size, traffic_type, net_util, agent_type, state, simulation_length, num_flow_sets, num_flow_changes, runs)
 
 if __name__ == "__main__":
     main()
