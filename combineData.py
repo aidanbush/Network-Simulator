@@ -13,6 +13,12 @@ def getFileData(path):
         data = list(map(float, f.readline().split(',')))
     return data
 
+def getFileDataMapNAN(path):
+    data = []
+    with open(path) as f:
+        data = list(map(lambda num : np.NAN if num == 0.0 else num, map(float, f.readline().split(','))))
+    return data
+
 # Flow Data
 
 def combineFlowData():
@@ -32,7 +38,7 @@ def combineFlowData():
 
         dataType = match.group(3)
 
-        data = getFileData(os.path.join(dataPath, filename))
+        data = getFileDataMapNAN(os.path.join(dataPath, filename))
         if data != [] and dataType in DATA_TYPES:
             rawData[dataType].append(data)
 
@@ -94,7 +100,7 @@ def combineFlowDataByFlow():
         dataType = match.group(3)
         flowId = match.group(2)
 
-        data = getFileData(os.path.join(dataPath, filename))
+        data = getFileDataMapNAN(os.path.join(dataPath, filename))
         if data != [] and dataType in DATA_TYPES:
             rawData[flowId][DATA_TYPES.index(dataType)].append(data)
 
