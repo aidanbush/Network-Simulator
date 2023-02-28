@@ -190,12 +190,12 @@ def add_random_flow(config, size, switches, open_switches, fullSwitches, start_t
     # if not able to accept another flow then remove
     if switches[sourceId][0] + flowRate > switches[sourceId][1]:
         open_switches.pop(sIndex)
-        fullSwitches.push(sIndex)
+        fullSwitches.append(sIndex)
     if dIndex >= sIndex:
         dIndex -= 1
     if switches[destId][0] + flowRate > switches[destId][1]:
         open_switches.pop(destId)
-        fullSwitches.push(destId)
+        fullSwitches.append(destId)
 
     num_hops = abs(get_X(sourceId, size) - get_X(destId, size)) + abs(get_Y(sourceId, size) - get_Y(destId, size))
     return flowRate * num_hops, (sourceId, destId) # utilization of the flow
@@ -278,6 +278,7 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, si
     random.seed(seed)
 
     for run in range(runs):
+        #random.seed(seed) # uncomment to have all runs have the same flow configuration
         # create base object
         config = {}
 
@@ -294,7 +295,7 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, si
         flowId = 1
 
         if num_flow_sets == 1:
-            if num_flow_changes == 0:
+            if num_flow_changes <= 1:
                 start_time = 0
                 end_time = 0
                 genRandomFlows(config, net_util, size, start_time, end_time)
@@ -322,7 +323,7 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, si
         #pathname = os.path.join(dest_dir, filename)
 
         if num_flow_sets == 1:
-            if num_flow_changes == 0:
+            if num_flow_changes <= 1:
                 filepath = os.path.join(dest_dir, f"{size}x{size}", f"{agent_type}{fname_state}", f"u_{net_util}")
             else:
                 filepath = os.path.join(dest_dir, f"{size}x{size}", f"{agent_type}{fname_state}", f"fc_{num_flow_changes}", f"u_{net_util}")
@@ -342,15 +343,15 @@ def main():
     runs = 20
     simulation_length = 200
     num_flow_sets = 1
-    num_flow_changes = 20
+    num_flow_changes = 1#20
 
     dest_dir = "configs"
 
     traffic_type = "bursty"
-    net_utils = [0.1]#[0.1,0.2,0.3,0.4] #, 0.5]
+    net_utils = [0.1,0.2,0.3,0.4] #, 0.5]
     agent_type = ["mbd", "rand_deflect", "rand_forward"][0]
     states = [[None],["2_hop_shortest","1_hop_shortest"],["1-2_hop_shortest"],["2_hop_shortest"],\
-            ["1_hop_shortest"],["1_hop_shortest", "3x3_section"],["dest_id"],["flow_id"]][4:5]
+            ["1_hop_shortest"],["1_hop_shortest", "3x3_section"],["dest_id"],["flow_id"]][5:6]
 
     for net_util in net_utils:
         for state in states:
