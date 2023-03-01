@@ -490,8 +490,7 @@ int RandomDeflectionSwitch::routePacket(Packet *p) {
 
     // if both sets empty
     if (routes.first.empty() && routes.second.empty()) {
-        // TODO this is a hack change it
-        return Switch::routePacket(p);
+        return NULL_ID;
     }
 
     vector<int> optimalInterfaces;
@@ -865,12 +864,6 @@ vector<double> ManhattanBanditDeflectionSwitch::getState(Packet *p) {
 }
 
 int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
-    // at destination send to endpoint
-    if (getCoords(p->getDest(), networkSize) == coords) {
-        // TODO this is a hack change it
-        return Switch::routePacket(p);
-    }
-
     // get state
     vector<double> state = getState(p);
 

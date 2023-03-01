@@ -138,7 +138,7 @@ bool PacketHandler::validateInterfaces() {
                     it.first, id);
             valid = false;
         } else {
-            // other checks for neighbour?
+            // TODO other checks for neighbour?
         }
 
         // check interface
