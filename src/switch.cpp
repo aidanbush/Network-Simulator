@@ -3,6 +3,7 @@
 #include <limits>
 #include <nlohmann/json.hpp>
 #include <torch/torch.h>
+#include <utility>
 
 #include "switch.h"
 #include "manager.h"
@@ -875,16 +876,16 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
         return NULL_ID;
     }
 
-    int action = agent->selectAction(state, nonBlockedActions);
+    pair<int, double> action = agent->selectAction(state, nonBlockedActions);
 
     // record action in switch and packet
     /*if (actionInterfaces[action] == NULL_ID) {
         fprintf(stderr, "dropAction %d\n", p->getId());
     }*/
-    recordAction(p, state, action);
+    recordAction(p, state, action.first);
 
     // convert action into interface
-    return actionInterfaces[action];
+    return actionInterfaces[action.first];
 }
 
 void ManhattanBanditDeflectionSwitch::recordAction(Packet *p, vector<double> context, int action) {

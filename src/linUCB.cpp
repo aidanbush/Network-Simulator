@@ -38,7 +38,7 @@ void LinUCB::updateAgent(vector<double> observation, int action, double reward) 
     updateTheta(obsTensor, action, reward);
 }
 
-int LinUCB::selectAction(vector<double> observation, vector<int> available_actions) {
+pair<int, double> LinUCB::selectAction(vector<double> observation, vector<int> available_actions) {
     torch::Tensor obsTensor = torch::tensor(observation);
 
     double beta = sqrt(this->regularizer) + sqrt(2 * log(1 / this->delta) + this->numActions *
@@ -67,7 +67,7 @@ int LinUCB::selectAction(vector<double> observation, vector<int> available_actio
         }
     }
 
-    return actions[generator() % actions.size()];
+    return pair<int, double>{actions[generator() % actions.size()], actionValue};
 }
 
 void LinUCB::updateTheta(torch::Tensor context, int action, double reward) {
