@@ -7,6 +7,7 @@
 #include <set>
 #include <random>
 #include <stack>
+#include <tuple>
 
 #include "packetHandler.h"
 
@@ -20,7 +21,7 @@ class Switch: public PacketHandler {
     public:
         Switch(json &switchConfig);
 
-        void rxPacket(Packet *p);
+        virtual void rxPacket(Packet *p);
 
         void txPacket(Packet *p);
 
@@ -133,6 +134,8 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
     public:
         ManhattanBanditDeflectionSwitch(json &switchConfig);
 
+        virtual void rxPacket(Packet *p);
+
         bool initSwitch();
         void startSwitch();
 
@@ -146,6 +149,12 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
             hop1_2ShortState,
             hop2ShortState,
             sectionState3x3
+        };
+
+        enum actionResult {
+            actionDrop,
+            actionArrive,
+            actionForward
         };
 
         map<int, set<int>> createShortestLookupTable(vector<int> switches);
@@ -165,11 +174,15 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         int getNumDims();
         vector<double> getState(Packet *p);
 
+        void sendActionUpdate(int prevSwitch, Packet *p, actionResult result, double actionValue);
+        void recieveActionUpdate(int pId, actionResult result, double nextValue, int nextMinHops);
+
         void recordAction(Packet *p, vector<double> context, int action);
-        pair<vector<double>, int> retrieveAction(int pId);
+        tuple<vector<double>, int, int> peekAction(int pId);
+        tuple<vector<double>, int, int> retrieveAction(int pId);
         vector<int> availableInterfaces(Packet *p);
 
-        map<int, stack<pair<vector<double>, int>>> actionStore; // packet id -> (context, action)
+        map<int, stack<tuple<vector<double>, int, int>>> actionStore; // packet id -> (context, action, dest_id)
         vector<int> actionInterfaces;
         LinUCB *agent;
 

@@ -19,6 +19,9 @@
 #define SWITCH_STR          "Switch"
 #define SWITCH_RX_EVENT_STR "switch rx"
 
+#define REWARD_DROP     0
+#define REWARD_ARRIVAL  1
+
 using namespace std;
 
 using json = nlohmann::json;
@@ -864,6 +867,47 @@ vector<double> ManhattanBanditDeflectionSwitch::getState(Packet *p) {
     return state;
 }
 
+void ManhattanBanditDeflectionSwitch::sendActionUpdate(int prevSwitch, Packet *p, actionResult result, double actionValue) {
+    // inputs : source id, reward, packetId
+    // send an update to the neighbouring switch
+    ManhattanBanditDeflectionSwitch *neighbourSwitch = dynamic_cast<ManhattanBanditDeflectionSwitch *>(man.getSwitch(prevSwitch));
+    if (neighbourSwitch == NULL) {
+        throw runtime_error("sendActionUpdate: Previous switch: " + to_string(prevSwitch) + " does not exist or is not mbd switch");
+    }
+
+    int minHops = manhattanDistance(coords, getCoords(p->getDest(), networkSize));
+    neighbourSwitch->recieveActionUpdate(p->getId(), result, actionValue, minHops);
+}
+
+void ManhattanBanditDeflectionSwitch::recieveActionUpdate(int pId, actionResult result, double actionValue, int nextMinHops) {
+    switch(result) {
+        case actionDrop:
+            rewardAction(pId, REWARD_DROP); // TODO create define
+            break;
+        case actionArrive:
+            rewardAction(pId, REWARD_ARRIVAL); // TODO create define
+            break;
+        case actionForward:
+            {
+                tuple<vector<double>, int, int> stateAction = peekAction(pId);
+                // from here to dest TODO might be good to check routing table
+                int minHops = manhattanDistance(coords, getCoords(get<2>(stateAction), networkSize));
+                double reward = (minHops * actionValue) / (nextMinHops + actionValue);
+                //update pId with r;
+                rewardAction(pId, reward);
+            }
+            break;
+    }
+}
+
+void ManhattanBanditDeflectionSwitch::rxPacket(Packet *p) {
+    // TODO if the packet is at it's destination update action
+    if (p->getDest() == id) {
+        //sendActionUpdate(sourceSwitch, p, actionArrive, 0);
+    }
+    Switch::rxPacket(p);
+}
+
 int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
     // get state
     vector<double> state = getState(p);
@@ -873,6 +917,8 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
 
     // force a drop if drop actions are not being used
     if (!this->dropAction && nonBlockedActions.empty()) {
+        //TODO update previous switch here with the drop action reward
+        //sendActionUpdate(sourceSwitch, p, actionDrop, 0);
         return NULL_ID;
     }
 
@@ -883,6 +929,8 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
         fprintf(stderr, "dropAction %d\n", p->getId());
     }*/
     recordAction(p, state, action.first);
+    //TODO update previous switch here with the value from agent->selectAction
+    //sendActionUpdate(sourceSwitch, p, actionForward, action.second);
 
     // convert action into interface
     return actionInterfaces[action.first];
@@ -890,39 +938,46 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
 
 void ManhattanBanditDeflectionSwitch::recordAction(Packet *p, vector<double> context, int action) {
     // TODO if exists add to queue else create queue
-    actionStore[p->getId()].push(pair<vector<double>, int>{context, action});
-    //actionStore.emplace(p->getId(), pair<vector<double>, int>{context, action});
+    actionStore[p->getId()].push(tuple<vector<double>, int, int>{context, action, p->getDest()});
 
     MBDPacket *MBDP = dynamic_cast<MBDPacket *>(p);
     MBDP->recordAction(id);
 }
 
-pair<vector<double>, int> ManhattanBanditDeflectionSwitch::retrieveAction(int pId) {
-    // TODO pop off queue if exists
-    // if last delete queue from map
+tuple<vector<double>, int, int> ManhattanBanditDeflectionSwitch::peekAction(int pId) {
+    // if nothing return NULL values
     if (actionStore[pId].empty()) {
-        return {{}, -1};
+        return {{}, -1, NULL_ID};
     }
 
     // make copy
-    vector<double> state = actionStore[pId].top().first;
-    int action = actionStore[pId].top().second;
+    vector<double> state = get<0>(actionStore[pId].top());
+    int action = get<1>(actionStore[pId].top());
+    int destId = get<2>(actionStore[pId].top());
+
+    // return
+    return {state, action, destId};
+}
+
+tuple<vector<double>, int, int> ManhattanBanditDeflectionSwitch::retrieveAction(int pId) {
+    tuple<vector<double>, int, int> actionTuple = peekAction(pId);
+
     // remove
     actionStore[pId].pop();
     // return
-    return {state, action};
+    return actionTuple;
 }
 
 void ManhattanBanditDeflectionSwitch::rewardAction(int pId, double reward) {
     // get context action pair
-    pair<vector<double>, int> stateAction = retrieveAction(pId);
+    tuple<vector<double>, int, int> stateAction = retrieveAction(pId);
     // if there is no action
-    if (stateAction.second == -1) {
+    if (get<1>(stateAction) == -1) {
         return;
     }
 
     // apply update
-    agent->updateAgent(stateAction.first, stateAction.second, reward);
+    agent->updateAgent(get<0>(stateAction), get<1>(stateAction), reward);
 }
 
 #ifdef _TEST
