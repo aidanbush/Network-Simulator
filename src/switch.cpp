@@ -119,7 +119,7 @@ void Switch::recordData() {
     man.pushEvent(e);
 }
 
-void Switch::rxPacket(Packet *p) {
+void Switch::rxPacket(Packet *p, int sourceInterfaceId) {
     // if packet arrived then consume
     if (p->getDest() == id) {
         p->arrive();
@@ -134,7 +134,7 @@ void Switch::rxPacket(Packet *p) {
         return;
     }
 
-    int interfaceId = routePacket(p);
+    int interfaceId = routePacket(p, sourceInterfaceId);
     // TODO if interface id == -1 then drop the packet
     if (interfaceId == NULL_ID) {
         p->drop();
@@ -152,10 +152,10 @@ void Switch::rxPacket(Packet *p) {
 
 // send brand new packet, use rxPacket
 void Switch::txPacket(Packet *p) {
-    rxPacket(p);
+    rxPacket(p, NULL_ID);
 }
 
-int Switch::routePacket(Packet *p) {
+int Switch::routePacket(Packet *p, int sourceInterfaceId) {
     auto destId = routingTable.find(p->getDest());
     if (destId == routingTable.end()) {
         throw runtime_error("Switch: routePacket: not able to route to destination");
@@ -345,7 +345,7 @@ void RandomForwardSwitch::startSwitch() {
     Switch::startSwitch();
 }
 
-int RandomForwardSwitch::routePacket(Packet *p) {
+int RandomForwardSwitch::routePacket(Packet *p, int sourceInterfaceId) {
     // go through forwarding ports and select aviable ones
     vector<int> forwardingIfaces;
 
@@ -489,7 +489,7 @@ pair<vector<int>, vector<int>> RandomDeflectionSwitch::availableRouteSets(Packet
     return manhattanRouting[i];
 }
 
-int RandomDeflectionSwitch::routePacket(Packet *p) {
+int RandomDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceId) {
     pair<vector<int>, vector<int>> routes = availableRouteSets(p);
 
     // if both sets empty
@@ -900,15 +900,18 @@ void ManhattanBanditDeflectionSwitch::recieveActionUpdate(int pId, actionResult 
     }
 }
 
-void ManhattanBanditDeflectionSwitch::rxPacket(Packet *p) {
+void ManhattanBanditDeflectionSwitch::rxPacket(Packet *p, int sourceInterfaceId) {
     // TODO if the packet is at it's destination update action
-    if (p->getDest() == id) {
-        //sendActionUpdate(sourceSwitch, p, actionArrive, 0);
+#ifdef ONE_HOP_REWARD
+    if (p->getDest() == id && sourceInterfaceId != NULL_ID) { // address when a packet was just created
+        int prevSwitch = interfaceToNeighbour[sourceInterfaceId];
+        sendActionUpdate(prevSwitch, p, actionArrive, 0);
     }
-    Switch::rxPacket(p);
+#endif /* ONE_HOP_REWARD */
+    Switch::rxPacket(p, sourceInterfaceId);
 }
 
-int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
+int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceId) {
     // get state
     vector<double> state = getState(p);
 
@@ -917,8 +920,12 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
 
     // force a drop if drop actions are not being used
     if (!this->dropAction && nonBlockedActions.empty()) {
-        //TODO update previous switch here with the drop action reward
-        //sendActionUpdate(sourceSwitch, p, actionDrop, 0);
+#ifdef ONE_HOP_REWARD
+        if (sourceInterfaceId != NULL_ID) { // address when a packet was just created
+            int prevSwitch = interfaceToNeighbour[sourceInterfaceId];
+            sendActionUpdate(prevSwitch, p, actionDrop, 0);
+        }
+#endif /* ONE_HOP_REWARD */
         return NULL_ID;
     }
 
@@ -930,7 +937,12 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p) {
     }*/
     recordAction(p, state, action.first);
     //TODO update previous switch here with the value from agent->selectAction
-    //sendActionUpdate(sourceSwitch, p, actionForward, action.second);
+#ifdef ONE_HOP_REWARD
+    if (sourceInterfaceId != NULL_ID) { // address when a packet was just created
+        int prevSwitch = interfaceToNeighbour[sourceInterfaceId];
+        sendActionUpdate(prevSwitch, p, actionForward, action.second);
+    }
+#endif /* ONE_HOP_REWARD */
 
     // convert action into interface
     return actionInterfaces[action.first];

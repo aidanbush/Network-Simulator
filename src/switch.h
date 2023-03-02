@@ -21,7 +21,7 @@ class Switch: public PacketHandler {
     public:
         Switch(json &switchConfig);
 
-        virtual void rxPacket(Packet *p);
+        virtual void rxPacket(Packet *p, int sourceInterfaceId);
 
         void txPacket(Packet *p);
 
@@ -53,10 +53,12 @@ class Switch: public PacketHandler {
         map<int, pair<double, set<int>>> routingTable; // dest Id to cost and interface Id's
         vector<pair<int, int>> switchNeighbourIfaces; // all the interfaces that connect to a switch (interface id, switch id)
 
+        int getNeighbourSwitch(int interfaceId);
+
         void recordData();
         void resetData();
 
-        virtual int routePacket(Packet *p);
+        virtual int routePacket(Packet *p, int sourceInterfaceId);
 
         static double txCost(int sourceId, int destId);
         static double txCost(Switch *source, int destId);
@@ -82,7 +84,7 @@ class RandomForwardSwitch: public Switch {
         virtual void startSwitch();
 
     protected:
-        int routePacket(Packet *p);
+        int routePacket(Packet *p, int sourceInterfaceId);
 
         default_random_engine generator;
 
@@ -122,7 +124,7 @@ class RandomDeflectionSwitch: public Switch {
         void createManhattanRoutingTable();
         pair<vector<int>, vector<int>> availableRouteSets(Packet *p);
 
-        int routePacket(Packet *p);
+        int routePacket(Packet *p, int sourceInterfaceId);
 
         void setRerouteLists();
 
@@ -134,7 +136,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
     public:
         ManhattanBanditDeflectionSwitch(json &switchConfig);
 
-        virtual void rxPacket(Packet *p);
+        virtual void rxPacket(Packet *p, int sourceInterfaceId);
 
         bool initSwitch();
         void startSwitch();
@@ -168,7 +170,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         map<int, set<int>> hop1_2ShortStateMap; // destination to index of closest switches
         map<int, set<int>> hop2ShortStateMap; // destination to index of closest switches
 
-        int routePacket(Packet *p);
+        int routePacket(Packet *p, int sourceInterfaceId);
 
         void setupStates();
         int getNumDims();

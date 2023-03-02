@@ -34,6 +34,7 @@ double PacketHandler::getMaxOutputRate() {
     return maxRate;
 }
 
+// TODO remove not fully supported
 void PacketHandler::removeInterface(int interfaceId) {
     for (auto it = interfaces.rbegin(); it != interfaces.rend(); ++it) {
         if (it->second == interfaceId) {
@@ -44,7 +45,8 @@ void PacketHandler::removeInterface(int interfaceId) {
 }
 
 bool PacketHandler::addInterface(int destId, int interfaceId) {
-    return interfaces.emplace(destId, interfaceId).second;
+    return interfaces.emplace(destId, interfaceId).second
+        && interfaceToNeighbour.emplace(interfaceId, destId).second;
 }
 
 bool PacketHandler::addInterfaceConfig(int interfaceId) {

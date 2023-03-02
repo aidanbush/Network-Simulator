@@ -15,7 +15,7 @@ class Packet;
 class Endpoint: public PacketHandler {
     public:
         Endpoint(json &endpointConfig);
-        void rxPacket(Packet *p);
+        void rxPacket(Packet *p, int sourceInterfaceId);
         void txPacket(Packet *p);
         bool validate();
 

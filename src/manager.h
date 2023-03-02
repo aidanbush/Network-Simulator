@@ -5,6 +5,8 @@
 #define NULL_ID     -1
 #define MI_TIME     1
 
+#define ONE_HOP_REWARD
+
 #include <queue>
 #include <map>
 #include <vector>

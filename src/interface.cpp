@@ -127,7 +127,8 @@ void Interface::txHandlerEvent() {
     inBufCurSize += p->fullSize();
 
     PacketHandler *handler = man.getHandler(handlerId);
-    handler->rxPacket(p);
+    // TODO send interface id
+    handler->rxPacket(p, id);
 
     if (!inBuffer.empty()) {
         second_t nextTx = man.time;

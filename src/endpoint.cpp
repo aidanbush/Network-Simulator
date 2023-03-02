@@ -36,7 +36,7 @@ json &Endpoint::validateEndpointConfig(json &endpointConfig) {
     return endpointConfig;
 }
 
-void Endpoint::rxPacket(Packet *p) {
+void Endpoint::rxPacket(Packet *p, int sourceInterfaceId) {
     p->arrive();
 }
 

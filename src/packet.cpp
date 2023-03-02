@@ -98,7 +98,9 @@ MBDPacket::MBDPacket(int id, int sourceId, int destId, int flowId, int dataId, i
 
 void MBDPacket::arrive() {
     // update switches
+#ifndef ONE_HOP_REWARD
     updateSwitches(true);
+#endif /* ONE_HOP_REWARD */
 
     Packet::arrive();
 }
@@ -106,7 +108,9 @@ void MBDPacket::arrive() {
 void MBDPacket::drop() {
     // update switches
     MBDFlow *f = dynamic_cast<MBDFlow *>(man.getFlow(flowId));
+#ifndef ONE_HOP_REWARD
     updateSwitches(false);
+#endif /* ONE_HOP_REWARD */
 
     Packet::drop();
 }

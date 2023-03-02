@@ -34,13 +34,14 @@ class PacketHandler: public NetworkObject {
 
         double getMaxOutputRate();
 
-        virtual void rxPacket(Packet *p) = 0;
+        virtual void rxPacket(Packet *p, int sourceInterfaceId) = 0;
         virtual void txPacket(Packet *p) = 0;
 
     protected:
         bool validateHandler();
 
         map<int, int> interfaces; // map neighbour id to interface id
+        map<int, int> interfaceToNeighbour; // map interface id to neighbour id
 
         int internalSpeed;
 
@@ -54,7 +55,7 @@ class TestHandler: public PacketHandler {
     public:
         TestHandler(json testHandlerConfig): PacketHandler(testHandlerConfig) {}
 
-        void rxPacket(Packet *) {}
+        void rxPacket(Packet *, int sourceInterfaceId) {}
 
         bool validate() {return true;}
 };
