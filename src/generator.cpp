@@ -284,8 +284,8 @@ CompoundPoissonGenerator::CompoundPoissonGenerator(json &generatorConfig):
     double rho = 1 / double(burstLen);
 
     // lambda for interburst delay
-    double burstDelay = burstLen * (this->headerSize + this->bodySize) * BITS_PER_BYTE / this->burstRate;
-    double lambda = 1 / (burstDelay * ((this->burstRate - meanRate) / meanRate));
+    double burstDuration = burstLen * (this->headerSize + this->bodySize) * BITS_PER_BYTE / this->burstRate;
+    double lambda = 1 / (burstDuration * ((this->burstRate - meanRate) / meanRate));
     if (lambda < 0) {
         throw runtime_error("CompoundPoissonGenerator: mean rate above burst rate");
     }

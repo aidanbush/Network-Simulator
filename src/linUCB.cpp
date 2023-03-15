@@ -45,29 +45,35 @@ pair<int, double> LinUCB::selectAction(vector<double> observation, vector<int> a
             log(1 + (this->timestep-1) / (this->regularizer * this->numActions)));
 
     torch::Tensor ucb = torch::zeros(this->numActions);
+    torch::Tensor ucbReward = torch::zeros(this->numActions);
 
     for (int action : available_actions) {
         torch::Tensor inverseV = torch::inverse(V[action]);
-        ucb[action] = obsTensor.dot(this->theta[action]) + beta *
+        ucbReward[action] = obsTensor.dot(this->theta[action]);
+        ucb[action] = ucbReward[action] + beta *
             torch::sqrt(torch::matmul(obsTensor, inverseV).dot(obsTensor));
     }
 
     // select highest ucb value
     vector<int> actions = {available_actions[0]};
     double actionValue = ucb[actions[0]].item().to<double>();
+    vector<double> expectedRewards = {ucbReward[actions[0]].item().to<double>()};
 
     for (int i = 1; i < available_actions.size(); i++) {
         int action = available_actions[i];
         double tmpActionValue = ucb[action].item().to<double>();
         if (tmpActionValue > actionValue) {
             actions = {action};
+            expectedRewards = {ucbReward[action].item().to<double>()};
             actionValue = tmpActionValue;
         } else if (tmpActionValue == actionValue) {
+            expectedRewards.push_back(ucbReward[action].item().to<double>());
             actions.push_back(action);
         }
     }
 
-    return pair<int, double>{actions[generator() % actions.size()], actionValue};
+    int selectedAction = generator() % actions.size();
+    return pair<int, double>{actions[selectedAction], expectedRewards[selectedAction]};
 }
 
 void LinUCB::updateTheta(torch::Tensor context, int action, double reward) {

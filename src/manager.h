@@ -31,6 +31,7 @@ typedef double second_t;
 
 struct EventI {
     second_t time;
+    int id;
 
     virtual ~EventI() = default;
     virtual void call() const {}
@@ -63,13 +64,14 @@ class Manager {
         struct EventQueueComparator {
             bool operator()(const EventI *lhs, const EventI *rhs) const {
                 if (lhs->time == rhs->time) {
-                    return man.random() % 2;
+                    return lhs->id > rhs->id;
                 }
                 return lhs->time > rhs->time; // Lower time is higher priority
             }
         };
 
         second_t time;
+        int nextEventId = 0;
 
         second_t miTime = MI_TIME;
 
@@ -95,7 +97,7 @@ class Manager {
         bool addFlow(Flow *flow);
         void removeFlow(int id);
 
-        void pushEvent(EventI *e) {pq.push(e); }
+        void pushEvent(EventI *e) {e->id = man.nextEventId++; pq.push(e); }
         EventI *popEvent();
         priority_queue<EventI*, vector<EventI*>, EventQueueComparator>::size_type
             numEvents() {return pq.size(); }

@@ -81,6 +81,7 @@ class Flow: public NetworkObject {
         int packetsCreated;
         int packetsArrived;
         int acksArrived;
+        int packetsTimedOut;
         int packetsDropped;
         int packetsSent;
         int packetsErrored;

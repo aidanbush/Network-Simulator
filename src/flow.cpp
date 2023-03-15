@@ -132,6 +132,7 @@ Flow::Flow(json &flowConfig):
     this->packetsCreated = 0;
     this->packetsArrived = 0;
     this->acksArrived = 0;
+    this->packetsTimedOut = 0;
     this->packetsDropped = 0;
     this->packetsErrored = 0;
     this->bytesArrived = 0;
@@ -253,6 +254,9 @@ void Flow::sinkPacketArrived(Packet *p) {
 }
 
 void Flow::packetDropped(Packet *p) {
+    if (p->outOfTime()) {
+        packetsTimedOut++;
+    }
     packetsDropped++;
     removePacket(p);
     delete p;
@@ -505,6 +509,7 @@ void BasicFlow::packetGenerationNotification() {
 
 void BasicFlow::resetData() {
     packetsSent = 0;
+    packetsTimedOut = 0;
     packetsDropped = 0;
     bytesSent = 0;
     bytesArrived = 0;
@@ -531,6 +536,9 @@ void BasicFlow::recordData() {
     observer.logFlowData(id, "AcksArrived", acksArrived);
 
     observer.logFlowData(id, "SentPackets", packetsSent);
+
+    observer.logFlowData(id, "TimedOutPackets", packetsTimedOut);
+    observer.logFlowData(id, "CongestedPackets", packetsDropped - packetsTimedOut);
 
     if (packetsSent == 0) {
         observer.logFlowData(id, "DroppedPackets", 0);

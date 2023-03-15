@@ -122,23 +122,23 @@ void Switch::recordData() {
 void Switch::rxPacket(Packet *p, int sourceInterfaceId) {
     // if packet arrived then consume
     if (p->getDest() == id) {
+        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet: " + to_string(p->getId()) + " arrived");
         p->arrive();
-        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet arrived");
         return;
     }
 
     // if timeout drop
     if (p->outOfTime()) {
+        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet timeout drop packet: " + to_string(p->getId()));
         p->drop();
-        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet timeout drop");
         return;
     }
 
     int interfaceId = routePacket(p, sourceInterfaceId);
     // TODO if interface id == -1 then drop the packet
     if (interfaceId == NULL_ID) {
+        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet route drop packet: " + to_string(p->getId()));
         p->drop();
-        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet route drop");
         return;
     }
 
@@ -146,6 +146,9 @@ void Switch::rxPacket(Packet *p, int sourceInterfaceId) {
 
     // handle packets
     p->decTTL();
+
+    man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Forwarding Packet: " + to_string(p->getId())
+            + " to Interface: " + to_string(interfaceId));
 
     interface->rxHandler(p);
 }

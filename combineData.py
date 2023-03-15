@@ -22,9 +22,9 @@ def getFileDataMapNAN(path):
 # Flow Data
 
 def combineFlowData():
-    dataPattern = re.compile("^(.+)_Flow(\d+)_(RateChange|DroppedPackets|Throughput|MinRTT|AverageRTT|PacketsArrived|AcksArrived|SentRate|ErroredPackets|SentPackets|Goodput|HopRatio).csv$")
+    dataPattern = re.compile("^(.+)_Flow(\d+)_(RateChange|DroppedPackets|Throughput|MinRTT|AverageRTT|PacketsArrived|AcksArrived|SentRate|ErroredPackets|SentPackets|Goodput|HopRatio|TimedOutPackets|CongestedPackets).csv$")
 
-    DATA_TYPES = ["RateChange", "DroppedPackets", "Throughput", "MinRTT", "AverageRTT", "PacketsArrived", "AcksArrived", "SentRate", "ErroredPackets", "SentPackets", "Goodput", "HopRatio"]
+    DATA_TYPES = ["RateChange", "DroppedPackets", "Throughput", "MinRTT", "AverageRTT", "PacketsArrived", "AcksArrived", "SentRate", "ErroredPackets", "SentPackets", "Goodput", "HopRatio", "TimedOutPackets", "CongestedPackets"]
 
     NUM_ELEMENTS = len(DATA_TYPES)
 
