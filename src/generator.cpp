@@ -91,7 +91,7 @@ void Generator::generatePacket() {
 
 bool Generator::startTraffic() {
     if (running) {
-        // TODO Log error
+        man.logEvent("BasicGenerator", 0, "startTraffic", "tried to start an already running generator");
         return false;
     }
 
@@ -276,22 +276,17 @@ CompoundPoissonGenerator::CompoundPoissonGenerator(json &generatorConfig):
     this->bodySize = generatorConfig["body"];
 
     // get burst rate
-    this->burstRate = generatorConfig["burst_rate"];
-    double meanRate = generatorConfig["mean_rate"];
-    double burstLen = generatorConfig["burst_mean_len"];
+    this->burstRate = generatorConfig["burst_rate"]; // b/s
+    double meanRate = generatorConfig["mean_rate"]; // b/s
+    double burstLen = generatorConfig["burst_mean_len"]; // packets
 
     // get rho from burst mean size
     double rho = 1 / double(burstLen);
 
-    // lambda for interburst delay
-    double burstDuration = burstLen * (this->headerSize + this->bodySize) * BITS_PER_BYTE / this->burstRate;
-    double lambda = 1 / (burstDuration * ((this->burstRate - meanRate) / meanRate));
-    if (lambda < 0) {
-        throw runtime_error("CompoundPoissonGenerator: mean rate above burst rate");
-    }
+    int packetSizeBits = (this->headerSize + this->bodySize) * BITS_PER_BYTE;
+    double lambda = meanRate * rho / packetSizeBits;
 
-    this->curBurstGen = 0;
-    this->burstSize = 0;
+    this->burstQueue = 0;
 
     // create distributions
     this->burstDelayDistribution = exponential_distribution(lambda);
@@ -337,21 +332,54 @@ int CompoundPoissonGenerator::getBodySize() {
     return bodySize;
 }
 
-second_t CompoundPoissonGenerator::nextGenTime() {
-    second_t interArrivalTime;
-    // if at end of burst then use the time between burst as calculated by lambda
-    if (curBurstGen >= burstSize) {
-        // reset curBurstGen
-        this->curBurstGen = 0;
-        // sample next burst size
-        this->burstSize = burstSizeDistribution(generator);
-        // sample burst interArrivalTime
-        interArrivalTime = burstDelayDistribution(generator);
-    } else { // else use rate and size
-        interArrivalTime = double(getHeaderSize() + getBodySize()) * BITS_PER_BYTE / burstRate;
+bool CompoundPoissonGenerator::startTraffic() {
+    if (running) {
+        man.logEvent("CompoundPoissonGenerator", 0, "startTraffic", "tried to start an already running generator");
+        return false;
     }
 
-    return man.time + interArrivalTime;
+    this->burstQueue= 0;
+
+    running = true;
+
+    EventI *e = new Event<CompoundPoissonGenerator>(man.time, &CompoundPoissonGenerator::generateBurst, this);
+    man.pushEvent(e);
+
+    return true;
+}
+
+second_t CompoundPoissonGenerator::nextBurstTime() {
+    return burstDelayDistribution(generator);
+}
+
+void CompoundPoissonGenerator::generateBurst() {
+    // if the queue was empty create a new generatePacketEvent
+    bool wasEmpty = this->burstQueue <= 0;
+
+    // add packets to the queue using the 1+ geometric distribution
+    this->burstQueue += burstSizeDistribution(generator) + 1;
+
+    second_t interBurstTime = nextBurstTime();
+
+    EventI *e = new Event<CompoundPoissonGenerator>(man.time + interBurstTime, &CompoundPoissonGenerator::generateBurst, this);
+    man.pushEvent(e);
+
+    if (wasEmpty) {
+        second_t nextTime = nextGenTime();
+        if (nextTime != NULL_TIME) {
+            e = new Event<CompoundPoissonGenerator>(nextTime, &CompoundPoissonGenerator::generatePacket, this);
+            man.pushEvent(e);
+        }
+    }
+}
+
+second_t CompoundPoissonGenerator::nextGenTime() {
+    // time + size of packet if there is a packet otherwise NULL_TIME
+    if (this->burstQueue <= 0) {
+        return NULL_TIME;
+    }
+
+    return man.time + double(getHeaderSize() + getBodySize()) * BITS_PER_BYTE / burstRate;
 }
 
 void CompoundPoissonGenerator::generatePacket() {
@@ -359,13 +387,13 @@ void CompoundPoissonGenerator::generatePacket() {
         return;
     }
 
-    // create packet, if there is room, else wait
+    // create packet, if there is room, else skip
     int headerSize = getHeaderSize();
     int bodySize = getBodySize();
 
     int packetSize = headerSize + bodySize;
     if (bufferCurSize + packetSize <= bufferMaxSize) {
-        this->curBurstGen++;
+        this->burstQueue--;
         packetBuffer.push({headerSize, bodySize});
         bufferCurSize += packetSize;
     }
@@ -373,8 +401,11 @@ void CompoundPoissonGenerator::generatePacket() {
     man.logEvent("PoissonGenerator", 0, "generatePacket", "Generated Packet of size" + to_string(packetSize));
     Generator::generatePacket();
 
-    EventI *e = new Event<CompoundPoissonGenerator>(nextGenTime(), &CompoundPoissonGenerator::generatePacket, this);
-    man.pushEvent(e);
+    second_t nextTime = nextGenTime();
+    if (nextTime != NULL_TIME) {
+        EventI *e = new Event<CompoundPoissonGenerator>(nextTime, &CompoundPoissonGenerator::generatePacket, this);
+        man.pushEvent(e);
+    }
 }
 
 double CompoundPoissonGenerator::getAveragePacketSizeBytes() {

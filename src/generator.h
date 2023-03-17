@@ -92,12 +92,16 @@ class CompoundPoissonGenerator: public Generator {
     public:
         CompoundPoissonGenerator(json &generatorConfig);
 
+        bool startTraffic();
         void generatePacket();
 
         double getAveragePacketSizeBytes();
     private:
         int getHeaderSize();
         int getBodySize();
+
+        void generateBurst();
+        second_t nextBurstTime();
         second_t nextGenTime();
 
         default_random_engine generator;
@@ -107,8 +111,7 @@ class CompoundPoissonGenerator: public Generator {
         int headerSize;
         int bodySize;
 
-        int curBurstGen;
-        int burstSize;
+        int burstQueue;
         double burstRate;
 
         void validateCompoundPoissonGeneratorConfig(json &generatorConfig);
