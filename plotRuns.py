@@ -142,8 +142,24 @@ def dataPlots():
     for dataType in data.keys():
         single_plot(data[dataType], dataType)
 
-    # plot drop rate
-    single_plot(data["DroppedPackets"] / data["SentPackets"], "DropRate")
+def calculate_id(x, y, n):
+    return y * n + x + 1
+
+def get_X(Id, n):
+    return (Id - 1) % n
+
+def get_Y(Id, n):
+    return (Id - 1) // n
+
+def get_layout(G):
+    pos = {}
+    # find max value to determine graph size
+    size = int(max([int(n) for n in G])**0.5)
+    # go through graph and convert into coords
+    for i in range(size):
+        for j in range(size):
+            pos[str(calculate_id(i,j,size))] = [(i+1)/(size+1), (j+1)/(size+1)]
+    return pos
 
 def plotLinks():
     # plot grid {pair: [mean, std]}
@@ -189,13 +205,13 @@ def plotLinks():
     # TODO add integer values
     # TODO only draw the edges halfway
 
-    pos = nx.spring_layout(G, iterations=500)
+    pos = get_layout(G)
+    # todo create layout based on the grid
     nx.draw_networkx_nodes(G, pos, cmap=plt.get_cmap('jet'), node_size = 200)
     nx.draw_networkx_labels(G, pos)
     nx.draw_networkx_edges(G, pos, width=weights2, alpha = 0.5, arrows=True, connectionstyle="arc3,rad=0.2")
     nx.draw_networkx_edges(G, pos, width=weights, arrows=True, connectionstyle="arc3,rad=0.2")
     #nx.draw_networkx_edge_labels(G, pos, edgeLabels)
-    #plt.show()
     linkFigName = "linkUsage"
     try:
         plt.savefig(os.path.join(outputDir, "{}.{}".format(linkFigName, plotFormat)), format=plotFormat)
