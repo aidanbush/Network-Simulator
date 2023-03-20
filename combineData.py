@@ -55,6 +55,15 @@ def combineFlowData():
         combinedData[dataType][0] = np.nanmean(rawData[dataType], 0)
         combinedData[dataType][1] = np.nanstd(rawData[dataType], 0)
 
+    combinedData["DropRate"][0] = combinedData["DroppedPackets"][0] / combinedData["SentPackets"][0]
+    combinedData["DropRate"][1] = np.zeros(combinedData["DropRate"][0].size) # TODO look into calculating a real stdev
+
+    combinedData["TimeoutDropRate"][0] = combinedData["TimedOutPackets"][0] / combinedData["SentPackets"][0]
+    combinedData["TimeoutDropRate"][1] = np.zeros(combinedData["TimeoutDropRate"][0].size) # TODO look into calculating a real stdev
+
+    combinedData["CongestedDropRate"][0] = combinedData["CongestedPackets"][0] / combinedData["SentPackets"][0]
+    combinedData["CongestedDropRate"][1] = np.zeros(combinedData["CongestedDropRate"][0].size) # TODO look into calculating a real stdev
+
     rowHeaders = [f"{dataType} {statsElem}" for dataType in sorted(combinedData.keys()) for statsElem in ["mean", "stdev"]]
 
     csvfile = os.path.join(resultPath, datacsvfile)
