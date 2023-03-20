@@ -522,31 +522,31 @@ void BasicFlow::resetData() {
 }
 
 void BasicFlow::recordData() {
+    // if nothing was sent and not running report nan
+    bool reportNan = false;
+    if (!running && bytesSent == 0) {
+        reportNan = true;
+    }
+
     throughput = bytesArrived * BITS_PER_BYTE / man.miTime;
     sentRate = bytesSent * BITS_PER_BYTE / man.miTime;
     double hop_ratio = averageHops / double(minHops);
 
-    observer.logFlowData(id, "AverageHops", averageHops);
-    observer.logFlowData(id, "HopRatio", hop_ratio);
-    observer.logFlowData(id, "Throughput", throughput);
-    observer.logFlowData(id, "AverageRTT", averageRTT);
-    observer.logFlowData(id, "MinRTT", minRTT);
-    observer.logFlowData(id, "SentRate", sentRate);
-    observer.logFlowData(id, "PacketsArrived", packetsArrived);
-    observer.logFlowData(id, "AcksArrived", acksArrived);
+    observer.logFlowData(id, "AverageHops", averageHops, reportNan);
+    observer.logFlowData(id, "HopRatio", hop_ratio, reportNan);
+    observer.logFlowData(id, "Throughput", throughput, reportNan);
+    observer.logFlowData(id, "AverageRTT", averageRTT, reportNan);
+    observer.logFlowData(id, "MinRTT", minRTT, reportNan);
+    observer.logFlowData(id, "SentRate", sentRate, reportNan);
+    observer.logFlowData(id, "PacketsArrived", packetsArrived, reportNan);
+    observer.logFlowData(id, "AcksArrived", acksArrived, reportNan);
 
-    observer.logFlowData(id, "SentPackets", packetsSent);
-
-    observer.logFlowData(id, "TimedOutPackets", packetsTimedOut);
-    observer.logFlowData(id, "CongestedPackets", packetsDropped - packetsTimedOut);
-
-    if (packetsSent == 0) {
-        observer.logFlowData(id, "DroppedPackets", 0);
-        observer.logFlowData(id, "ErroredPackets", 0);
-    } else {
-        observer.logFlowData(id, "DroppedPackets", packetsDropped / double(packetsSent));
-        observer.logFlowData(id, "ErroredPackets", packetsErrored / double(packetsSent));
-    }
+    // packet counts
+    observer.logFlowData(id, "SentPackets", packetsSent, reportNan);
+    observer.logFlowData(id, "TimedOutPackets", packetsTimedOut, reportNan);
+    observer.logFlowData(id, "CongestedPackets", packetsDropped - packetsTimedOut, reportNan);
+    observer.logFlowData(id, "DroppedPackets", packetsDropped, reportNan);
+    observer.logFlowData(id, "ErroredPackets", packetsErrored, reportNan);
 
     resetData();
 

@@ -5,6 +5,7 @@
 #include <vector>
 #include <filesystem>
 #include <fstream>
+#include <cmath>
 
 #define DEFAULT_STAT_DIR "results"
 
@@ -44,8 +45,12 @@ void Observer::setFilenamePrefix() {
     }
 }
 
-void Observer::logFlowData(int flowId, string type, double data) {
-    flowData[flowId][type].push_back(data);
+void Observer::logFlowData(int flowId, string type, double data, bool reportNan) {
+    if (reportNan) {
+        flowData[flowId][type].push_back(NAN);
+    } else {
+        flowData[flowId][type].push_back(data);
+    }
 }
 
 void Observer::logFlowDataBulk(int flowId, string type, vector<double> data) {

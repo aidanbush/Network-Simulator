@@ -13,7 +13,7 @@ class Observer {
 
         void initializeObserver();
 
-        void logFlowData(int flowid, string type, double data);
+        void logFlowData(int flowid, string type, double data, bool reportNan);
         void logFlowDataBulk(int flowId, string type, vector<double> data);
         void logLinkData(int sourceId, int destId, string type, double data); //TODO implement
 

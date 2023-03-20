@@ -91,6 +91,26 @@ def flowPlots():
         except:
             print("failed to plot", dataType)
 
+def single_plot(data, name):
+    plt.figure(figsize=FIGSIZE)
+
+    if titlePostfix != "":
+        plt.title(name + " " + titlePostfix)
+    else:
+        plt.title(name)
+
+    plotData = data
+    plotData[0] = np.array(plotData[0])
+    plotData[1] = np.array(plotData[1])
+
+    # plot line with stdev
+    plt.plot(plotData[0], alpha = 0.7)
+    plt.fill_between(range(len(plotData[0])), plotData[0]-plotData[1], plotData[0]+plotData[1], alpha=1/3)
+    try:
+        plt.savefig(os.path.join(outputDir, "{}.{}".format(name, plotFormat)), format=plotFormat)
+    except:
+        print("failed to plot", dataType)
+
 def dataPlots():
     # data type [mean, std]
     data = defaultdict(lambda: [[],[]])
@@ -114,8 +134,15 @@ def dataPlots():
                     data[dataType][STATS_ELEM_TO_INDEX[statsElem]][-1] = oldVal + (float(row[key]) - oldVal) / ((c % combine) + 1)
             c += 1
 
+    # convert data into np arrays
+    for data_type in data.keys():
+        data[data_type] = np.array(data[data_type])
+
     #for each data type:
     for dataType in data.keys():
+        single_plot(data[dataType], dataType)
+
+        '''
         plt.figure(figsize=FIGSIZE)
 
         if titlePostfix != "":
@@ -134,6 +161,9 @@ def dataPlots():
             plt.savefig(os.path.join(outputDir, "{}.{}".format(dataType, plotFormat)), format=plotFormat)
         except:
             print("failed to plot", dataType)
+        '''
+    # plot drop rate
+    single_plot(data["DroppedPackets"] / data["SentPackets"], "DropRate")
 
 def plotLinks():
     # plot grid {pair: [mean, std]}
