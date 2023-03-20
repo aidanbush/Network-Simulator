@@ -39,17 +39,6 @@ class Switch: public PacketHandler {
 #endif /* _TEST */
 
     protected:
-        /*
-        struct routingSearchElem {
-            double cost;
-            int curId;
-            int firstId;
-            friend bool operator<(const routingSearchElem lhs, const routingSearchElem rhs) {
-                return lhs.cost > rhs.cost;
-            }
-        };
-        */
-
         map<int, pair<double, set<int>>> routingTable; // dest Id to cost and interface Id's
         vector<pair<int, int>> switchNeighbourIfaces; // all the interfaces that connect to a switch (interface id, switch id)
 
