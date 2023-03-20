@@ -142,26 +142,6 @@ def dataPlots():
     for dataType in data.keys():
         single_plot(data[dataType], dataType)
 
-        '''
-        plt.figure(figsize=FIGSIZE)
-
-        if titlePostfix != "":
-            plt.title(dataType + " " + titlePostfix)
-        else:
-            plt.title(dataType)
-
-        plotData = data[dataType]
-        plotData[0] = np.array(plotData[0])
-        plotData[1] = np.array(plotData[1])
-
-        # plot line with stdev
-        plt.plot(plotData[0], alpha = 0.7)
-        plt.fill_between(range(len(plotData[0])), plotData[0]-plotData[1], plotData[0]+plotData[1], alpha=1/3)
-        try:
-            plt.savefig(os.path.join(outputDir, "{}.{}".format(dataType, plotFormat)), format=plotFormat)
-        except:
-            print("failed to plot", dataType)
-        '''
     # plot drop rate
     single_plot(data["DroppedPackets"] / data["SentPackets"], "DropRate")
 
