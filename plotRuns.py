@@ -158,7 +158,7 @@ def get_layout(G):
     # go through graph and convert into coords
     for i in range(size):
         for j in range(size):
-            pos[str(calculate_id(i,j,size))] = [(i+1)/(size+1), (j+1)/(size+1)]
+            pos[str(calculate_id(i,j,size))] = [(i+1)/(size+1), 1 - (j+1)/(size+1)]
     return pos
 
 def plotLinks():
