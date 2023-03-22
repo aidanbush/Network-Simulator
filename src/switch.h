@@ -21,6 +21,10 @@ class Switch: public PacketHandler {
     public:
         Switch(json &switchConfig);
 
+        virtual void dropPacket(Packet *p);
+        virtual void timeoutPacket(Packet *p);
+        virtual void updateForwardOrDeflect(Packet *p, int forwardInterfaceId);
+
         virtual void rxPacket(Packet *p, int sourceInterfaceId);
 
         void txPacket(Packet *p);
@@ -43,6 +47,13 @@ class Switch: public PacketHandler {
         vector<pair<int, int>> switchNeighbourIfaces; // all the interfaces that connect to a switch (interface id, switch id)
 
         int getNeighbourSwitch(int interfaceId);
+
+        int droppedPackets;
+        int timedOutPackets;
+        int deflectedPackets; // sent along a non-shortest path
+        int forwardedPackets; // sent along a shortest path
+        int encounteredPackets; // packets that arrive and are not consumed
+        int actionablePackets; // packets that get to being able to take an aciton on
 
         void recordData();
         void resetData();

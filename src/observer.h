@@ -15,7 +15,8 @@ class Observer {
 
         void logFlowData(int flowid, string type, double data, bool reportNan);
         void logFlowDataBulk(int flowId, string type, vector<double> data);
-        void logLinkData(int sourceId, int destId, string type, double data); //TODO implement
+        void logLinkData(int sourceId, int destId, string type, double data);
+        void logSwitchData(int switchId, string type, double data);
 
         void writeData();
 
@@ -24,6 +25,7 @@ class Observer {
     private:
         map<int, map<string, vector<double>>> flowData;
         map<pair<int, int>, map<string, vector<double>>> linkData;
+        map<int, map<string, vector<double>>> switchData;
         string filenamePrefix;
 
         void writeFile(string filename, vector<double> data);

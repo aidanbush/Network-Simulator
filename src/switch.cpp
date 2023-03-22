@@ -101,6 +101,13 @@ void Switch::resetData() {
         Interface *iface = man.getInterface(it.first);
         iface->resetLinkUsage();
     }
+
+    droppedPackets = 0;
+    timedOutPackets = 0;
+    deflectedPackets = 0;
+    forwardedPackets = 0;
+    encounteredPackets = 0;
+    actionablePackets = 0;
 }
 
 void Switch::recordData() {
@@ -111,12 +118,40 @@ void Switch::recordData() {
         observer.logLinkData(id, it.second, "LinkUsage", usage);
     }
     //observer.logSwitchData(id, "value name", value);
+    observer.logSwitchData(id, "droppedPackets", droppedPackets);
+    observer.logSwitchData(id, "timedOutPackets", timedOutPackets);
+    observer.logSwitchData(id, "deflectedPackets", deflectedPackets);
+    observer.logSwitchData(id, "forwardedPackets", forwardedPackets);
+    observer.logSwitchData(id, "encounteredPackets", encounteredPackets);
+    observer.logSwitchData(id, "actionablePackets", actionablePackets);
 
     resetData();
 
     second_t nextRecord = man.time + man.miTime;
     EventI *e = new Event<Switch>(nextRecord, &Switch::recordData, this);
     man.pushEvent(e);
+}
+
+void Switch::dropPacket(Packet *p) {
+        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet route drop packet: " + to_string(p->getId()));
+        droppedPackets++;
+        p->drop();
+}
+
+void Switch::timeoutPacket(Packet *p) {
+        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet timeout drop packet: " + to_string(p->getId()));
+        timedOutPackets++;
+        droppedPackets++;
+        p->drop();
+}
+
+void Switch::updateForwardOrDeflect(Packet *p, int forwardInterfaceId) {
+    set<int> shortestInterfaces = routingTable[p->getDest()].second;
+    if (shortestInterfaces.find(forwardInterfaceId) != shortestInterfaces.end()) {
+        forwardedPackets++;
+    } else {
+        deflectedPackets++;
+    }
 }
 
 void Switch::rxPacket(Packet *p, int sourceInterfaceId) {
@@ -127,20 +162,26 @@ void Switch::rxPacket(Packet *p, int sourceInterfaceId) {
         return;
     }
 
+    // a packet at its destination is not considered encountered
+    encounteredPackets++;
+
     // if timeout drop
     if (p->outOfTime()) {
-        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet timeout drop packet: " + to_string(p->getId()));
-        p->drop();
+        timeoutPacket(p);
         return;
     }
+
+    actionablePackets++;
 
     int interfaceId = routePacket(p, sourceInterfaceId);
     // TODO if interface id == -1 then drop the packet
     if (interfaceId == NULL_ID) {
-        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet route drop packet: " + to_string(p->getId()));
-        p->drop();
+        dropPacket(p);
         return;
     }
+
+    // if in routing map then forward otherwise deflect
+    updateForwardOrDeflect(p, interfaceId);
 
     Interface *interface = man.getInterface(interfaceId);
 
@@ -314,6 +355,7 @@ bool Switch::initSwitch() {
 }
 
 void Switch::startSwitch() {
+    resetData();
 }
 
 bool Switch::validate() {

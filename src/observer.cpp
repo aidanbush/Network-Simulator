@@ -61,6 +61,10 @@ void Observer::logLinkData(int sourceId, int destId, string type, double data) {
     linkData[pair<int,int>(sourceId, destId)][type].push_back(data);
 }
 
+void Observer::logSwitchData(int switchId, string type, double data) {
+    switchData[switchId][type].push_back(data);
+}
+
 void Observer::writeData() {
     if (man.getSuppressOutput(CSV)) {
         fprintf(stderr, "suppressing observer output\n");
@@ -76,10 +80,19 @@ void Observer::writeData() {
         }
     }
 
+    // link data
     for (auto& it : linkData) {
         string filename = filenamePrefix + "_link" + to_string(it.first.first) + "-" + to_string(it.first.second);
         for (auto& itt : it.second) {
             writeFile(filename + "_" + itt.first + ".csv", itt.second);
+        }
+    }
+
+    // switch data
+    for (auto& it : switchData) {
+        string filename = filenamePrefix + "_switch_" + to_string(it.first);
+        for (auto& itt : it.second) {
+            writeFile(filename + "_" + itt.first + ".csv", it.second);
         }
     }
 }
