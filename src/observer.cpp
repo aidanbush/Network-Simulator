@@ -92,7 +92,7 @@ void Observer::writeData() {
     for (auto& it : switchData) {
         string filename = filenamePrefix + "_switch_" + to_string(it.first);
         for (auto& itt : it.second) {
-            writeFile(filename + "_" + itt.first + ".csv", it.second);
+            writeFile(filename + "_" + itt.first + ".csv", itt.second);
         }
     }
 }
