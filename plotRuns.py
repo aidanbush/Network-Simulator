@@ -194,24 +194,32 @@ def plotLinks():
     edgeLabels = {}
     for edge in meanData.keys():
         G.add_edge(edge[0], edge[1], weight=meanData[edge] * maxEdgeWeight)
-        edgeLabels[edge] = f"{meanData[edge]:.4f}" # TODO add to plot
+        # labels are a hack where each edge has the values for both
+        edgeLabels[edge] = f"{meanData[(edge[1], edge[0])]:.4f}\n\n\n{meanData[edge]:.4f}"
 
     plt.figure(figsize=FIGSIZE)
+
+    if titlePostfix != "":
+        plt.title("link usage " + titlePostfix)
+    else:
+        plt.title("link usage")
 
     edges = G.edges()
     weights = [G[u][v]['weight'] for u,v in edges]
     weights2 = [maxEdgeWeight for u,v in edges]
 
-    # TODO add integer values
-    # TODO only draw the edges halfway
-
     pos = get_layout(G)
     # todo create layout based on the grid
     nx.draw_networkx_nodes(G, pos, cmap=plt.get_cmap('jet'), node_size = 200)
     nx.draw_networkx_labels(G, pos)
-    nx.draw_networkx_edges(G, pos, width=weights2, alpha = 0.5, arrows=True, connectionstyle="arc3,rad=0.2")
+
+    # transparent edges
+    #nx.draw_networkx_edges(G, pos, width=weights2, alpha = 0.5, arrows=True, connectionstyle="arc3,rad=0.2")
+    # weighted edges
     nx.draw_networkx_edges(G, pos, width=weights, arrows=True, connectionstyle="arc3,rad=0.2")
-    #nx.draw_networkx_edge_labels(G, pos, edgeLabels)
+
+    nx.draw_networkx_edge_labels(G, pos, edgeLabels)
+
     linkFigName = "linkUsage"
     try:
         plt.savefig(os.path.join(outputDir, "{}.{}".format(linkFigName, plotFormat)), format=plotFormat)
