@@ -42,8 +42,8 @@ flowConfig = {
             "header": 20,
             "body": 1480,
             "burst_rate": linkConfig["speed"],
-            "burst_mean_len": 6.25,# 75000 b (6.25 * pktsize * 8)
-            "mean_rate" : 500000,
+            "burst_mean_len": 6.25/2,# 75000 b (6.25 * pktsize * 8)
+            "mean_rate" : 500000/2,
             "buffer_size": 150000 # 100 packets TODO remove from generator class
             }
         }
@@ -348,10 +348,11 @@ def main():
     dest_dir = "configs"
 
     traffic_type = "bursty"
-    net_utils = [0.1,0.2,0.3,0.4] #, 0.5]
+    net_utils = [0.05, 0.1, 0.15, 0.2] # [0.1,0.2,0.3,0.4]
     agent_type = ["mbd", "rand_deflect", "rand_forward"][0]
-    states = [[None],["2_hop_shortest","1_hop_shortest"],["1-2_hop_shortest"],["2_hop_shortest"],\
-            ["1_hop_shortest"],["1_hop_shortest", "3x3_section"],["dest_id"],["flow_id"]][5:6]
+    states = [[None],["1-2_hop_shortest"],["2_hop_shortest"],["1_hop_shortest"],\
+            ["1_hop_shortest", "3x3_section"],["2_hop_shortest","1_hop_shortest"],\
+            ["2_hop_shortest","1_hop_shortest","3x3_section"], ["dest_id"],["flow_id"]][3:8]
 
     for net_util in net_utils:
         for state in states:
