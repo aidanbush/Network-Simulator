@@ -76,8 +76,8 @@ done
 wait
 
 # combine data
-echo python combineData.py $tempResultsDir ${resultsDir} results.csv links.csv
-time python combineData.py $tempResultsDir ${resultsDir} results.csv links.csv
+echo python combineData.py $tempResultsDir ${resultsDir} results.csv links.csv switches.csv
+time python combineData.py $tempResultsDir ${resultsDir} results.csv links.csv switches.csv
 
 # copy weights
 #echo cp ${tempResultsDir}/*_Weights.csv ${resultsDir}/weights/

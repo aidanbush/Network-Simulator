@@ -6,6 +6,7 @@ dataPath = sys.argv[1]
 resultPath = sys.argv[2]
 datacsvfile = sys.argv[3]
 linkcsvfile = sys.argv[4]
+switchcsvfile = sys.argv[5]
 
 def getFileData(path):
     data = []
@@ -166,6 +167,74 @@ def combineFlowDataByFlow():
             # print row
             writer.writerow(row)
 
+def combineSwitchData():
+    dataPattern = re.compile("^.+_switch_(\d+)_(.+).csv")
+    dataTypes = set()
+
+    # structure: {switch: test: [ data ]}
+    rawData = defaultdict(lambda: defaultdict(lambda: []))
+
+    for filename in os.listdir(dataPath):
+        match = dataPattern.match(filename)
+        if not match:
+            continue
+
+        switchId = match.group(1)
+        dataType = match.group(2)
+        dataTypes.add(dataType)
+
+        data = getFileData(os.path.join(dataPath, filename))
+        if data != []:
+            rawData[switchId][dataType].append(data)
+
+    dataTypes = sorted(dataTypes)
+
+    overallMaxSamples = 0
+
+    # convert to numpy arrays
+    for switchId in rawData.keys():
+        for dataType in dataTypes:
+            minSamples = min([len(sample) for sample in rawData[switchId][dataType]])
+            maxSamples = max([len(sample) for sample in rawData[switchId][dataType]])
+            overallMaxSamples = max(overallMaxSamples, maxSamples)
+
+            if minSamples < maxSamples:
+                print("up to", maxSamples - minSamples, "sample(s) dropped from switch", switchId, dataType)
+
+            rawData[switchId][dataType] = np.array([subList[:minSamples] for subList in rawData[switchId][dataType]])
+
+    # calculate means and standard deviations
+    combinedData = defaultdict(lambda: defaultdict(lambda: [None, None]))
+
+    for switchId in rawData.keys():
+        for dataType in dataTypes:
+            combinedData[switchId][dataType][0] = rawData[switchId][dataType].mean(0)
+            combinedData[switchId][dataType][1] = rawData[switchId][dataType].std(0)
+
+    switchIds = sorted(rawData.keys())
+    # data is organized s1 dt1 mean, s1 d1 stdev, s1 dt2 mean, ...
+    # create headers
+    rowHeaders = [f"switch{switchId} {dataType} {statsElement}"
+                  for switchId in switchIds
+                  for dataType in dataTypes
+                  for statsElement in ("mean", "stdev")]
+
+    # write
+    csvfile = os.path.join(resultPath, switchcsvfile)
+    with open(csvfile, "w") as f:
+        writer = csv.writer(f)
+
+        writer.writerow(rowHeaders)
+
+        # for each row
+        for i in range(overallMaxSamples):
+            row = [combinedData[switchId][dataType][statsElement][i]
+                  for switchId in switchIds
+                  for dataType in dataTypes
+                  for statsElement in (0, 1)]
+
+            writer.writerow(row)
+
 # Link Data
 def combineLinkData():
     # link usage
@@ -234,3 +303,4 @@ def combineLinkData():
 #combineFlowDataByFlow()
 combineFlowData()
 combineLinkData()
+combineSwitchData()
