@@ -49,8 +49,6 @@ if [ -d $resultsDir ] ; then
 fi
 mkdir $resultsDir
 
-mkdir ${resultsDir}/weights
-
 cp $paramFile $resultsDir
 
 # run tests
@@ -78,10 +76,6 @@ wait
 # combine data
 echo python combineData.py $tempResultsDir ${resultsDir} results.csv links.csv switches.csv
 time python combineData.py $tempResultsDir ${resultsDir} results.csv links.csv switches.csv
-
-# copy weights
-#echo cp ${tempResultsDir}/*_Weights.csv ${resultsDir}/weights/
-#cp ${tempResultsDir}/*_Weights.csv ${resultsDir}/weights/
 
 # plot data
 echo python plotRuns.py ${resultsDir}/results.csv ${resultsDir}/links.csv -d ${resultsDir} -f ${plotFormat} -t $testName
