@@ -145,6 +145,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         void startSwitch();
 
         double getDeflectProb() {return deflectProb; }
+        double getDropProb() {return dropProb; }
 
         void rewardAction(int pId, double reward);
 
@@ -156,7 +157,8 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
             hop1_2ShortState,
             hop2ShortState,
             sectionState3x3,
-            deflectProbState
+            deflectProbState,
+            dropProbState
         };
 
         enum actionResult {
@@ -174,8 +176,11 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         // deflect prob state
         double deflectProb;
         double deflectProbTau;
-        double prevPacketArriveTime;
         int deflectProbStateDims;
+        double dropProb;
+        double dropProbTau;
+        int dropProbStateDims;
+        double prevPacketArriveTime;
 
         map<int, set<int>> hop1ShortStateMap; // destination to index of closest switches
         map<int, set<int>> hop1_2ShortStateMap; // destination to index of closest switches
@@ -187,6 +192,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         void arrivePacket(Packet *p);
 
         void updateDeflectionProbability(bool deflect);
+        void updateDropProbability(bool deflect);
 
         int routePacket(Packet *p, int sourceInterfaceId);
 

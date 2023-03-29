@@ -598,6 +598,7 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
         {"2_hop_shortest", hop2ShortState},
         {"3x3_section", sectionState3x3},
         {"deflect_probability", deflectProbState},
+        {"drop_probability", dropProbState},
     };
     this->regularizer = switchConfig["regularizer"];
     this->delta = switchConfig["delta"];
@@ -605,6 +606,8 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
     this->dropAction = switchConfig["drop_action"];
     this->deflectProbTau = 1; // in seconds TODO use config file to import
     this->deflectProb = 0;
+    this->dropProbTau = 1; // in seconds TODO use config file to import
+    this->dropProb = 0;
     this->prevPacketArriveTime = man.time;
     // load in state
     for (json::iterator it = switchConfig["states"].begin(); it != switchConfig["states"].end(); ++it) {
@@ -624,21 +627,26 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
 
 void ManhattanBanditDeflectionSwitch::forwardPacket(Packet *p) {
     updateDeflectionProbability(false);
+    updateDropProbability(false);
     Switch::forwardPacket(p);
 }
 
 void ManhattanBanditDeflectionSwitch::deflectPacket(Packet *p) {
     updateDeflectionProbability(true);
+    updateDropProbability(false);
     Switch::deflectPacket(p);
 }
 
 void ManhattanBanditDeflectionSwitch::dropPacket(Packet *p) {
+    //TODO ignore timed out packets
     updateDeflectionProbability(true);
+    updateDropProbability(true);
     Switch::dropPacket(p);
 }
 
 void ManhattanBanditDeflectionSwitch::arrivePacket(Packet *p) {
     updateDeflectionProbability(false);
+    updateDropProbability(false);
     Switch::arrivePacket(p);
 }
 
@@ -647,6 +655,15 @@ void ManhattanBanditDeflectionSwitch::updateDeflectionProbability(bool deflect) 
     // update avg
     double alpha = 1 - exp(-(man.time - this->prevPacketArriveTime) / this->deflectProbTau);
     this->deflectProb += alpha * (deflectVal - deflectProb);
+    // update prev time
+    this->prevPacketArriveTime = man.time;
+}
+
+void ManhattanBanditDeflectionSwitch::updateDropProbability(bool drop) {
+    double dropVal = drop;
+    // update avg
+    double alpha = 1 - exp(-(man.time - this->prevPacketArriveTime) / this->dropProbTau);
+    this->dropProb += alpha * (dropVal - dropProb);
     // update prev time
     this->prevPacketArriveTime = man.time;
 }
@@ -807,6 +824,10 @@ void ManhattanBanditDeflectionSwitch::setupStates() {
                 // TODO create a map for all neighbours, initialize to 0
                 deflectProbStateDims = switchNeighbourIfaces.size();
                 break;
+            case dropProbState:
+                // TODO create a map for all neighbours, initialize to 0
+                dropProbStateDims = switchNeighbourIfaces.size();
+                break;
         }
     }
 }
@@ -835,6 +856,9 @@ int ManhattanBanditDeflectionSwitch::getNumDims() {
                 break;
             case deflectProbState:
                 numDims += deflectProbStateDims;
+                break;
+            case dropProbState:
+                numDims += dropProbStateDims;
                 break;
         }
     }
@@ -964,6 +988,17 @@ vector<double> ManhattanBanditDeflectionSwitch::getState(Packet *p) {
                             dynamic_cast<ManhattanBanditDeflectionSwitch *>(man.getSwitch(neighbour.second));
                         double neighbourDeflectProb = neighbourSwitch->getDeflectProb();
                         state.push_back(neighbourDeflectProb);
+                    }
+                }
+                break;
+            case dropProbState:
+                {
+                    // go through all neighbours as set state to be the mean
+                    for (pair<int, int> neighbour : switchNeighbourIfaces) {
+                        ManhattanBanditDeflectionSwitch *neighbourSwitch =
+                            dynamic_cast<ManhattanBanditDeflectionSwitch *>(man.getSwitch(neighbour.second));
+                        double neighbourDropProb = neighbourSwitch->getDropProb();
+                        state.push_back(neighbourDropProb);
                     }
                 }
                 break;
