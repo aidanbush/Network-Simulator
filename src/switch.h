@@ -21,10 +21,6 @@ class Switch: public PacketHandler {
     public:
         Switch(json &switchConfig);
 
-        virtual void dropPacket(Packet *p);
-        virtual void timeoutPacket(Packet *p);
-        virtual void updateForwardOrDeflect(Packet *p, int forwardInterfaceId);
-
         virtual void rxPacket(Packet *p, int sourceInterfaceId);
 
         void txPacket(Packet *p);
@@ -47,6 +43,13 @@ class Switch: public PacketHandler {
         vector<pair<int, int>> switchNeighbourIfaces; // all the interfaces that connect to a switch (interface id, switch id)
 
         int getNeighbourSwitch(int interfaceId);
+
+        virtual void dropPacket(Packet *p);
+        virtual void timeoutPacket(Packet *p);
+        virtual void deflectPacket(Packet *p);
+        virtual void forwardPacket(Packet *p);
+        virtual void updateForwardOrDeflect(Packet *p, int forwardInterfaceId);
+        virtual void arrivePacket(Packet *p);
 
         int droppedPackets;
         int timedOutPackets;
@@ -141,6 +144,8 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         bool initSwitch();
         void startSwitch();
 
+        double getDeflectProb() {return deflectProb; }
+
         void rewardAction(int pId, double reward);
 
     protected:
@@ -150,7 +155,8 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
             hop1ShortState,
             hop1_2ShortState,
             hop2ShortState,
-            sectionState3x3
+            sectionState3x3,
+            deflectProbState
         };
 
         enum actionResult {
@@ -165,10 +171,22 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         int hop1ShortStateDims;
         int hop1_2ShortStateDims;
         int hop2ShortStateDims;
+        // deflect prob state
+        double deflectProb;
+        double deflectProbTau;
+        double prevPacketArriveTime;
+        int deflectProbStateDims;
 
         map<int, set<int>> hop1ShortStateMap; // destination to index of closest switches
         map<int, set<int>> hop1_2ShortStateMap; // destination to index of closest switches
         map<int, set<int>> hop2ShortStateMap; // destination to index of closest switches
+
+        void forwardPacket(Packet *p);
+        void deflectPacket(Packet *p);
+        void dropPacket(Packet *p);
+        void arrivePacket(Packet *p);
+
+        void updateDeflectionProbability(bool deflect);
 
         int routePacket(Packet *p, int sourceInterfaceId);
 

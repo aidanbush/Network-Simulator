@@ -133,37 +133,47 @@ void Switch::recordData() {
 }
 
 void Switch::dropPacket(Packet *p) {
-        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet route drop packet: " + to_string(p->getId()));
-        droppedPackets++;
-        p->drop();
+    man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet route drop packet: " + to_string(p->getId()));
+    droppedPackets++;
+    p->drop();
 }
 
 void Switch::timeoutPacket(Packet *p) {
-        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet timeout drop packet: " + to_string(p->getId()));
-        timedOutPackets++;
-        droppedPackets++;
-        p->drop();
+    man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet timeout drop packet: " + to_string(p->getId()));
+    timedOutPackets++;
+    dropPacket(p);
+}
+
+void Switch::deflectPacket(Packet *p) {
+    deflectedPackets++;
+}
+
+void Switch::forwardPacket(Packet *p) {
+    forwardedPackets++;
+}
+
+void Switch::arrivePacket(Packet *p) {
+    man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet: " + to_string(p->getId()) + " arrived");
+    p->arrive();
 }
 
 void Switch::updateForwardOrDeflect(Packet *p, int forwardInterfaceId) {
     set<int> shortestInterfaces = routingTable[p->getDest()].second;
     if (shortestInterfaces.find(forwardInterfaceId) != shortestInterfaces.end()) {
-        forwardedPackets++;
+        forwardPacket(p);
     } else {
-        deflectedPackets++;
+        deflectPacket(p);
     }
 }
 
 void Switch::rxPacket(Packet *p, int sourceInterfaceId) {
+    encounteredPackets++;
+
     // if packet arrived then consume
     if (p->getDest() == id) {
-        man.logEvent(SWITCH_STR, id, SWITCH_RX_EVENT_STR, "Packet: " + to_string(p->getId()) + " arrived");
-        p->arrive();
+        arrivePacket(p);
         return;
     }
-
-    // a packet at its destination is not considered encountered
-    encounteredPackets++;
 
     // if timeout drop
     if (p->outOfTime()) {
@@ -587,11 +597,15 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
         {"1-2_hop_shortest", hop1_2ShortState},
         {"2_hop_shortest", hop2ShortState},
         {"3x3_section", sectionState3x3},
+        {"deflect_probability", deflectProbState},
     };
     this->regularizer = switchConfig["regularizer"];
     this->delta = switchConfig["delta"];
     this->numFlows = switchConfig["num_flows"];
     this->dropAction = switchConfig["drop_action"];
+    this->deflectProbTau = 1; // in seconds TODO use config file to import
+    this->deflectProb = 0;
+    this->prevPacketArriveTime = man.time;
     // load in state
     for (json::iterator it = switchConfig["states"].begin(); it != switchConfig["states"].end(); ++it) {
         // map to type
@@ -606,6 +620,35 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
     if (stateTypes.empty()) {
         throw runtime_error("no states provided\n");
     }
+}
+
+void ManhattanBanditDeflectionSwitch::forwardPacket(Packet *p) {
+    updateDeflectionProbability(false);
+    Switch::forwardPacket(p);
+}
+
+void ManhattanBanditDeflectionSwitch::deflectPacket(Packet *p) {
+    updateDeflectionProbability(true);
+    Switch::deflectPacket(p);
+}
+
+void ManhattanBanditDeflectionSwitch::dropPacket(Packet *p) {
+    updateDeflectionProbability(true);
+    Switch::dropPacket(p);
+}
+
+void ManhattanBanditDeflectionSwitch::arrivePacket(Packet *p) {
+    updateDeflectionProbability(false);
+    Switch::arrivePacket(p);
+}
+
+void ManhattanBanditDeflectionSwitch::updateDeflectionProbability(bool deflect) {
+    double deflectVal = deflect;
+    // update avg
+    double alpha = 1 - exp(-(man.time - this->prevPacketArriveTime) / this->deflectProbTau);
+    this->deflectProb += alpha * (deflectVal - deflectProb);
+    // update prev time
+    this->prevPacketArriveTime = man.time;
 }
 
 json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchConfig(json &switchConfig) {
@@ -760,6 +803,10 @@ void ManhattanBanditDeflectionSwitch::setupStates() {
                     hop2ShortStateMap = createShortestLookupTable(switchIds);
                 }
                 break;
+            case deflectProbState:
+                // TODO create a map for all neighbours, initialize to 0
+                deflectProbStateDims = switchNeighbourIfaces.size();
+                break;
         }
     }
 }
@@ -784,7 +831,10 @@ int ManhattanBanditDeflectionSwitch::getNumDims() {
                 numDims += hop2ShortStateDims;
                 break;
             case sectionState3x3:
-                numDims += 9;
+                numDims += 3*3;
+                break;
+            case deflectProbState:
+                numDims += deflectProbStateDims;
                 break;
         }
     }
@@ -904,6 +954,17 @@ vector<double> ManhattanBanditDeflectionSwitch::getState(Packet *p) {
                         + numSections * (int(double(dest.second)/networkSize) * numSections);
 
                     state[stateOffset + section] = 1;
+                }
+                break;
+            case deflectProbState:
+                {
+                    // go through all neighbours as set state to be the mean
+                    for (pair<int, int> neighbour : switchNeighbourIfaces) {
+                        ManhattanBanditDeflectionSwitch *neighbourSwitch =
+                            dynamic_cast<ManhattanBanditDeflectionSwitch *>(man.getSwitch(neighbour.second));
+                        double neighbourDeflectProb = neighbourSwitch->getDeflectProb();
+                        state.push_back(neighbourDeflectProb);
+                    }
                 }
                 break;
         }
