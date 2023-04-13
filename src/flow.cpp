@@ -129,6 +129,8 @@ Flow::Flow(json &flowConfig):
     this->sourceId = flowConfig["source_id"];
     this->destId = flowConfig["dest"];
 
+    this->ttl = flowConfig["ttl"];
+
     this->packetsCreated = 0;
     this->packetsArrived = 0;
     this->acksArrived = 0;
@@ -142,7 +144,6 @@ Flow::Flow(json &flowConfig):
     this->sentRate = this->rate;
     this->curSourcePId = 0;
     this->curSinkPId = 0;
-    this->ttl = 15; // TODO use define
     this->running = false;
     this->sendingPacket = NULL;
     this->ackHeadSize = ACK_HEADER_SIZE;
@@ -158,6 +159,10 @@ void Flow::validateFlowConfig(json &flowConfig) {
 
     if (!hasMemberOfType(flowConfig, "dest", jsonInt)) {
         message += "No integer with name 'dest'.\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "ttl", jsonInt)) {
+        message += "No integer with name 'ttl'.\n";
     }
 
     if (!hasMemberOfType(flowConfig, "start_rate", jsonDouble)) {

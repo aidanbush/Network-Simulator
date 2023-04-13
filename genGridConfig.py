@@ -30,6 +30,7 @@ flowConfig = {
         "type": "mbd",
         "start_time": 0,
         "end_time": 0,
+        "ttl": None,
 #        "generator": {
 #            "type": "poisson",
 #            "header": 20,
@@ -339,11 +340,13 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, si
             f.write(json.dumps(config, indent=4))
 
 def main():
-    size = 5
+    size = 8#5
     runs = 20
     simulation_length = 200
     num_flow_sets = 1
     num_flow_changes = 1#20
+
+    flowConfig["ttl"] = size * 3
 
     dest_dir = "configs"
 
@@ -352,7 +355,13 @@ def main():
     agent_type = ["mbd", "rand_deflect", "rand_forward"][0]
     states = [[None],["1-2_hop_shortest"],["2_hop_shortest"],["1_hop_shortest"],\
             ["1_hop_shortest", "3x3_section"],["2_hop_shortest","1_hop_shortest"],\
-            ["2_hop_shortest","1_hop_shortest","3x3_section"], ["dest_id"],["flow_id"]][3:8]
+            ["2_hop_shortest","1_hop_shortest","3x3_section"], ["dest_id"],\
+            ["1_hop_shortest", "3x3_section", "deflect_probability"],\
+            ["2_hop_shortest", "1_hop_shortest", "3x3_section", "deflect_probability"],\
+            ["dest_id", "deflect_probability"],\
+            ["1_hop_shortest", "3x3_section", "drop_probability"],\
+            ["2_hop_shortest", "1_hop_shortest", "3x3_section", "drop_probability"],\
+            ["dest_id", "drop_probability"], ["flow_id"]][3:14]#[3:11]#[3:8]
 
     for net_util in net_utils:
         for state in states:
