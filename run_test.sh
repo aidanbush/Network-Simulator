@@ -1,3 +1,4 @@
+#!/bin/bash
 shopt -s expand_aliases
 source ~/.bashrc
 
@@ -32,8 +33,14 @@ while getopts "o:n:f:p:t:" c; do
     esac
 done
 
+
 # shift arguments so remaining arguments start at 1
 shift $(($OPTIND - 1))
+
+if [ $# -ne 3 ] ; then
+  echo incorrect number of parameters passed
+  exit
+fi
 
 netConfig=$1
 testName=$2
