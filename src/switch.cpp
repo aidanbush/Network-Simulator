@@ -626,28 +626,31 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
 }
 
 void ManhattanBanditDeflectionSwitch::forwardPacket(Packet *p) {
-    updateDeflectionProbability(false);
-    updateDropProbability(false);
+    updateDeflectAndDropProbabilities(false, false);
     Switch::forwardPacket(p);
 }
 
 void ManhattanBanditDeflectionSwitch::deflectPacket(Packet *p) {
-    updateDeflectionProbability(true);
-    updateDropProbability(false);
+    updateDeflectAndDropProbabilities(true, false);
     Switch::deflectPacket(p);
 }
 
 void ManhattanBanditDeflectionSwitch::dropPacket(Packet *p) {
     //TODO ignore timed out packets
-    updateDeflectionProbability(true);
-    updateDropProbability(true);
+    updateDeflectAndDropProbabilities(true, true);
     Switch::dropPacket(p);
 }
 
 void ManhattanBanditDeflectionSwitch::arrivePacket(Packet *p) {
-    updateDeflectionProbability(false);
-    updateDropProbability(false);
+    updateDeflectAndDropProbabilities(false, false);
     Switch::arrivePacket(p);
+}
+
+void ManhattanBanditDeflectionSwitch::updateDeflectAndDropProbabilities(bool deflect, bool drop) {
+    updateDeflectionProbability(deflect);
+    updateDropProbability(drop);
+    // update prev time
+    this->prevPacketArriveTime = man.time;
 }
 
 void ManhattanBanditDeflectionSwitch::updateDeflectionProbability(bool deflect) {
@@ -655,8 +658,6 @@ void ManhattanBanditDeflectionSwitch::updateDeflectionProbability(bool deflect) 
     // update avg
     double alpha = 1 - exp(-(man.time - this->prevPacketArriveTime) / this->deflectProbTau);
     this->deflectProb += alpha * (deflectVal - deflectProb);
-    // update prev time
-    this->prevPacketArriveTime = man.time;
 }
 
 void ManhattanBanditDeflectionSwitch::updateDropProbability(bool drop) {
@@ -664,8 +665,6 @@ void ManhattanBanditDeflectionSwitch::updateDropProbability(bool drop) {
     // update avg
     double alpha = 1 - exp(-(man.time - this->prevPacketArriveTime) / this->dropProbTau);
     this->dropProb += alpha * (dropVal - dropProb);
-    // update prev time
-    this->prevPacketArriveTime = man.time;
 }
 
 json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchConfig(json &switchConfig) {

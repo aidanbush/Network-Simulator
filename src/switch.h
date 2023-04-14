@@ -191,6 +191,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         void dropPacket(Packet *p);
         void arrivePacket(Packet *p);
 
+        void updateDeflectAndDropProbabilities(bool deflect, bool drop);
         void updateDeflectionProbability(bool deflect);
         void updateDropProbability(bool deflect);
 
