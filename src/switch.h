@@ -163,6 +163,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
 
         enum actionResult {
             actionDrop,
+            actionIntentionalDrop,
             actionArrive,
             actionForward
         };

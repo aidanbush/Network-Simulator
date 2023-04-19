@@ -19,8 +19,9 @@
 #define SWITCH_STR          "Switch"
 #define SWITCH_RX_EVENT_STR "switch rx"
 
-#define REWARD_DROP     0
-#define REWARD_ARRIVAL  1
+#define REWARD_DROP             0
+#define REWARD_INTENTIONAL_DROP 0.1
+#define REWARD_ARRIVAL          1
 
 using namespace std;
 
@@ -1021,6 +1022,9 @@ void ManhattanBanditDeflectionSwitch::sendActionUpdate(int prevSwitch, Packet *p
 
 void ManhattanBanditDeflectionSwitch::recieveActionUpdate(int pId, actionResult result, double actionValue, int nextMinHops) {
     switch(result) {
+        case actionIntentionalDrop:
+            rewardAction(pId, REWARD_INTENTIONAL_DROP); // TODO create define
+            break;
         case actionDrop:
             rewardAction(pId, REWARD_DROP); // TODO create define
             break;
@@ -1059,7 +1063,7 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
     vector<int> nonBlockedActions = availableInterfaces(p);
 
     // force a drop if drop actions are not being used
-    if (!this->dropAction && nonBlockedActions.empty()) {
+    if (nonBlockedActions.empty()) { TODO fix this is not correct if only action is drop then true
 #ifdef ONE_HOP_REWARD
         if (sourceInterfaceId != NULL_ID) { // address when a packet was just created
             int prevSwitch = interfaceToNeighbour[sourceInterfaceId];
@@ -1070,22 +1074,27 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
     }
 
     pair<int, double> action = agent->selectAction(state, nonBlockedActions);
+    int actionInterface = actionInterfaces[action.first];
 
-    // record action in switch and packet
-    /*if (actionInterfaces[action] == NULL_ID) {
-        fprintf(stderr, "dropAction %d\n", p->getId());
-    }*/
     recordAction(p, state, action.first);
-    //TODO update previous switch here with the value from agent->selectAction
+
+    // update previous switch with the value from agent->selectAction
 #ifdef ONE_HOP_REWARD
-    if (sourceInterfaceId != NULL_ID) { // address when a packet was just created
+    if (sourceInterfaceId != NULL_ID) { // packet arrived from a neighbour we need to update them
         int prevSwitch = interfaceToNeighbour[sourceInterfaceId];
-        sendActionUpdate(prevSwitch, p, actionForward, action.second);
+        if (actionInterface != NULL_ID) {
+            sendActionUpdate(prevSwitch, p, actionForward, action.second);
+        } else {
+            sendActionUpdate(prevSwitch, p, actionDrop, 0);
+            recieveActionUpdate(p->getId(), actionIntentionalDrop, 0, 0);
+        }
+    } else if (actionInterface == NULL_ID) { // packet was just created and dropped
+        recieveActionUpdate(p->getId(), actionIntentionalDrop, 0, 0);
     }
 #endif /* ONE_HOP_REWARD */
 
     // convert action into interface
-    return actionInterfaces[action.first];
+    return actionInterface;
 }
 
 void ManhattanBanditDeflectionSwitch::recordAction(Packet *p, vector<double> context, int action) {
