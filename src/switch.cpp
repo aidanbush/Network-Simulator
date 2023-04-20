@@ -888,119 +888,138 @@ vector<int> ManhattanBanditDeflectionSwitch::availableInterfaces(Packet *p) {
     return available;
 }
 
+void ManhattanBanditDeflectionSwitch::setFlowIdState(vector<double> &state, Packet *p) {
+    // flow state
+    int flowId = p->getFlow();
+    // flow ids go from 1-numFlows
+    for (int i = 1; i <= this->numFlows; i++) {
+        if (i == flowId) {
+            state.push_back(1);
+        } else {
+            state.push_back(0);
+        }
+    }
+}
+
+void ManhattanBanditDeflectionSwitch::setDestIdState(vector<double> &state, Packet *p) {
+    // destination state
+    int dest = p->getDest();
+    for (int i = 1; i <= this->networkSize * this->networkSize; i++) {
+        if (i == dest) {
+            state.push_back(1);
+        } else {
+            state.push_back(0);
+        }
+    }
+}
+
+void ManhattanBanditDeflectionSwitch::setHop1ShortState(vector<double> &state, Packet *p) {
+    int stateOffset = state.size();
+
+    for (int i = 0; i < hop1ShortStateDims; i++) {
+        state.push_back(0);
+    }
+
+    for (int i: hop1ShortStateMap[p->getDest()]) {
+        state[stateOffset + i] = 1;
+    }
+}
+
+void ManhattanBanditDeflectionSwitch::setHop1_2ShortState(vector<double> &state, Packet *p) {
+    int stateOffset = state.size();
+
+    for (int i = 0; i < hop1_2ShortStateDims; i++) {
+        state.push_back(0);
+    }
+
+    for (int i: hop1_2ShortStateMap[p->getDest()]) {
+        state[stateOffset + i] = 1;
+    }
+}
+
+void ManhattanBanditDeflectionSwitch::setHop2ShortState(vector<double> &state, Packet *p) {
+    int stateOffset = state.size();
+
+    for (int i = 0; i < hop2ShortStateDims; i++) {
+        state.push_back(0);
+    }
+
+    for (int i: hop2ShortStateMap[p->getDest()]) {
+        state[stateOffset + i] = 1;
+    }
+}
+
+void ManhattanBanditDeflectionSwitch::setSectionState3x3(vector<double> &state, Packet *p) {
+    int stateOffset = state.size();
+    int numSections = 3;
+
+    for (int i = 0; i < numSections*numSections; i++) {
+        state.push_back(0);
+    }
+
+    pair<int, int> dest = getCoords(p->getDest(), networkSize);
+
+    int section = int(double(dest.first)/networkSize) * numSections
+        + numSections * (int(double(dest.second)/networkSize) * numSections);
+
+    state[stateOffset + section] = 1;
+}
+
+void ManhattanBanditDeflectionSwitch::setDeflectProbState(vector<double> &state, Packet *p) {
+    // go through all neighbours as set state to be the mean
+    for (pair<int, int> neighbour : switchNeighbourIfaces) {
+        ManhattanBanditDeflectionSwitch *neighbourSwitch =
+            dynamic_cast<ManhattanBanditDeflectionSwitch *>(man.getSwitch(neighbour.second));
+        double neighbourDeflectProb = neighbourSwitch->getDeflectProb();
+        state.push_back(neighbourDeflectProb);
+    }
+}
+
+void ManhattanBanditDeflectionSwitch::setDropProbState(vector<double> &state, Packet *p) {
+    // go through all neighbours as set state to be the mean
+    for (pair<int, int> neighbour : switchNeighbourIfaces) {
+        ManhattanBanditDeflectionSwitch *neighbourSwitch =
+            dynamic_cast<ManhattanBanditDeflectionSwitch *>(man.getSwitch(neighbour.second));
+        double neighbourDropProb = neighbourSwitch->getDropProb();
+        state.push_back(neighbourDropProb);
+    }
+}
+
 vector<double> ManhattanBanditDeflectionSwitch::getState(Packet *p) {
     vector<double> state;
 
     for (auto it: stateTypes) {
         switch (it) {
             case flowIdState:
-                {
-                    // flow state
-                    int flowId = p->getFlow();
-                    // flow ids go from 1-numFlows
-                    for (int i = 1; i <= this->numFlows; i++) {
-                        if (i == flowId) {
-                            state.push_back(1);
-                        } else {
-                            state.push_back(0);
-                        }
-                    }
-                }
+                setFlowIdState(state, p);
                 break;
 
             case destIdState:
-                {
-                    // destination state
-                    int dest = p->getDest();
-                    for (int i = 1; i <= this->networkSize * this->networkSize; i++) {
-                        if (i == dest) {
-                            state.push_back(1);
-                        } else {
-                            state.push_back(0);
-                        }
-                    }
-                }
+                setDestIdState(state, p);
                 break;
 
             case hop1ShortState:
-                {
-                    int stateOffset = state.size();
-
-                    for (int i = 0; i < hop1ShortStateDims; i++) {
-                        state.push_back(0);
-                    }
-
-                    for (int i: hop1ShortStateMap[p->getDest()]) {
-                        state[stateOffset + i] = 1;
-                    }
-                }
+                setHop1ShortState(state, p);
                 break;
 
             case hop1_2ShortState:
-                {
-                    int stateOffset = state.size();
-
-                    for (int i = 0; i < hop1_2ShortStateDims; i++) {
-                        state.push_back(0);
-                    }
-
-                    for (int i: hop1_2ShortStateMap[p->getDest()]) {
-                        state[stateOffset + i] = 1;
-                    }
-                }
+                setHop1_2ShortState(state, p);
                 break;
 
             case hop2ShortState:
-                {
-                    int stateOffset = state.size();
-
-                    for (int i = 0; i < hop2ShortStateDims; i++) {
-                        state.push_back(0);
-                    }
-
-                    for (int i: hop2ShortStateMap[p->getDest()]) {
-                        state[stateOffset + i] = 1;
-                    }
-                }
+                setHop2ShortState(state, p);
                 break;
+
             case sectionState3x3:
-                {
-                    int stateOffset = state.size();
-                    int numSections = 3;
-
-                    for (int i = 0; i < numSections*numSections; i++) {
-                        state.push_back(0);
-                    }
-
-                    pair<int, int> dest = getCoords(p->getDest(), networkSize);
-
-                    int section = int(double(dest.first)/networkSize) * numSections
-                        + numSections * (int(double(dest.second)/networkSize) * numSections);
-
-                    state[stateOffset + section] = 1;
-                }
+                setSectionState3x3(state, p);
                 break;
+
             case deflectProbState:
-                {
-                    // go through all neighbours as set state to be the mean
-                    for (pair<int, int> neighbour : switchNeighbourIfaces) {
-                        ManhattanBanditDeflectionSwitch *neighbourSwitch =
-                            dynamic_cast<ManhattanBanditDeflectionSwitch *>(man.getSwitch(neighbour.second));
-                        double neighbourDeflectProb = neighbourSwitch->getDeflectProb();
-                        state.push_back(neighbourDeflectProb);
-                    }
-                }
+                setDeflectProbState(state, p);
                 break;
+
             case dropProbState:
-                {
-                    // go through all neighbours as set state to be the mean
-                    for (pair<int, int> neighbour : switchNeighbourIfaces) {
-                        ManhattanBanditDeflectionSwitch *neighbourSwitch =
-                            dynamic_cast<ManhattanBanditDeflectionSwitch *>(man.getSwitch(neighbour.second));
-                        double neighbourDropProb = neighbourSwitch->getDropProb();
-                        state.push_back(neighbourDropProb);
-                    }
-                }
+                setDropProbState(state, p);
                 break;
         }
     }
@@ -1063,7 +1082,7 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
     vector<int> nonBlockedActions = availableInterfaces(p);
 
     // force a drop if drop actions are not being used
-    if (nonBlockedActions.empty()) { TODO fix this is not correct if only action is drop then true
+    if (nonBlockedActions.empty()) {// TODO fix this is not correct if only action is drop then true
 #ifdef ONE_HOP_REWARD
         if (sourceInterfaceId != NULL_ID) { // address when a packet was just created
             int prevSwitch = interfaceToNeighbour[sourceInterfaceId];
