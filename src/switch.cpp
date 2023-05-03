@@ -920,6 +920,13 @@ void ManhattanBanditDeflectionSwitch::setHop1ShortState(vector<double> &state, P
         state.push_back(0);
     }
 
+    /*if (!inHomeSector(p)) {
+        return;
+    }*/
+    /*if (!inNeighbourSector(p)) {
+        return;
+    }*/
+
     for (int i: hop1ShortStateMap[p->getDest()]) {
         state[stateOffset + i] = 1;
     }
@@ -957,10 +964,14 @@ void ManhattanBanditDeflectionSwitch::setSectionState3x3(vector<double> &state, 
         state.push_back(0);
     }
 
+    /*if (inHomeSector(p)) {
+        return;
+    }*/
+
     pair<int, int> dest = getCoords(p->getDest(), networkSize);
 
-    int section = int(double(dest.first)/networkSize) * numSections
-        + numSections * (int(double(dest.second)/networkSize) * numSections);
+    int section = int(double(dest.first) / networkSize * numSections)
+        + numSections * int(double(dest.second) / networkSize * numSections);
 
     state[stateOffset + section] = 1;
 }
@@ -983,6 +994,32 @@ void ManhattanBanditDeflectionSwitch::setDropProbState(vector<double> &state, Pa
         double neighbourDropProb = neighbourSwitch->getDropProb();
         state.push_back(neighbourDropProb);
     }
+}
+
+bool ManhattanBanditDeflectionSwitch::inNeighbourSector(Packet *p) {
+    int numSections = 3;
+    pair<int, int> dest = getCoords(p->getDest(), networkSize);
+
+    int xDiff = abs(int(double(dest.first) / networkSize * numSections)
+        - int(double(coords.first) / networkSize * numSections));
+
+    int yDiff = abs(int(double(dest.second) / networkSize * numSections)
+        - int(double(coords.second) / networkSize * numSections));
+
+    return (xDiff + yDiff) <= 1;
+}
+
+bool ManhattanBanditDeflectionSwitch::inHomeSector(Packet *p) {
+    int numSections = 3;
+    pair<int, int> dest = getCoords(p->getDest(), networkSize);
+
+    int destSector = int(double(dest.first) / networkSize * numSections)
+        + numSections * int(double(dest.second) / networkSize * numSections);
+
+    int homeSector = int(double(coords.first) / networkSize * numSections)
+        + numSections * int(double(coords.second) / networkSize * numSections);
+
+    return destSector == homeSector;
 }
 
 vector<double> ManhattanBanditDeflectionSwitch::getState(Packet *p) {
@@ -1081,8 +1118,8 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
     // get available actions
     vector<int> nonBlockedActions = availableInterfaces(p);
 
-    // force a drop if drop actions are not being used
-    if (nonBlockedActions.empty()) {// TODO fix this is not correct if only action is drop then true
+    // force a drop if all ports are blocked
+    if ((!dropAction && nonBlockedActions.empty()) || (dropAction && nonBlockedActions.size() == 1)) {
 #ifdef ONE_HOP_REWARD
         if (sourceInterfaceId != NULL_ID) { // address when a packet was just created
             int prevSwitch = interfaceToNeighbour[sourceInterfaceId];

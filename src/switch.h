@@ -187,6 +187,9 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         map<int, set<int>> hop1_2ShortStateMap; // destination to index of closest switches
         map<int, set<int>> hop2ShortStateMap; // destination to index of closest switches
 
+        bool inNeighbourSector(Packet *p);
+        bool inHomeSector(Packet *p);
+
         void setFlowIdState(vector<double> &state, Packet *p);
         void setDestIdState(vector<double> &state, Packet *p);
         void setHop1ShortState(vector<double> &state, Packet *p);
