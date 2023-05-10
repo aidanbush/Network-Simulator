@@ -323,13 +323,20 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, si
         #filename = f"{size}x{size}_{traffic_type}_{net_util}_{agent_type}{fname_state}{fname_flow_sets}.json"
         #pathname = os.path.join(dest_dir, filename)
 
+        filepath = os.path.join(dest_dir, f"{size}x{size}")
+
+        if switchConfig["drop_action"]:
+            filepath = os.path.join(filepath, "drop_action")
+
+        filepath = os.path.join(filepath, f"{agent_type}{fname_state}")
+
         if num_flow_sets == 1:
-            if num_flow_changes <= 1:
-                filepath = os.path.join(dest_dir, f"{size}x{size}", f"{agent_type}{fname_state}", f"u_{net_util}")
-            else:
-                filepath = os.path.join(dest_dir, f"{size}x{size}", f"{agent_type}{fname_state}", f"fc_{num_flow_changes}", f"u_{net_util}")
+            if num_flow_changes > 1:
+                filepath = os.path.join(filepath, f"fc_{num_flow_changes}")
         else:
-            filepath = os.path.join(dest_dir, f"{size}x{size}", f"{agent_type}{fname_state}", f"fs_{num_flow_sets}", f"u_{net_util}")
+            filepath = os.path.join(filepath, f"fs_{num_flow_sets}")
+
+        filepath = os.path.join(filepath, f"u_{net_util}")
 
         os.makedirs(filepath, exist_ok=True)
 
@@ -340,13 +347,14 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, si
             f.write(json.dumps(config, indent=4))
 
 def main():
-    size = 8#5
+    size = 5
     runs = 20
     simulation_length = 200
     num_flow_sets = 1
     num_flow_changes = 1#20
 
     flowConfig["ttl"] = size * 3
+    switchConfig["drop_action"] = False#True
 
     dest_dir = "configs"
 
