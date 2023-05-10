@@ -189,7 +189,7 @@ def plotLinks():
     G = nx.DiGraph()
     G.add_nodes_from(nodes)
 
-    maxEdgeWeight = 5
+    maxEdgeWeight = 8
 
     edgeLabels = {}
     for edge in meanData.keys():
