@@ -2,9 +2,8 @@
 Requirements:
 https://github.com/nlohmann/json
 https://www.boost.org/
+libtorch
 
 ## compiling
-within root directory run `make`
-
-## testing
-within root dierectory run `make test`
+create build directory with cmake
+in build call make in build
