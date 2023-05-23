@@ -7,3 +7,4 @@ libtorch
 ## compiling
 create build directory with cmake
 in build call make in build
+`cmake -DCMAKE_PREFIX_PATH=pathto-libtorch -S src/ -B build/`
