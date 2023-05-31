@@ -970,8 +970,8 @@ void ManhattanBanditDeflectionSwitch::setSectionState3x3(vector<double> &state, 
 
     pair<int, int> dest = getCoords(p->getDest(), networkSize);
 
-    int section = int(double(dest.first) / networkSize * numSections)
-        + numSections * int(double(dest.second) / networkSize * numSections);
+    int section = int(double(dest.first-1) / networkSize * numSections)
+        + numSections * int(double(dest.second-1) / networkSize * numSections);
 
     state[stateOffset + section] = 1;
 }
