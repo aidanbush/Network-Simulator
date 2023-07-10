@@ -2,6 +2,9 @@
 
 #include "linUCB.h"
 
+//#define SLIDE_UPDATE
+#define LINUCB_UPDATE
+
 using namespace std;
 
 LinUCB::LinUCB(int observeDims, int numActions, double regularizer, double delta, int seed) {
@@ -41,8 +44,18 @@ void LinUCB::updateAgent(vector<double> observation, int action, double reward) 
 pair<int, double> LinUCB::selectAction(vector<double> observation, vector<int> available_actions) {
     torch::Tensor obsTensor = torch::tensor(observation);
 
+    // Yoan's slides
+#ifdef SLIDE_UPDATE
     double beta = sqrt(this->regularizer) + sqrt(2 * log(1 / this->delta) + this->numActions *
             log(1 + (this->timestep-1) / (this->regularizer * this->numActions)));
+    // linUCB paper
+#endif /* SLIDE_UPDATE */
+    // linUCB paper
+#ifdef LINUCB_UPDATE
+    double beta = 1 + sqrt(log(2 / this->delta) / 2);
+#endif /* LINUCB_UPDATE */
+#ifdef D_LIN_UCB_UPDATE
+#endif /* D_LIN_UCB_UPDATE */
 
     torch::Tensor ucb = torch::zeros(this->numActions);
     torch::Tensor ucbReward = torch::zeros(this->numActions);
@@ -81,7 +94,14 @@ void LinUCB::updateTheta(torch::Tensor context, int action, double reward) {
 
     this->b[action] = this->b[action] + reward * context;
 
+    // Yoan's slides
+#ifdef SLIDE_UPDATE
     for (int i = 0; i < numActions; i++) {
         this->theta[i] = torch::matmul(torch::inverse(this->V[i]), this->b[i]);
     }
+#endif /* SLIDE_UPDATE */
+    // linUCB paper
+#ifdef LINUCB_UPDATE
+    this->theta[action] = torch::matmul(torch::inverse(this->V[action]), this->b[action]);
+#endif /* LINUCB_UPDATE */
 }
