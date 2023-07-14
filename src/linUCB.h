@@ -20,10 +20,12 @@ class LinUCB {
 
         int observeDims;
         int numActions;
-        double regularizer;
+        double regularizer; // lambda
+        double discountFactor; // gamma - only in D-LinUCB
         double delta;
 
         vector<torch::Tensor> V;
+        vector<torch::Tensor> VAprox;
         vector<torch::Tensor> theta;
         vector<torch::Tensor> b;
 
