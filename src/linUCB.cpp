@@ -2,8 +2,8 @@
 
 #include "linUCB.h"
 
-#define D_LIN_UCB_UPDATE
-//#define SLIDE_UPDATE
+//#define D_LIN_UCB_UPDATE
+#define SLIDE_UPDATE
 //#define LINUCB_UPDATE
 
 using namespace std;
@@ -13,7 +13,7 @@ LinUCB::LinUCB(int observeDims, int numActions, double regularizer, double delta
     this->numActions = numActions;
     this->regularizer = regularizer;
     this->delta = delta;
-    this->discountFactor = 1;
+    this->discountFactor = 0.99999;
 
     for (int i = 0; i < numActions; i++) {
         torch::manual_seed(seed);
