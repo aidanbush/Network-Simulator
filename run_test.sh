@@ -55,6 +55,7 @@ if [ -d $resultsDir ] ; then
     rm -r $resultsDir
 fi
 mkdir $resultsDir
+chmod 777 $resultsDir
 
 cp $paramFile $resultsDir
 
@@ -85,8 +86,8 @@ echo python3 combineData.py $tempResultsDir ${resultsDir} results.csv links.csv 
 time python3 combineData.py $tempResultsDir ${resultsDir} results.csv links.csv switches.csv
 
 # plot data
-echo python3 plotRuns.py ${resultsDir}/results.csv ${resultsDir}/links.csv -d ${resultsDir} -f ${plotFormat} -t $testName
-time python3 plotRuns.py ${resultsDir}/results.csv ${resultsDir}/links.csv -d ${resultsDir} -f ${plotFormat} -t $testName
+echo python3 plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat} -t $testName
+time python3 plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat} -t $testName
 
 # clean up
 rm -r $tempResultsDir
