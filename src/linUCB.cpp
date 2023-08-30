@@ -1,25 +1,36 @@
 #include <cstdio>
+#include <map>
 
 #include "linUCB.h"
 
-//#define D_LIN_UCB_UPDATE
-#define SLIDE_UPDATE
-//#define LINUCB_UPDATE
-
 using namespace std;
 
-LinUCB::LinUCB(int observeDims, int numActions, double regularizer, double delta, int seed) {
+LinUCB::LinUCB(int observeDims, int numActions, double regularizer, double delta, double discountFactor, string setAlgType, int seed) {
+    static map<string, AlgType> algTypeMap = {
+        {"original", OriginalAlg},
+        {"slide", SlideAlg},
+        {"D-LinUCB", D_linAlg},
+    };
+    if (algTypeMap.find(setAlgType) == algTypeMap.end()) {
+        throw runtime_error("algorithm " + setAlgType + " type does not exist");
+    }
+    this->algType = algTypeMap[setAlgType];
+
     this->observeDims = observeDims;
     this->numActions = numActions;
     this->regularizer = regularizer;
     this->delta = delta;
-    this->discountFactor = 0.99999;
+    if (algType == D_linAlg) {
+        this->discountFactor = discountFactor;//0.99999;
+    }
 
     for (int i = 0; i < numActions; i++) {
         torch::manual_seed(seed);
         this->theta.push_back(torch::rand(this->observeDims));
         this->V.push_back(torch::eye(this->observeDims) * this->regularizer);
-        this->VAprox.push_back(torch::eye(this->observeDims) * this->regularizer); // D_LIN_UCB_UPDATE
+        if (algType == D_linAlg) {
+            this->VAprox.push_back(torch::eye(this->observeDims) * this->regularizer); // D_LIN_UCB_UPDATE
+        }
         this->b.push_back(torch::zeros(this->observeDims));
     }
 
@@ -47,32 +58,36 @@ void LinUCB::updateAgent(vector<double> observation, int action, double reward) 
 pair<int, double> LinUCB::selectAction(vector<double> observation, vector<int> available_actions) {
     torch::Tensor obsTensor = torch::tensor(observation);
 
-    // Yoan's slides
-#ifdef SLIDE_UPDATE
-    double beta = sqrt(this->regularizer) + sqrt(2 * log(1 / this->delta) + this->numActions *
-            log(1 + (this->timestep-1) / (this->regularizer * this->numActions)));
-    // linUCB paper
-#endif /* SLIDE_UPDATE */
-    // linUCB paper
-#ifdef LINUCB_UPDATE
-    double beta = 1 + sqrt(log(2 / this->delta) / 2);
-#endif /* LINUCB_UPDATE */
-#ifdef D_LIN_UCB_UPDATE
-    double beta = sqrt(this->regularizer) +
-        sqrt(2 * log(1 / this->delta) + this->numActions *
-                log((1 + (1 - pow(this->discountFactor, 2 * (this->timestep - 1)))) /
-                    (this->regularizer * this->numActions * (1 - pow(this->discountFactor, 2)))));
-#endif /* D_LIN_UCB_UPDATE */
+    double beta;
+
+    switch (algType) {
+        case OriginalAlg:
+            beta = 1 + sqrt(log(2 / this->delta) / 2);
+            break;
+        case SlideAlg:
+            beta = sqrt(this->regularizer) + sqrt(2 * log(1 / this->delta) + this->numActions *
+                    log(1 + (this->timestep-1) / (this->regularizer * this->numActions)));
+            break;
+        case D_linAlg:
+            beta = sqrt(this->regularizer) +
+                sqrt(2 * log(1 / this->delta) + this->numActions *
+                        log((1 + (1 - pow(this->discountFactor, 2 * (this->timestep - 1)))) /
+                            (this->regularizer * this->numActions * (1 - pow(this->discountFactor, 2)))));
+            break;
+        default:
+            throw runtime_error("can't calculate beta, no valid algorithm type set");
+    }
 
     torch::Tensor ucb = torch::zeros(this->numActions);
     torch::Tensor ucbReward = torch::zeros(this->numActions);
+    torch::Tensor inverseV;
 
     for (int action : available_actions) {
-#ifdef D_LIN_UCB_UPDATE
-        torch::Tensor inverseV = torch::matmul(torch::matmul(torch::inverse(V[action]), VAprox[action]), torch::inverse(V[action]));
-#else
-        torch::Tensor inverseV = torch::inverse(V[action]);
-#endif /* D_LIN_UCB_UPDATE */
+        if (algType == D_linAlg) {
+            inverseV = torch::matmul(torch::matmul(torch::inverse(V[action]), VAprox[action]), torch::inverse(V[action]));
+        } else {
+            inverseV = torch::inverse(V[action]);
+        }
         ucbReward[action] = obsTensor.dot(this->theta[action]);
         ucb[action] = ucbReward[action] + beta *
             torch::sqrt(torch::matmul(obsTensor, inverseV).dot(obsTensor));
@@ -101,29 +116,25 @@ pair<int, double> LinUCB::selectAction(vector<double> observation, vector<int> a
 }
 
 void LinUCB::updateTheta(torch::Tensor context, int action, double reward) {
-#ifdef D_LIN_UCB_UPDATE
-    this->V[action] = this->discountFactor * this->V[action] + torch::outer(context, context) +
-        (1 - this->discountFactor) * this->regularizer * torch::eye(this->observeDims);
-    this->VAprox[action] = pow(this->discountFactor, 2) * this->V[action] + torch::outer(context, context) +
-        (1 - pow(this->discountFactor, 2)) * this->regularizer * torch::eye(this->observeDims);
+    if (algType == D_linAlg) {
+        this->V[action] = this->discountFactor * this->V[action] + torch::outer(context, context) +
+            (1 - this->discountFactor) * this->regularizer * torch::eye(this->observeDims);
+        this->VAprox[action] = pow(this->discountFactor, 2) * this->V[action] + torch::outer(context, context) +
+            (1 - pow(this->discountFactor, 2)) * this->regularizer * torch::eye(this->observeDims);
 
-    this->b[action] = this->discountFactor * this->b[action] + reward * context;
-#else
-    this->V[action] = this->V[action] + torch::outer(context, context);
+        this->b[action] = this->discountFactor * this->b[action] + reward * context;
+    } else {
+        this->V[action] = this->V[action] + torch::outer(context, context);
 
-    this->b[action] = this->b[action] + reward * context;
-#endif /* D_LIN_UCB_UPDATE */
-
-    // TODO are these theta update good
-    // Yoan's slides
-#if defined(SLIDE_UPDATE) || defined(D_LIN_UCB_UPDATE)
-    for (int i = 0; i < numActions; i++) {
-        this->theta[i] = torch::matmul(torch::inverse(this->V[i]), this->b[i]);
+        this->b[action] = this->b[action] + reward * context;
     }
-#endif /* SLIDE_UPDATE, D_LIN_UCB_UPDATE */
-    // linUCB paper
-#ifdef LINUCB_UPDATE
-    this->theta[action] = torch::matmul(torch::inverse(this->V[action]), this->b[action]);
-#endif /* LINUCB_UPDATE */
+
+    if (algType == SlideAlg || algType == D_linAlg) {
+        for (int i = 0; i < numActions; i++) {
+            this->theta[i] = torch::matmul(torch::inverse(this->V[i]), this->b[i]);
+        }
+    } else {
+        this->theta[action] = torch::matmul(torch::inverse(this->V[action]), this->b[action]);
+    }
 
 }

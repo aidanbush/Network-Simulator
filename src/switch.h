@@ -225,11 +225,13 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         map<int, stack<tuple<vector<double>, int, int>>> actionStore; // packet id -> (context, action, dest_id)
         vector<int> actionInterfaces;
         LinUCB *agent;
+        string agentAlg;
 
         bool dropAction;
         // agent variables
         double regularizer;
         double delta;
+        double discountFactor;
         // state variables
         int numFlows;
         set<StateType> stateTypes;

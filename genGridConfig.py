@@ -13,6 +13,7 @@ switchConfig = {
         #"type": "rand_deflect",
         "deflect_thresh": 1.0,
         "regularizer": 1.0,
+        "discount_factor": 0.999,
         "delta": 1.0,
         "drop_action": False,
         "states": ["flow_id"],
@@ -275,10 +276,10 @@ def addRoutes(config, flowRoutes):
         flow = dict(list(flowConfig.items()) + list(flow.items()))
         config["flows"].append(flow)
 
-def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, simulation_length, num_flow_sets, num_flow_changes, runs, flowRoutes=None):
-    random.seed(seed)
+def create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg, states, simulation_length, num_flow_sets, num_flow_changes, runs, flowRoutes=None):
 
     for run in range(runs):
+        random.seed(seed + run) # run lengths can be increased without changing the initial configuration
         #random.seed(seed) # uncomment to have all runs have the same flow configuration
         # create base object
         config = {}
@@ -328,7 +329,14 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, si
         if switchConfig["drop_action"]:
             filepath = os.path.join(filepath, "drop_action")
 
-        filepath = os.path.join(filepath, f"{agent_type}{fname_state}")
+        alg_text = ""
+        if agent_type == "mbd":
+            alg_text = "_" + agent_alg
+            # if D-LinUCB add discount factor
+            if agent_alg == "D-LinUCB":
+                alg_text += "_" + str(switchConfig["discount_factor"])
+
+        filepath = os.path.join(filepath, f"{agent_type}{alg_text}{fname_state}")
 
         if num_flow_sets == 1:
             if num_flow_changes > 1:
@@ -347,11 +355,11 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, states, si
             f.write(json.dumps(config, indent=4))
 
 def main():
-    size = 5
+    size = 8
     runs = 20
-    simulation_length = 200
+    simulation_length = 2000 # 1000
     num_flow_sets = 1
-    num_flow_changes = 1#20
+    num_flow_changes = 200 # 100
 
     flowConfig["ttl"] = size * 3
     switchConfig["drop_action"] = False#True
@@ -361,6 +369,7 @@ def main():
     traffic_type = "bursty"
     net_utils = [0.05, 0.1, 0.15, 0.2] # [0.1,0.2,0.3,0.4]
     agent_type = ["mbd", "rand_deflect", "rand_forward"][0]
+    agent_alg = ["original", "slide", "D-LinUCB", None][1]
     states = [[None],["1-2_hop_shortest"],["2_hop_shortest"],["1_hop_shortest"],\
             ["1_hop_shortest", "3x3_section"],["2_hop_shortest","1_hop_shortest"],\
             ["2_hop_shortest","1_hop_shortest","3x3_section"], ["dest_id"],\
@@ -369,14 +378,16 @@ def main():
             ["dest_id", "deflect_probability"],\
             ["1_hop_shortest", "3x3_section", "drop_probability"],\
             ["2_hop_shortest", "1_hop_shortest", "3x3_section", "drop_probability"],\
-            ["dest_id", "drop_probability"], ["flow_id"]][3:14]#[3:11]#[3:8]
+            ["dest_id", "drop_probability"], ["flow_id"]][4:5]#[3:14]#[3:8]
 
     for net_util in net_utils:
         for state in states:
             switchConfig["states"] = state
             switchConfig["type"] = agent_type
+            switchConfig["agent_alg"] = agent_alg
 
-            create_config(dest_dir, size, traffic_type, net_util, agent_type, state, simulation_length, num_flow_sets, num_flow_changes, runs)
+            print(agent_type, agent_alg, state)
+            create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg, state, simulation_length, num_flow_sets, num_flow_changes, runs)
 
 if __name__ == "__main__":
     main()

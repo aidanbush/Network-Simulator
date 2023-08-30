@@ -603,8 +603,10 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
     };
     this->regularizer = switchConfig["regularizer"];
     this->delta = switchConfig["delta"];
+    this->discountFactor = switchConfig["discount_factor"];
     this->numFlows = switchConfig["num_flows"];
     this->dropAction = switchConfig["drop_action"];
+    this->agentAlg = switchConfig["agent_alg"];
     this->deflectProbTau = 1; // in seconds TODO use config file to import
     this->deflectProb = 0;
     this->dropProbTau = 1; // in seconds TODO use config file to import
@@ -678,6 +680,10 @@ json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchCo
         message += "No double with name 'regularizer'.\n";
     }
 
+    if (!hasMemberOfType(switchConfig, "discount_factor", jsonDouble)) {
+        message += "No double with name 'discount_factor'.\n";
+    }
+
     if (!hasMemberOfType(switchConfig, "delta", jsonDouble)) {
         message += "No double with name 'delta'.\n";
     }
@@ -690,6 +696,10 @@ json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchCo
         message += "No array with name 'states'";
     } else if(!checkArrayType(switchConfig["states"], jsonString)) {
         message += "Array states does not have all elements of type string";
+    }
+
+    if (!hasMemberOfType(switchConfig, "agent_alg", jsonString)) {
+        message += "No string with name 'agent_alg'.\n";
     }
 
     if (!message.empty()) {
@@ -734,7 +744,8 @@ void ManhattanBanditDeflectionSwitch::startSwitch() {
     }
     int seed = man.random();/* get from manager random */
     // initialize agent
-    agent = new LinUCB(observeDims, numActions, this->regularizer, this->delta, seed);
+
+    agent = new LinUCB(observeDims, numActions, this->regularizer, this->delta, this->discountFactor, this->agentAlg, seed);
 }
 
 map<int, set<int>> ManhattanBanditDeflectionSwitch::createShortestLookupTable(vector<int> switchIds) {
