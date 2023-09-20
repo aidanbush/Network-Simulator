@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import os
 import math
 
-FIGSIZE = (16,9)
+FIGSIZE = (16/1.5,9/1.5)
 output_dir = "results"
 plot_format = "pdf"
 
@@ -38,16 +38,15 @@ def multiple_run_link_usage(utilization, net_size, run_name_data):
     stdev_output_name = stdev_fig_name.replace(' ', '_')
 
     directory = "results/"
-    run_prefix = run_name_data[0]
-    run_infixes = run_name_data[1]
-    run_suffix = run_name_data[2]
+    run_infixes = run_name_data[0]
+    run_suffix = run_name_data[1]
 
     run_infixes = sorted(run_infixes)
 
     data = {}
 
     for run_infix in run_infixes:
-        run_name = run_prefix + run_infix + run_suffix
+        run_name = get_run_name(net_size, utilization, run_infix, run_suffix)
         filename = directory + run_name + file_suffix
 
         #for mean_field in mean_fields:
@@ -125,15 +124,35 @@ def multiple_run_link_usage(utilization, net_size, run_name_data):
     except Exception as e:
         print("failed to plot", stdev_output_name, "exception", str(e))
 
+def get_runs_data(filename, field_name, exact_match=True):
+    data = []
+    with open(filename) as f:
+        reader = csv.DictReader(f)
+
+        fieldnames = []
+
+        for name in reader.fieldnames:
+            if (exact_match and field_name == name) or (not exact_match and field_name in name):
+                fieldnames.append(name)
+
+        for row in reader:
+            row_data = []
+            # all rows that have a mean
+            for field in fieldnames:
+                val = float(row[field])
+                row_data.append(val)
+            data.append(row_data)
+    return np.array(data)
+
 def multiple_run_plot(utilization, mean_field, fig_type, ylim, file_suffix, net_size, run_name_data):
     fig_name = f"{net_size} Bursty {utilization} Utilization {fig_type} update tests fc 200 long"
     output_name = fig_name.replace(' ', '_')
 
     directory = "results/"
 
-    run_prefix = run_name_data[0]
-    run_infixes = run_name_data[1]
-    run_suffix = run_name_data[2]
+    #run_prefix = run_name_data[0]
+    run_infixes = run_name_data[0]
+    run_suffix = run_name_data[1]
 
     run_infixes = sorted(run_infixes)
 
@@ -141,30 +160,15 @@ def multiple_run_plot(utilization, mean_field, fig_type, ylim, file_suffix, net_
 
     # for each run calculate averages
     for run_infix in run_infixes:
-        run_name = run_prefix + run_infix + run_suffix
+        run_name = get_run_name(net_size, utilization, run_infix, run_suffix)
         filename = directory + run_name + file_suffix
 
         means = []
 
-        with open(filename) as f:
-            reader = csv.DictReader(f)
+        run_data = get_runs_data(filename, mean_field)
+        data[run_name] = np.nanmean(run_data,1)
 
-            mean_fieldnames = []
-
-            for name in reader.fieldnames:
-                if mean_field in name:
-                    mean_fieldnames.append(name)
-
-            for row in reader:
-                row_means = []
-                # all rows that have a mean
-                for field in mean_fieldnames:
-                    val = float(row[field])
-                    row_means.append(val)
-
-                means.append(np.nanmean(np.array(row_means)))
-
-        data[run_name] = np.array(means)
+        #data[run_name] = np.array(means)
 
     # plot data
     plt.figure(figsize=FIGSIZE)
@@ -187,7 +191,109 @@ def multiple_run_plot(utilization, mean_field, fig_type, ylim, file_suffix, net_
     except Exception as e:
         print("failed to plot", output_name, "exception", str(e))
 
-utilizations = ["0.05","0.1","0.15"]#,"0.2"]
+def plot_across_utils(utilizations, field, fig_type, ylim, file_suffix, net_size, run_name_data, exact_match=True, include_stdev=True, include_min_max=False, stdev_not_mean=False):
+    fig_name = f"{net_size} Bursty {fig_type} update tests fc 200 long"
+    output_name = fig_name.replace(' ', '_')
+
+    utilizations = sorted(utilizations)
+
+    directory = "results/"
+
+    run_infixes = run_name_data[0]
+    run_suffix = run_name_data[1]
+
+    run_infixes = sorted(run_infixes)
+
+    means = {}
+    stdevs = {}
+    mins = {}
+    maxs = {}
+
+    # for agent / run
+    for run_infix in run_infixes:
+        # for util
+        run_name = get_no_util_run_name(net_size, run_infix, run_suffix)
+        means[run_name] = []
+        stdevs[run_name] = []
+        mins[run_name] = []
+        maxs[run_name] = []
+
+        for util in utilizations:
+            file_run_name = get_run_name(net_size, util, run_infix, run_suffix)
+            filename = directory + file_run_name + file_suffix
+
+            run_data = get_runs_data(filename, field, exact_match=exact_match)
+            # only look at second half
+            run_data = run_data[run_data.shape[0]//2:]
+            means[run_name].append(np.nanmean(run_data))
+            stdevs[run_name].append(np.nanstd(run_data))
+
+            #TODO these min and max are incorrect
+            if len(run_data.shape) > 1:
+                mins[run_name].append(np.nanmin(run_data))
+                maxs[run_name].append(np.nanmax(run_data))
+            else:
+                mins[run_name].append(run_data.min())
+                maxs[run_name].append(run_data.max())
+
+        means[run_name] = np.array(means[run_name])
+        stdevs[run_name] = np.array(stdevs[run_name])
+        mins[run_name] = np.array(mins[run_name])
+        maxs[run_name] = np.array(maxs[run_name])
+
+    plt.figure(figsize=FIGSIZE)
+    plt.title(fig_name)
+
+    # TODO here
+    loc = np.arange(len(utilizations))
+    width = 1 / (len(means.keys())+1)
+
+    #for run in sorted(means.keys()):
+    for i, run in enumerate(sorted(means.keys())):
+        #plt.plot(utilizations, means[run], label=run, alpha=.9)
+        yerr = None
+        if include_stdev:
+            yerr = stdevs[run]
+        if include_min_max:
+            yerr = np.stack([means[run] - mins[run], maxs[run] - means[run]])
+        if include_stdev and include_min_max:
+            print("ERROR CANNOT HAVE STDEV AND MIN MAX")
+            return None
+
+        # TODO plot min and max if enabled
+        x = means[run]
+        if stdev_not_mean:
+            x = stdevs[run]
+
+        # line plot
+        #plt.errorbar(utilizations, x, yerr=yerr, capsize=5, label=run, alpha=.9)
+        # bar plot
+        offset = width * i
+        plt.bar(loc + offset, x, width, yerr=yerr, label=run)
+
+    plt.legend()
+
+    plt.ylim(bottom=ylim[0], top=ylim[1])
+    plt.grid()
+
+    plt.xlabel("Network Utilization")
+
+    try:
+        filepath = os.path.join(output_dir, "{}.{}".format(output_name, plot_format))
+        plt.savefig(filepath, format=plot_format)
+        print("wrote to", filepath)
+    except Exception as e:
+        print("failed to plot", output_name, "exception", str(e))
+
+def get_no_util_run_name(net_size, infix, suffix):
+    prefix = f"{net_size}_"
+    return prefix + infix + suffix
+
+def get_run_name(net_size, utilization, infix, suffix):
+    prefix = f"{net_size}_bursty_{utilization}_"
+    return prefix + infix + suffix
+
+utilizations = ["0.05","0.1","0.15","0.2"]
 net_size = "8x8"
 run_infixes = ["rand_forward_fc_200_long",
                #"rand_deflect_fc_200_long",
@@ -222,10 +328,17 @@ run_infixes = ["rand_forward_fc_200_long",
 run_suffix = ""
 
 
+run_name_data = (run_infixes, run_suffix)
+
 for utilization in utilizations:
-    run_prefix = f"{net_size}_bursty_{utilization}_"
-    run_name_data = (run_prefix, run_infixes, run_suffix)
     multiple_run_throughput(utilization, net_size, run_name_data)
     multiple_run_hop_ratio(utilization, net_size, run_name_data)
     multiple_run_drop_rate(utilization, net_size, run_name_data)
     multiple_run_link_usage(utilization, net_size, run_name_data)
+
+plot_across_utils(utilizations, "DropRate mean", "Drop Rate", (0,.3), "/results.csv", net_size, run_name_data)
+plot_across_utils(utilizations, "HopRatio mean", "Hop Ratios", (1,3), "/results.csv", net_size, run_name_data)
+# link mean
+plot_across_utils(utilizations, "mean", "Link Usage", (0,.5), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=True)
+plot_across_utils(utilizations, "mean", "Link Usage stdev", (0,.2), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=False, stdev_not_mean=True)
+# TODO link usage - stdev
