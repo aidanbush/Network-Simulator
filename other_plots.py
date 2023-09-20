@@ -10,30 +10,30 @@ output_dir = "results"
 plot_format = "pdf"
 
 # plot averages of multiple runs throughputs
-def multiple_run_throughput(utilization, net_size, run_name_data):
+def multiple_run_throughput(test_name, utilization, net_size, run_name_data):
     mean_field = "Throughput mean"
     y_lim = (0, 300000)
-    multiple_run_plot(utilization, mean_field, "Throughputs", y_lim, "/results.csv", net_size, run_name_data)
+    multiple_run_plot(test_name, utilization, mean_field, "Throughputs", y_lim, "/results.csv", net_size, run_name_data)
 
 # plot averages of multiple runs throughputs
-def multiple_run_hop_ratio(utilization, net_size, run_name_data):
+def multiple_run_hop_ratio(test_name, utilization, net_size, run_name_data):
     mean_field = "HopRatio mean"
     y_lim = (1, 3)
-    multiple_run_plot(utilization, mean_field, "Hop Ratios", y_lim, "/results.csv", net_size, run_name_data)
+    multiple_run_plot(test_name, utilization, mean_field, "Hop Ratios", y_lim, "/results.csv", net_size, run_name_data)
 
-def multiple_run_drop_rate(utilization, net_size, run_name_data):
+def multiple_run_drop_rate(test_name, utilization, net_size, run_name_data):
     mean_field = "DropRate mean"
     y_lim = (0, .3)
-    multiple_run_plot(utilization, mean_field, "Drop Rate", y_lim, "/results.csv", net_size, run_name_data)
+    multiple_run_plot(test_name, utilization, mean_field, "Drop Rate", y_lim, "/results.csv", net_size, run_name_data)
 
-def multiple_run_link_usage(utilization, net_size, run_name_data):
+def multiple_run_link_usage(test_name, utilization, net_size, run_name_data):
     fig_type = "links usage"
     file_suffix = "/links.csv"
     ylim = (0, .4)
 
     mean_field = "mean"
-    mean_fig_name = f"{net_size} Bursty {utilization} Utilization mean {fig_type} update tests fc 200 long"
-    stdev_fig_name = f"{net_size} Bursty {utilization} Utilization stdev {fig_type} update tests fc 200 long"
+    mean_fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization mean {fig_type} update tests fc 200 long"
+    stdev_fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization stdev {fig_type} update tests fc 200 long"
     mean_output_name = mean_fig_name.replace(' ', '_')
     stdev_output_name = stdev_fig_name.replace(' ', '_')
 
@@ -144,8 +144,8 @@ def get_runs_data(filename, field_name, exact_match=True):
             data.append(row_data)
     return np.array(data)
 
-def multiple_run_plot(utilization, mean_field, fig_type, ylim, file_suffix, net_size, run_name_data):
-    fig_name = f"{net_size} Bursty {utilization} Utilization {fig_type} update tests fc 200 long"
+def multiple_run_plot(test_name, utilization, mean_field, fig_type, ylim, file_suffix, net_size, run_name_data):
+    fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization {fig_type} update tests fc 200 long"
     output_name = fig_name.replace(' ', '_')
 
     directory = "results/"
@@ -191,8 +191,8 @@ def multiple_run_plot(utilization, mean_field, fig_type, ylim, file_suffix, net_
     except Exception as e:
         print("failed to plot", output_name, "exception", str(e))
 
-def plot_across_utils(utilizations, field, fig_type, ylim, file_suffix, net_size, run_name_data, exact_match=True, include_stdev=True, include_min_max=False, stdev_not_mean=False):
-    fig_name = f"{net_size} Bursty {fig_type} update tests fc 200 long"
+def plot_across_utils(test_name, utilizations, field, fig_type, ylim, file_suffix, net_size, run_name_data, exact_match=True, include_stdev=True, include_min_max=False, stdev_not_mean=False):
+    fig_name = f"{test_name} {net_size} Bursty {fig_type} update tests fc 200 long"
     output_name = fig_name.replace(' ', '_')
 
     utilizations = sorted(utilizations)
@@ -295,16 +295,29 @@ def get_run_name(net_size, utilization, infix, suffix):
 
 utilizations = ["0.05","0.1","0.15","0.2"]
 net_size = "8x8"
-run_infixes = ["rand_forward_fc_200_long",
-               #"rand_deflect_fc_200_long",
+run_infixes = [#"rand_forward_fc_200_long",
                #"rand_deflect_fc_200_long",
                #"mbd_[1_hop_shortest]",
-               "mbd_original_[1_hop_shortest,3x3_section]_fc_200",
+
+               # state test
+
+               "rand_forward_fc_200_long",
+               "rand_deflect_fc_200_long",
+               "mbd_slide_[1_hop_shortest]_fc_200",
                "mbd_slide_[1_hop_shortest,3x3_section]_fc_200",
-               #"mbd_D-LinUCB_0.9_[1_hop_shortest,3x3_section]_fc_200",
-               #"mbd_D-LinUCB_0.99_[1_hop_shortest,3x3_section]_fc_200",
-               "mbd_D-LinUCB_0.999_[1_hop_shortest,3x3_section]_fc_200",
-               "mbd_D-LinUCB_0.9999_[1_hop_shortest,3x3_section]_fc_200",
+               "mbd_slide_[2_hop_shortest,1_hop_shortest]_fc_200",
+               "mbd_slide_[2_hop_shortest,1_hop_shortest,3x3_section]_fc_200",
+               #"mbd_slide_[1-2_hop_shortest]_fc_200",
+               #"mbd_slide_[1-2_hop_shortest,3x3_section]_fc_200",
+
+               # algorithm test
+
+               #"rand_forward_fc_200_long",
+               #"mbd_original_[1_hop_shortest,3x3_section]_fc_200",
+               #"mbd_slide_[1_hop_shortest,3x3_section]_fc_200",
+               #"mbd_D-LinUCB_0.999_[1_hop_shortest,3x3_section]_fc_200",
+               #"mbd_D-LinUCB_0.9999_[1_hop_shortest,3x3_section]_fc_200",
+
                #"mbd_D-LinUCB_0.99999_[1_hop_shortest,3x3_section]_fc_200",
                #"mbd_[1_hop_shortest,3x3_section]_fc_200_long",
                #"mbd_[1_hop_shortest,3x3_section]_fc_200_long",
@@ -330,15 +343,16 @@ run_suffix = ""
 
 run_name_data = (run_infixes, run_suffix)
 
-for utilization in utilizations:
-    multiple_run_throughput(utilization, net_size, run_name_data)
-    multiple_run_hop_ratio(utilization, net_size, run_name_data)
-    multiple_run_drop_rate(utilization, net_size, run_name_data)
-    multiple_run_link_usage(utilization, net_size, run_name_data)
+experiment_name = "state_test"
 
-plot_across_utils(utilizations, "DropRate mean", "Drop Rate", (0,.3), "/results.csv", net_size, run_name_data)
-plot_across_utils(utilizations, "HopRatio mean", "Hop Ratios", (1,3), "/results.csv", net_size, run_name_data)
+for utilization in utilizations:
+    multiple_run_throughput(experiment_name, utilization, net_size, run_name_data)
+    multiple_run_hop_ratio(experiment_name, utilization, net_size, run_name_data)
+    multiple_run_drop_rate(experiment_name, utilization, net_size, run_name_data)
+    multiple_run_link_usage(experiment_name, utilization, net_size, run_name_data)
+
+plot_across_utils(experiment_name, utilizations, "DropRate mean", "Drop Rate", (0,.3), "/results.csv", net_size, run_name_data)
+plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (1,3), "/results.csv", net_size, run_name_data)
 # link mean
-plot_across_utils(utilizations, "mean", "Link Usage", (0,.5), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=True)
-plot_across_utils(utilizations, "mean", "Link Usage stdev", (0,.2), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=False, stdev_not_mean=True)
-# TODO link usage - stdev
+plot_across_utils(experiment_name, utilizations, "mean", "Link Usage", (0,.5), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=True)
+plot_across_utils(experiment_name, utilizations, "mean", "Link Usage stdev", (0,.2), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=False, stdev_not_mean=True)
