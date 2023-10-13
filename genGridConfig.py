@@ -356,7 +356,7 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg,
 
 def main():
     size = 8
-    runs = 20
+    runs = 30
     simulation_length = 2000 # 1000
     num_flow_sets = 1
     num_flow_changes = 200 # 100
@@ -370,15 +370,21 @@ def main():
     net_utils = [0.05, 0.1, 0.15, 0.2] # [0.1,0.2,0.3,0.4]
     agent_type = ["mbd", "rand_deflect", "rand_forward"][0]
     agent_alg = ["original", "slide", "D-LinUCB", None][1]
-    states = [[None],["1-2_hop_shortest"],["2_hop_shortest"],["1_hop_shortest"],\
-            ["1_hop_shortest", "3x3_section"],["2_hop_shortest","1_hop_shortest"],\
-            ["2_hop_shortest","1_hop_shortest","3x3_section"], ["dest_id"],\
-            ["1_hop_shortest", "3x3_section", "deflect_probability"],\
-            ["2_hop_shortest", "1_hop_shortest", "3x3_section", "deflect_probability"],\
-            ["dest_id", "deflect_probability"],\
-            ["1_hop_shortest", "3x3_section", "drop_probability"],\
-            ["2_hop_shortest", "1_hop_shortest", "3x3_section", "drop_probability"],\
-            ["dest_id", "drop_probability"], ["flow_id"]][4:5]#[3:14]#[3:8]
+    states = [[None],
+            ["1-2_hop_shortest"],
+            ["1-2_hop_shortest", "3x3_section"],
+            ["2_hop_shortest"],
+            ["1_hop_shortest"],
+            ["1_hop_shortest", "3x3_section"],
+            ["2_hop_shortest","1_hop_shortest"],
+            ["2_hop_shortest","1_hop_shortest","3x3_section"],
+            ["dest_id"],
+            ["1_hop_shortest", "3x3_section", "deflect_probability"],
+            ["2_hop_shortest", "1_hop_shortest", "3x3_section", "deflect_probability"],
+            ["dest_id", "deflect_probability"],
+            ["1_hop_shortest", "3x3_section", "drop_probability"],
+            ["2_hop_shortest", "1_hop_shortest", "3x3_section", "drop_probability"],
+            ["dest_id", "drop_probability"], ["flow_id"]][1:14]#[3:8]
 
     for net_util in net_utils:
         for state in states:
