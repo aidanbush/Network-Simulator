@@ -336,7 +336,8 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg,
             if agent_alg == "D-LinUCB":
                 alg_text += "_" + str(switchConfig["discount_factor"])
 
-        filepath = os.path.join(filepath, f"{agent_type}{alg_text}{fname_state}")
+        #filepath = os.path.join(filepath, f"{agent_type}{alg_text}{fname_state}")
+        filepath = os.path.join(filepath, f"{agent_type}{alg_text}{fname_state}_prop_{link_config['time']}")
 
         if num_flow_sets == 1:
             if num_flow_changes > 1:
@@ -364,6 +365,8 @@ def main():
     flowConfig["ttl"] = size * 3
     switchConfig["drop_action"] = False#True
 
+    linkConfig["time"] = 0.1 # 0.01, 0.5 # propagation delay
+
     dest_dir = "configs"
 
     traffic_type = "bursty"
@@ -384,7 +387,7 @@ def main():
             ["dest_id", "deflect_probability"],
             ["1_hop_shortest", "3x3_section", "drop_probability"],
             ["2_hop_shortest", "1_hop_shortest", "3x3_section", "drop_probability"],
-            ["dest_id", "drop_probability"], ["flow_id"]][1:14]#[3:8]
+            ["dest_id", "drop_probability"], ["flow_id"]][5:6]#[1:14]#[3:8]
 
     for net_util in net_utils:
         for state in states:
