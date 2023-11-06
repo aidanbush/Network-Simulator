@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import os
 import math
 
+import sys
+
 FIGSIZE = (16/1.5,9/1.5)
 output_dir = "results"
 plot_format = "pdf"
@@ -26,14 +28,19 @@ def multiple_run_drop_rate(test_name, utilization, net_size, run_name_data):
     y_lim = (0, .3)
     multiple_run_plot(test_name, utilization, mean_field, "Drop Rate", y_lim, "/results.csv", net_size, run_name_data)
 
+def multiple_run_out_of_order(test_name, utilization, net_size, run_name_data):
+    mean_field = "OutOfOrderRatio mean"
+    y_lim = (0, .5)
+    multiple_run_plot(test_name, utilization, mean_field, "Out of Order Ratio", y_lim, "/results.csv", net_size, run_name_data)
+
 def multiple_run_link_usage(test_name, utilization, net_size, run_name_data):
     fig_type = "links usage"
     file_suffix = "/links.csv"
     ylim = (0, .4)
 
     mean_field = "mean"
-    mean_fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization mean {fig_type} update tests fc 200 long"
-    stdev_fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization stdev {fig_type} update tests fc 200 long"
+    mean_fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization mean {fig_type} fc 200 long"
+    stdev_fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization stdev {fig_type} fc 200 long"
     mean_output_name = mean_fig_name.replace(' ', '_')
     stdev_output_name = stdev_fig_name.replace(' ', '_')
 
@@ -99,6 +106,7 @@ def multiple_run_link_usage(test_name, utilization, net_size, run_name_data):
     try:
         filepath = os.path.join(output_dir, "{}.{}".format(mean_output_name, plot_format))
         plt.savefig(filepath, format=plot_format)
+        plt.close()
         print("wrote to", filepath)
     except Exception as e:
         print("failed to plot", mean_output_name, "exception", str(e))
@@ -120,6 +128,7 @@ def multiple_run_link_usage(test_name, utilization, net_size, run_name_data):
     try:
         filepath = os.path.join(output_dir, "{}.{}".format(stdev_output_name, plot_format))
         plt.savefig(filepath, format=plot_format)
+        plt.close()
         print("wrote to", filepath)
     except Exception as e:
         print("failed to plot", stdev_output_name, "exception", str(e))
@@ -145,7 +154,7 @@ def get_runs_data(filename, field_name, exact_match=True):
     return np.array(data)
 
 def multiple_run_plot(test_name, utilization, mean_field, fig_type, ylim, file_suffix, net_size, run_name_data):
-    fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization {fig_type} update tests fc 200 long"
+    fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization {fig_type} fc 200 long"
     output_name = fig_name.replace(' ', '_')
 
     directory = "results/"
@@ -187,12 +196,13 @@ def multiple_run_plot(test_name, utilization, mean_field, fig_type, ylim, file_s
     try:
         filepath = os.path.join(output_dir, "{}.{}".format(output_name, plot_format))
         plt.savefig(filepath, format=plot_format)
+        plt.close()
         print("wrote to", filepath)
     except Exception as e:
         print("failed to plot", output_name, "exception", str(e))
 
 def plot_across_utils(test_name, utilizations, field, fig_type, ylim, file_suffix, net_size, run_name_data, exact_match=True, include_stdev=True, include_min_max=False, stdev_not_mean=False):
-    fig_name = f"{test_name} {net_size} Bursty {fig_type} update tests fc 200 long"
+    fig_name = f"{test_name} {net_size} Bursty {fig_type} fc 200 long"
     output_name = fig_name.replace(' ', '_')
 
     utilizations = sorted(utilizations)
@@ -281,6 +291,7 @@ def plot_across_utils(test_name, utilizations, field, fig_type, ylim, file_suffi
     try:
         filepath = os.path.join(output_dir, "{}.{}".format(output_name, plot_format))
         plt.savefig(filepath, format=plot_format)
+        plt.close()
         print("wrote to", filepath)
     except Exception as e:
         print("failed to plot", output_name, "exception", str(e))
@@ -300,23 +311,6 @@ run_infixes = [#"rand_forward_fc_200_long",
                #"mbd_[1_hop_shortest]",
 
                # state test
-
-               "rand_forward_fc_200_long",
-               "rand_deflect_fc_200_long",
-               "mbd_slide_[1_hop_shortest]_fc_200",
-               "mbd_slide_[1_hop_shortest,3x3_section]_fc_200",
-               "mbd_slide_[2_hop_shortest,1_hop_shortest]_fc_200",
-               "mbd_slide_[2_hop_shortest,1_hop_shortest,3x3_section]_fc_200",
-               #"mbd_slide_[1-2_hop_shortest]_fc_200",
-               #"mbd_slide_[1-2_hop_shortest,3x3_section]_fc_200",
-
-               # algorithm test
-
-               #"rand_forward_fc_200_long",
-               #"mbd_original_[1_hop_shortest,3x3_section]_fc_200",
-               #"mbd_slide_[1_hop_shortest,3x3_section]_fc_200",
-               #"mbd_D-LinUCB_0.999_[1_hop_shortest,3x3_section]_fc_200",
-               #"mbd_D-LinUCB_0.9999_[1_hop_shortest,3x3_section]_fc_200",
 
                #"mbd_D-LinUCB_0.99999_[1_hop_shortest,3x3_section]_fc_200",
                #"mbd_[1_hop_shortest,3x3_section]_fc_200_long",
@@ -338,21 +332,56 @@ run_infixes = [#"rand_forward_fc_200_long",
                #"mbd_[dest_id,deflect_probability]",
                #"mbd_[dest_id,drop_probability]"
                ]
+
+
+experiment_name ="algorithm test"
+run_infixes = [
+               "rand_forward_fc_200_long",
+               "rand_forward_prop_0.5_fc_200",
+               "rand_forward_prop_0.01_fc_200",
+               "mbd_original_[1_hop_shortest,3x3_section]_fc_200",
+               "mbd_slide_[1_hop_shortest,3x3_section]_fc_200",
+               "mbd_D-LinUCB_0.999_[1_hop_shortest,3x3_section]_fc_200",
+               "mbd_D-LinUCB_0.9999_[1_hop_shortest,3x3_section]_fc_200",
+            ]
+
+
+experiment_name = "state test"
+run_infixes = [
+               #"rand_forward_fc_200_long",
+               #"rand_deflect_fc_200_long",
+               "mbd_slide_[1_hop_shortest]_fc_200",
+               "mbd_slide_[1_hop_shortest,3x3_section]_fc_200",
+               "mbd_slide_[2_hop_shortest,1_hop_shortest]_fc_200",
+               "mbd_slide_[2_hop_shortest,1_hop_shortest,3x3_section]_fc_200",
+               "mbd_slide_[1-2_hop_shortest]_fc_200",
+               "mbd_slide_[1-2_hop_shortest,3x3_section]_fc_200",
+            ]
+
+experiment_name = "propagation test"
+run_infixes = [
+               "rand_forward_fc_200",
+               "rand_forward_prop_0.01_fc_200",
+               "rand_forward_prop_0.5_fc_200",
+               "mbd_slide_[1_hop_shortest,3x3_section]_fc_200",
+               "mbd_slide_[1_hop_shortest,3x3_section]_prop_0.01_fc_200",
+               "mbd_slide_[1_hop_shortest,3x3_section]_prop_0.5_fc_200",
+        ]
+
 run_suffix = ""
 
-
 run_name_data = (run_infixes, run_suffix)
-
-experiment_name = "state_test"
 
 for utilization in utilizations:
     multiple_run_throughput(experiment_name, utilization, net_size, run_name_data)
     multiple_run_hop_ratio(experiment_name, utilization, net_size, run_name_data)
     multiple_run_drop_rate(experiment_name, utilization, net_size, run_name_data)
     multiple_run_link_usage(experiment_name, utilization, net_size, run_name_data)
+    multiple_run_out_of_order(experiment_name, utilization, net_size, run_name_data)
 
 plot_across_utils(experiment_name, utilizations, "DropRate mean", "Drop Rate", (0,.3), "/results.csv", net_size, run_name_data)
-plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (1,3), "/results.csv", net_size, run_name_data)
+plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (0,3), "/results.csv", net_size, run_name_data)
+plot_across_utils(experiment_name, utilizations, "OutOfOrderRatio mean", "Out of Order Ratio", (0,.5), "/results.csv", net_size, run_name_data)
 # link mean
 plot_across_utils(experiment_name, utilizations, "mean", "Link Usage", (0,.5), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=True)
 plot_across_utils(experiment_name, utilizations, "mean", "Link Usage stdev", (0,.2), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=False, stdev_not_mean=True)

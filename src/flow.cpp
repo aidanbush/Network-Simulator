@@ -140,9 +140,11 @@ Flow::Flow(json &flowConfig):
     this->bytesArrived = 0;
     this->averageRTT = 0;
     this->averageHops = 0;
+    this->outOfOrderCount = 0;
     this->throughput = 0;
     this->sentRate = this->rate;
     this->curSourcePId = 0;
+    this->newestArrivedId = this->curSourcePId;
     this->curSinkPId = 0;
     this->running = false;
     this->sendingPacket = NULL;
@@ -241,6 +243,13 @@ void Flow::sourcePacketArrived(Packet *p) {
     packetsArrived++;
 
     this->averageHops += 1 / packetsArrived * (p->hopCount() - averageHops);
+
+    int pId = p->getId();
+    if (pId > this->newestArrivedId) {
+        this->newestArrivedId = pId;
+    } else {
+        this->outOfOrderCount++;
+    }
 
     removePacket(p);
     delete p;
@@ -520,6 +529,7 @@ void BasicFlow::resetData() {
     bytesArrived = 0;
     averageRTT = 0;
     averageHops = 0;
+    outOfOrderCount = 0;
     minRTT = MAX_RTT;
 
     packetsArrived = 0;
@@ -536,6 +546,7 @@ void BasicFlow::recordData() {
     throughput = bytesArrived * BITS_PER_BYTE / man.miTime;
     sentRate = bytesSent * BITS_PER_BYTE / man.miTime;
     double hop_ratio = averageHops / double(minHops);
+    double outOfOrderRatio = outOfOrderCount / double(packetsArrived);
 
     observer.logFlowData(id, "AverageHops", averageHops, reportNan);
     observer.logFlowData(id, "HopRatio", hop_ratio, reportNan);
@@ -545,6 +556,7 @@ void BasicFlow::recordData() {
     observer.logFlowData(id, "SentRate", sentRate, reportNan);
     observer.logFlowData(id, "PacketsArrived", packetsArrived, reportNan);
     observer.logFlowData(id, "AcksArrived", acksArrived, reportNan);
+    observer.logFlowData(id, "OutOfOrderRatio", outOfOrderRatio, reportNan);
 
     // packet counts
     observer.logFlowData(id, "SentPackets", packetsSent, reportNan);

@@ -10,6 +10,8 @@ RUN unzip libtorch-shared-with-deps-latest.zip
 
 # to run
 #docker run -it -v Network-Simulator:/simulator sim
+# experiment example
+#nohup docker run -v ~/Network-Simulator:/simulator sim2 bash -c "cd simulator ; bash many_runs.sh" &
 
 # to compile
 # following https://pytorch.org/cppdocs/installing.html

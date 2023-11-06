@@ -17,9 +17,9 @@ def getFileData(path):
 # Flow Data
 
 def combineFlowData():
-    dataPattern = re.compile("^(.+)_Flow(\d+)_(RateChange|DroppedPackets|Throughput|MinRTT|AverageRTT|PacketsArrived|AcksArrived|SentRate|ErroredPackets|SentPackets|Goodput|HopRatio|TimedOutPackets|CongestedPackets).csv$")
+    dataPattern = re.compile("^(.+)_Flow(\d+)_(RateChange|DroppedPackets|Throughput|MinRTT|AverageRTT|PacketsArrived|AcksArrived|SentRate|ErroredPackets|SentPackets|Goodput|HopRatio|TimedOutPackets|CongestedPackets|OutOfOrderRatio).csv$")
 
-    DATA_TYPES = ["RateChange", "DroppedPackets", "Throughput", "MinRTT", "AverageRTT", "PacketsArrived", "AcksArrived", "SentRate", "ErroredPackets", "SentPackets", "Goodput", "HopRatio", "TimedOutPackets", "CongestedPackets"]
+    DATA_TYPES = ["RateChange", "DroppedPackets", "Throughput", "MinRTT", "AverageRTT", "PacketsArrived", "AcksArrived", "SentRate", "ErroredPackets", "SentPackets", "Goodput", "HopRatio", "TimedOutPackets", "CongestedPackets", "OutOfOrderRatio"]
 
     NUM_ELEMENTS = len(DATA_TYPES)
 

@@ -202,6 +202,9 @@ def add_random_flow(config, size, switches, open_switches, fullSwitches, start_t
     num_hops = abs(get_X(sourceId, size) - get_X(destId, size)) + abs(get_Y(sourceId, size) - get_Y(destId, size))
     return flowRate * num_hops, (sourceId, destId) # utilization of the flow
 
+def gen_flows(config):
+    pass
+
 def genChangingFlows(config, net_util, net_size, num_changes, sim_end_time):
     net_band = len(config["links"]) * linkConfig["speed"] * 2
     flows_band = 0

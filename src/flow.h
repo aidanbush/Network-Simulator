@@ -65,6 +65,7 @@ class Flow: public NetworkObject {
         int newPacketId(bool fromSource);
 
         int curSourcePId;
+        int newestArrivedId;
         int curSinkPId;
 
         map<int, Packet *> sourcePackets;
@@ -90,6 +91,7 @@ class Flow: public NetworkObject {
         double throughput; // bytes/s
         double sentRate;
         double averageHops;
+        int outOfOrderCount;
         second_t averageRTT;
         second_t minRTT;
 
