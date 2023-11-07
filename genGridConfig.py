@@ -3,6 +3,8 @@ import random
 import sys
 import os
 
+import numpy as np
+
 seed = 0
 
 flowId = 1
@@ -202,8 +204,95 @@ def add_random_flow(config, size, switches, open_switches, fullSwitches, start_t
     num_hops = abs(get_X(sourceId, size) - get_X(destId, size)) + abs(get_Y(sourceId, size) - get_Y(destId, size))
     return flowRate * num_hops, (sourceId, destId) # utilization of the flow
 
-def gen_flows(config):
-    pass
+def gen_flows(config, util_thresh, net_size, sim_end_time):
+    flow_length = 20
+    cur_util = 0
+    net_band = len(config["links"]) * linkConfig["speed"]
+
+    valid_switches = createValidSwitches(config)
+    full_switches = []
+    available_switches = [switch_id for switch_id in valid_switches.keys()]
+
+    flow_rate = flowConfig["generator"]["mean_rate"]
+    live_flows = [] # (end time, util, source_id, dest_id)
+
+    util_data = {
+            "time": [],
+            "util": []
+            }
+
+    # generate initial flows
+    while cur_util < util_thresh:
+        start_time = 0
+        end_time = flow_length
+        flow_band, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, start_time, end_time)
+        flow_util = flow_band / net_band
+        cur_util += flow_util
+        #flow_list.append(end_time, flow_util, source_dest[0], source_dest[1])
+        live_flows.append((end_time, flow_util, source_dest[0], source_dest[1]))
+
+    # go through all the current flows and update their ending times
+    #for i in range(len(flow_list)):
+    # TODO add elephant flows here by having some flows never end
+    for i in range(len(config["flows"])):
+        #flow_list[i]["end"] = (i+1) / len(flow_list) * flow_length
+        new_end = (i+1) / len(config["flows"]) * flow_length
+        config["flows"][i]["end_time"] = new_end
+        #flow = flow_list[i]
+        #live_flows.append((flow["end_time"], flow["util"]))
+        live_flows[i] = list(live_flows[i])
+        live_flows[i][0] = new_end
+        live_flows[i] = tuple(live_flows[i])
+
+    live_flows.sort()
+
+    util_data["time"].append(0.0)
+    util_data["util"].append(cur_util)
+
+    # while there is still a flow that will end before the end
+    while live_flows[0][0] < sim_end_time:
+        dead_flow = live_flows.pop(0)
+        cur_util -= dead_flow[1]
+        current_time = dead_flow[0]
+        source_id = dead_flow[2]
+        dest_id = dead_flow[3]
+        # switches are free'd up - TODO move into function
+        valid_switches[source_id][0] -= flow_rate
+        valid_switches[dest_id][0] -= flow_rate
+        if source_id in full_switches:
+            available_switches.append(source_id)
+            full_switches.remove(source_id)
+        if dest_id in full_switches:
+            available_switches.append(dest_id)
+            full_switches.remove(dest_id)
+
+        # add new flows while room
+        while cur_util < util_thresh:
+            start_time = current_time
+            end_time = start_time + max(1, np.random.normal(flow_length, 1)) # TODO validate
+            #flow = gen_flow(size, new_start, flow_length)
+            #flow_list.append(flow)
+            flow_band, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, start_time, end_time)
+            flow_util = flow_band / net_band
+            cur_util += flow_util
+            #live_flows.append((flow["end"], flow["util"]))
+            live_flows.append((end_time, flow_util, source_dest[0], source_dest[1]))
+
+        live_flows.sort()
+
+        # if new time then add the entry
+        if current_time != util_data["time"][-1]:
+            util_data["time"].append(current_time)
+            util_data["util"].append(cur_util)
+        else: # multiple flow's ended at the same time
+            util_data["util"][-1] = cur_util
+
+    time_deltas = np.array([util_data["time"][i + 1] - util_data["time"][i] for i in range(len(util_data["time"])-1)]
+            + [sim_end_time - util_data["time"][-1]])
+    time_deltas /= time_deltas.mean()
+    avg_util = (time_deltas * np.array(util_data["util"])).mean()
+    print(f"average utilisation {avg_util}", file=sys.stderr)
+    return util_data
 
 def genChangingFlows(config, net_util, net_size, num_changes, sim_end_time):
     net_band = len(config["links"]) * linkConfig["speed"] * 2
@@ -305,7 +394,8 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg,
                 end_time = 0
                 genRandomFlows(config, net_util, size, start_time, end_time)
             else:
-                genChangingFlows(config, net_util, size, num_flow_changes, simulation_length)
+                gen_flows(config, net_util, size, simulation_length)
+                #genChangingFlows(config, net_util, size, num_flow_changes, simulation_length)
         else:
             for i in range(num_flow_sets):
                 start_time = simulation_length / num_flow_sets * (i)
@@ -340,7 +430,7 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg,
                 alg_text += "_" + str(switchConfig["discount_factor"])
 
         #filepath = os.path.join(filepath, f"{agent_type}{alg_text}{fname_state}")
-        filepath = os.path.join(filepath, f"{agent_type}{alg_text}{fname_state}_prop_{link_config['time']}")
+        filepath = os.path.join(filepath, f"{agent_type}{alg_text}{fname_state}_prop_{linkConfig['time']}")
 
         if num_flow_sets == 1:
             if num_flow_changes > 1:
