@@ -5,6 +5,10 @@ import os
 
 import numpy as np
 
+TRAFFIC_MICE_ELEPHANT = 1
+TRAFFIC_STATIC = 2
+TRAFFIC_CHANGING = 3
+
 seed = 0
 
 flowId = 1
@@ -205,9 +209,9 @@ def add_random_flow(config, size, switches, open_switches, fullSwitches, start_t
     return flowRate * num_hops, (sourceId, destId) # utilization of the flow
 
 def gen_flows(config, util_thresh, net_size, sim_end_time):
-    flow_length = 20
+    flow_length = 250#10
     cur_util = 0
-    net_band = len(config["links"]) * linkConfig["speed"]
+    net_band = len(config["links"]) * linkConfig["speed"] * 2
 
     valid_switches = createValidSwitches(config)
     full_switches = []
@@ -256,6 +260,7 @@ def gen_flows(config, util_thresh, net_size, sim_end_time):
         current_time = dead_flow[0]
         source_id = dead_flow[2]
         dest_id = dead_flow[3]
+
         # switches are free'd up - TODO move into function
         valid_switches[source_id][0] -= flow_rate
         valid_switches[dest_id][0] -= flow_rate
@@ -269,7 +274,7 @@ def gen_flows(config, util_thresh, net_size, sim_end_time):
         # add new flows while room
         while cur_util < util_thresh:
             start_time = current_time
-            end_time = start_time + max(1, np.random.normal(flow_length, 1)) # TODO validate
+            end_time = start_time + max(1, np.random.normal(flow_length, 1))
             #flow = gen_flow(size, new_start, flow_length)
             #flow_list.append(flow)
             flow_band, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, start_time, end_time)
@@ -291,6 +296,7 @@ def gen_flows(config, util_thresh, net_size, sim_end_time):
             + [sim_end_time - util_data["time"][-1]])
     time_deltas /= time_deltas.mean()
     avg_util = (time_deltas * np.array(util_data["util"])).mean()
+
     print(f"average utilisation {avg_util}", file=sys.stderr)
     return util_data
 
@@ -309,6 +315,11 @@ def genChangingFlows(config, net_util, net_size, num_changes, sim_end_time):
 
     avg_util = 0
 
+    util_data = {
+            "time": [0.0],
+            "util": [0]
+            }
+
     # queue of flows by their end times
     while start_time < sim_end_time:
         end_time = sim_end_time / num_changes * flow_i
@@ -317,6 +328,14 @@ def genChangingFlows(config, net_util, net_size, num_changes, sim_end_time):
         flow_util, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, start_time, end_time)
         flows.append((end_time, flow_util, source_dest[0], source_dest[1]))
         flows_band += flow_util
+
+        # if current time == last util time
+        if start_time == util_data["time"][-1]:
+            util_data["time"][-1] = start_time
+            util_data["util"][-1] = flows_band / net_band
+        else:
+            util_data["time"].append(start_time)
+            util_data["util"].append(flows_band / net_band)
 
         # move forward start_time to next time flows_band is low
         while flows_band > net_band * net_util:
@@ -341,7 +360,13 @@ def genChangingFlows(config, net_util, net_size, num_changes, sim_end_time):
 
             flows_band -= flow_util
 
+    time_deltas = np.array([util_data["time"][i + 1] - util_data["time"][i] for i in range(len(util_data["time"])-1)]
+            + [sim_end_time - util_data["time"][-1]])
+    time_deltas /= time_deltas.mean()
+    avg_util = (time_deltas * np.array(util_data["util"])).mean()
+
     print(f"average utilisation {avg_util}", file=sys.stderr)
+    return util_data
 
 def genRandomFlows(config, netUtil, n, start_time, end_time):
     netBand = len(config["links"]) * linkConfig["speed"] * 2
@@ -356,6 +381,7 @@ def genRandomFlows(config, netUtil, n, start_time, end_time):
         flowBand += flow_util
 
     print(f"utilisation {flowBand/netBand}", file=sys.stderr)
+    return {"time": 0.0, "util": flowBand/netBand}
 
 def addRoutes(config, flowRoutes):
     for i in range(len(flowRoutes)):
@@ -368,7 +394,8 @@ def addRoutes(config, flowRoutes):
         flow = dict(list(flowConfig.items()) + list(flow.items()))
         config["flows"].append(flow)
 
-def create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg, states, simulation_length, num_flow_sets, num_flow_changes, runs, flowRoutes=None):
+#def create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg, states, simulation_length, num_flow_sets, num_flow_changes, runs, flowRoutes=None):
+def create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg, states, simulation_length, flow_gen_type, runs, flowRoutes=None, numChanges=None):
 
     for run in range(runs):
         random.seed(seed + run) # run lengths can be increased without changing the initial configuration
@@ -388,34 +415,27 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg,
         global flowId
         flowId = 1
 
-        if num_flow_sets == 1:
-            if num_flow_changes <= 1:
-                start_time = 0
-                end_time = 0
-                genRandomFlows(config, net_util, size, start_time, end_time)
-            else:
-                gen_flows(config, net_util, size, simulation_length)
-                #genChangingFlows(config, net_util, size, num_flow_changes, simulation_length)
-        else:
-            for i in range(num_flow_sets):
-                start_time = simulation_length / num_flow_sets * (i)
-                end_time = simulation_length / num_flow_sets * (i+1)
-                genRandomFlows(config, net_util, size, start_time, end_time)
-        #addRoutes(config, flowRoutes)
+        util_data = None
+
+        if flow_gen_type == TRAFFIC_MICE_ELEPHANT:
+            util_data = gen_flows(config, net_util, size, simulation_length)
+        elif flow_gen_type == TRAFFIC_STATIC:
+            start_time = 0
+            end_time = 0
+            util_data = genRandomFlows(config, net_util, size, start_time, end_time)
+        elif flow_gen_type == TRAFFIC_CHANGING:
+            util_data = genChangingFlows(config, net_util, size, numChanges, simulation_length)
 
         # update switch flow counts
         for i in range(len(config["switches"])):
             config["switches"][i]["num_flows"] = len(config["flows"])
 
+        # add util_data to the flow
+        config["util_data"] = util_data
+
         fname_state = ""
         if states != None:
             fname_state = f"_[{','.join(states)}]"
-
-        #fname_flow_sets = ""
-        #if num_flow_sets != 1:
-        #    fname_flow_sets = f"_fs_{num_flow_sets}"
-        #filename = f"{size}x{size}_{traffic_type}_{net_util}_{agent_type}{fname_state}{fname_flow_sets}.json"
-        #pathname = os.path.join(dest_dir, filename)
 
         filepath = os.path.join(dest_dir, f"{size}x{size}")
 
@@ -429,14 +449,12 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg,
             if agent_alg == "D-LinUCB":
                 alg_text += "_" + str(switchConfig["discount_factor"])
 
-        #filepath = os.path.join(filepath, f"{agent_type}{alg_text}{fname_state}")
         filepath = os.path.join(filepath, f"{agent_type}{alg_text}{fname_state}_prop_{linkConfig['time']}")
 
-        if num_flow_sets == 1:
-            if num_flow_changes > 1:
-                filepath = os.path.join(filepath, f"fc_{num_flow_changes}")
-        else:
-            filepath = os.path.join(filepath, f"fs_{num_flow_sets}")
+        if flow_gen_type == TRAFFIC_CHANGING:
+            filepath = os.path.join(filepath, f"fc_{numChanges}")
+        elif flow_gen_type == TRAFFIC_STATIC:
+            filepath = os.path.join(filepath, f"static")
 
         filepath = os.path.join(filepath, f"u_{net_util}")
 
@@ -489,7 +507,9 @@ def main():
             switchConfig["agent_alg"] = agent_alg
 
             print(agent_type, agent_alg, state)
-            create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg, state, simulation_length, num_flow_sets, num_flow_changes, runs)
+            #flow_gen_type = TRAFFIC_CHANGING#TRAFFIC_MICE_ELEPHANT
+            flow_gen_type = TRAFFIC_MICE_ELEPHANT
+            create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg, state, simulation_length, flow_gen_type, runs, numChanges=num_flow_changes)
 
 if __name__ == "__main__":
     main()
