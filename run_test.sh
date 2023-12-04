@@ -82,12 +82,12 @@ done
 wait
 
 # combine data
-echo python3 combineData.py $tempResultsDir ${resultsDir} results.csv links.csv switches.csv
-time python3 combineData.py $tempResultsDir ${resultsDir} results.csv links.csv switches.csv
+echo python3 combine_data.py $tempResultsDir ${resultsDir} results.csv links.csv switches.csv
+time python3 combine_data.py $tempResultsDir ${resultsDir} results.csv links.csv switches.csv
 
 # plot data
-echo python3 plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat} -t $testName
-time python3 plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat} -t $testName
+#echo python3 plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat} -t $testName
+#time python3 plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat} -t $testName
 
 # clean up
 rm -r $tempResultsDir

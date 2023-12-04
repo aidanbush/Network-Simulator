@@ -366,8 +366,16 @@ run_infixes = [
                "mbd_slide_[1_hop_shortest,3x3_section]_fc_200",
                "mbd_slide_[1_hop_shortest,3x3_section]_prop_0.01_fc_200",
                "mbd_slide_[1_hop_shortest,3x3_section]_prop_0.5_fc_200",
-        ]
+            ]
 
+run_suffix = ""
+
+experiment_name = "changing flows test"
+run_infixes = [
+                "mbd_slide_[1_hop_shortest,3x3_section]_prop_0.1",
+                "rand_forward_prop_0.1",
+                "rand_deflect_prop_0.1",
+            ]
 run_suffix = ""
 
 run_name_data = (run_infixes, run_suffix)

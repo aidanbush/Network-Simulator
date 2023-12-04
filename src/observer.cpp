@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <cmath>
+#include <utility>
 
 #define DEFAULT_STAT_DIR "results"
 
@@ -47,22 +48,93 @@ void Observer::setFilenamePrefix() {
 
 void Observer::logFlowData(int flowId, string type, double data, bool reportNan) {
     if (reportNan) {
-        flowData[flowId][type].push_back(NAN);
+        flowData[type][flowId].push_back(NAN);
     } else {
-        flowData[flowId][type].push_back(data);
+        flowData[type][flowId].push_back(data);
     }
 }
 
-void Observer::logFlowDataBulk(int flowId, string type, vector<double> data) {
-    flowData[flowId][type] = data;
-}
-
 void Observer::logLinkData(int sourceId, int destId, string type, double data) {
-    linkData[pair<int,int>(sourceId, destId)][type].push_back(data);
+    linkData[type][pair<int,int>(sourceId, destId)].push_back(data);
 }
 
 void Observer::logSwitchData(int switchId, string type, double data) {
-    switchData[switchId][type].push_back(data);
+    switchData[type][switchId].push_back(data);
+}
+
+template <typename KeyType>
+string switchIDToString(KeyType key) {
+    int intKey = int(key);
+    return "switch_" + to_string(intKey);
+}
+
+template <typename KeyType>
+string flowIDToString(KeyType key) {
+    int intKey = int(key);
+    return "flow_" + to_string(intKey);
+}
+
+template <typename KeyType>
+string linkIDToString(KeyType key) {
+    pair<int, int> pair_key = key;
+    return "link_" + to_string(pair_key.first) + "_" + to_string(pair_key.second);
+}
+
+template <typename KeyType>
+void Observer::writeMetrics(map<string, map<KeyType, vector<double>>> &data, string(*key_to_string)(KeyType)) {
+    for (auto& metric_it : data) { // for each metric
+        string filename = filenamePrefix + "_" + metric_it.first + ".csv";
+        FILE *file = fopen(filename.c_str(), "w");
+
+        // for each index into ids
+        int row_len = metric_it.second.size();
+        vector<double> row(row_len, NAN);
+
+        int max_data_count = 0;
+        int column_count = 0;
+        for (auto& itt : metric_it.second) {
+            if (itt.second.size() > max_data_count) {
+                max_data_count = itt.second.size();
+            }
+            column_count++;
+        }
+
+        {
+            fprintf(file, "Time,");
+            int i = 0;
+            for (auto& itt : metric_it.second) {
+                string column_name = key_to_string(itt.first);
+                fprintf(file, "%s", column_name.c_str());
+                if (i < column_count -1) {
+                    fprintf(file, ",");
+                }
+                i++;
+            }
+            fprintf(file, "\n");
+        }
+
+        for (int i = 0; i < max_data_count; i++) {
+            int row_i = 0;
+
+            for (auto& itt : metric_it.second) { // for each id
+                row[row_i] = NAN;
+                if (i < itt.second.size()) { // if data add else nan
+                    row[row_i] = itt.second[i];
+                }
+                row_i++;
+            }
+
+            fprintf(file, "%d,", i);
+            for (int j = 0; j < row_len; j++) {
+                fprintf(file, "%f", row[j]);
+                if (j != row_len -1) {
+                    fprintf(file, ",");
+                }
+            }
+            fprintf(file, "\n");
+        }
+        fclose(file);
+    }
 }
 
 void Observer::writeData() {
@@ -72,29 +144,13 @@ void Observer::writeData() {
     }
 
     // flow data, flow Id's
-    for (auto& it : flowData) {
-        string filename = filenamePrefix + "_Flow" + to_string(it.first);
-        // data elements
-        for (auto& itt : it.second) {
-            writeFile(filename + "_" + itt.first + ".csv", itt.second);
-        }
-    }
+    writeMetrics(flowData, flowIDToString);
 
     // link data
-    for (auto& it : linkData) {
-        string filename = filenamePrefix + "_link" + to_string(it.first.first) + "-" + to_string(it.first.second);
-        for (auto& itt : it.second) {
-            writeFile(filename + "_" + itt.first + ".csv", itt.second);
-        }
-    }
+    writeMetrics(linkData, linkIDToString);
 
     // switch data
-    for (auto& it : switchData) {
-        string filename = filenamePrefix + "_switch_" + to_string(it.first);
-        for (auto& itt : it.second) {
-            writeFile(filename + "_" + itt.first + ".csv", itt.second);
-        }
-    }
+    writeMetrics(switchData, switchIDToString);
 }
 
 void Observer::writeFile(string filename, vector<double> data) {
