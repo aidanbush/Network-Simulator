@@ -225,6 +225,13 @@ def gen_flows(config, util_thresh, net_size, sim_end_time):
             "util": []
             }
 
+    # generate two elephant flows
+    flow_band, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, 0, sim_end_time)
+    cur_util += flow_band / net_band
+    flow_band, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, 0, sim_end_time)
+    cur_util += flow_band / net_band
+
+
     # generate initial flows
     while cur_util < util_thresh:
         start_time = 0
@@ -232,22 +239,21 @@ def gen_flows(config, util_thresh, net_size, sim_end_time):
         flow_band, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, start_time, end_time)
         flow_util = flow_band / net_band
         cur_util += flow_util
-        #flow_list.append(end_time, flow_util, source_dest[0], source_dest[1])
+
+        # add flow to life flow tracking list
         live_flows.append((end_time, flow_util, source_dest[0], source_dest[1]))
 
     # go through all the current flows and update their ending times
-    #for i in range(len(flow_list)):
-    # TODO add elephant flows here by having some flows never end
-    for i in range(len(config["flows"])):
-        #flow_list[i]["end"] = (i+1) / len(flow_list) * flow_length
+    for i in range(len(live_flows)):
         new_end = (i+1) / len(config["flows"]) * flow_length
         config["flows"][i]["end_time"] = new_end
-        #flow = flow_list[i]
-        #live_flows.append((flow["end_time"], flow["util"]))
+
+        # update flow
         live_flows[i] = list(live_flows[i])
         live_flows[i][0] = new_end
         live_flows[i] = tuple(live_flows[i])
 
+    # need flows sorted to remove the next to close
     live_flows.sort()
 
     util_data["time"].append(0.0)
@@ -475,6 +481,7 @@ def main():
 
     flowConfig["ttl"] = size * 3
     switchConfig["drop_action"] = False#True
+    switchConfig["discount_factor"] = 0.9999
 
     linkConfig["time"] = 0.1 # 0.01, 0.5 # propagation delay
 
@@ -492,13 +499,13 @@ def main():
             ["1_hop_shortest", "3x3_section"],
             ["2_hop_shortest","1_hop_shortest"],
             ["2_hop_shortest","1_hop_shortest","3x3_section"],
-            ["dest_id"],
             ["1_hop_shortest", "3x3_section", "deflect_probability"],
             ["2_hop_shortest", "1_hop_shortest", "3x3_section", "deflect_probability"],
-            ["dest_id", "deflect_probability"],
             ["1_hop_shortest", "3x3_section", "drop_probability"],
             ["2_hop_shortest", "1_hop_shortest", "3x3_section", "drop_probability"],
-            ["dest_id", "drop_probability"], ["flow_id"]][5:6]#[1:14]#[3:8]
+            ["dest_id"],
+            ["dest_id", "deflect_probability"],
+            ["dest_id", "drop_probability"], ["flow_id"]][5:6]#[1:12]#[1:14]#[3:8]
 
     for net_util in net_utils:
         for state in states:
