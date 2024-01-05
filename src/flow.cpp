@@ -348,7 +348,7 @@ Packet *Flow::getNextPacket(bool fromSource) {
     int pId = newPacketId(fromSource);
 
     // create packet for this
-    Packet *p = new Packet(pId, sourceId, destId, id, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource);
+    Packet *p = new Packet(pId, sourceId, destId, id, pData.burstId, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource);
 
     if (!addPacket(p)) {
         delete p;
@@ -473,7 +473,7 @@ Packet *BasicFlow::createAckPacket(Packet *toAck) {
     int pId = newPacketId(false);
 
     // create packet
-    Packet *ackPacket = new Packet(pId, destId, sourceId, id, NULL_DATA_ID, ttl, ackHeadSize, ackBodySize, false);
+    Packet *ackPacket = new Packet(pId, destId, sourceId, id, NULL_BURST_ID, NULL_DATA_ID, ttl, ackHeadSize, ackBodySize, false);
 
     // add state
     ackPacket->setAckData(toAck->getSendTime(), toAck->fullSize(), toAck->getId());
@@ -586,7 +586,7 @@ Packet *MBDFlow::getNextPacket(bool fromSource) {
 
     int pId = newPacketId(fromSource);
 
-    MBDPacket *p = new MBDPacket(pId, sourceId, destId, id, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource);
+    MBDPacket *p = new MBDPacket(pId, sourceId, destId, id, pData.burstId, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource);
 
     if (!addPacket(p)) {
         delete p;

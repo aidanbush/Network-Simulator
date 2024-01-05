@@ -3,6 +3,7 @@
 
 #define BITS_PER_BYTE       8
 #define NULL_DATA_ID        -1
+#define NULL_BURST_ID       -1
 #define NULL_PACKET_SIZE    -1
 
 #include "networkObject.h"
@@ -12,7 +13,7 @@ class Flow;
 
 class Packet: public NetworkObject {
     public:
-        Packet(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
+        Packet(int id, int sourceId, int destId, int flowId, int burstId, int dataId, int ttl,
                 int headerSize, int bodySize, bool sourcePacket);
         Packet(const Packet &p);
         ~Packet() = default;
@@ -63,6 +64,7 @@ class Packet: public NetworkObject {
         int sourceId;
         int destId;
         int flowId;
+        int burstId;
 
         int dataId;
 
@@ -76,7 +78,7 @@ class Packet: public NetworkObject {
 
 class MBDPacket: public Packet {
     public:
-        MBDPacket(int id, int sourceId, int destId, int flowId, int dataId, int ttl,
+        MBDPacket(int id, int sourceId, int destId, int flowId, int burstId, int dataId, int ttl,
                 int headerSize, int bodySize, bool sourcePacket);
 
         void arrive();

@@ -174,8 +174,9 @@ void BasicGenerator::generatePacket() {
     // create packet, if there is room, else wait
     int packetSize = headerSize + bodySize;
     if (bufferCurSize + packetSize <= bufferMaxSize) {
-        packetBuffer.push({headerSize, bodySize});
+        packetBuffer.push({headerSize, bodySize, curBurstId});
         bufferCurSize += packetSize;
+        curBurstId++;
     }
 
     man.logEvent("BasicGenerator", 0, "generatePacket", "Generated Packet of size" + to_string(packetSize));
@@ -250,8 +251,9 @@ void PoissonGenerator::generatePacket() {
 
     int packetSize = headerSize + bodySize;
     if (bufferCurSize + packetSize <= bufferMaxSize) {
-        packetBuffer.push({headerSize, bodySize});
+        packetBuffer.push({headerSize, bodySize, curBurstId});
         bufferCurSize += packetSize;
+        curBurstId++;
     }
 
     man.logEvent("PoissonGenerator", 0, "generatePacket", "Generated Packet of size" + to_string(packetSize));
@@ -286,7 +288,8 @@ CompoundPoissonGenerator::CompoundPoissonGenerator(json &generatorConfig):
     int packetSizeBits = (this->headerSize + this->bodySize) * BITS_PER_BYTE;
     double lambda = meanRate * rho / packetSizeBits;
 
-    this->burstQueue = 0;
+    queue<int> empty_queue;
+    swap(this->burstQueue, empty_queue); // clear queue
 
     // create distributions
     this->burstDelayDistribution = exponential_distribution(lambda);
@@ -338,7 +341,8 @@ bool CompoundPoissonGenerator::startTraffic() {
         return false;
     }
 
-    this->burstQueue= 0;
+    queue<int> empty_queue;
+    swap(this->burstQueue, empty_queue); // clear queue
 
     running = true;
 
@@ -354,10 +358,12 @@ second_t CompoundPoissonGenerator::nextBurstTime() {
 
 void CompoundPoissonGenerator::generateBurst() {
     // if the queue was empty create a new generatePacketEvent
-    bool wasEmpty = this->burstQueue <= 0;
+    //bool wasEmpty = this->burstQueue <= 0;
+    bool wasEmpty = this->burstQueue.empty();
 
     // add packets to the queue using the 1+ geometric distribution
-    this->burstQueue += burstSizeDistribution(generator) + 1;
+    //this->burstQueue += burstSizeDistribution(generator) + 1;
+    this->burstQueue.push(burstSizeDistribution(generator) + 1);
 
     second_t interBurstTime = nextBurstTime();
 
@@ -374,8 +380,8 @@ void CompoundPoissonGenerator::generateBurst() {
 }
 
 second_t CompoundPoissonGenerator::nextGenTime() {
-    // time + size of packet if there is a packet otherwise NULL_TIME
-    if (this->burstQueue <= 0) {
+    // time + size of packet if there is a packet otherwise NULL_TIME and wait for another burst
+    if (this->burstQueue.empty()) {
         return NULL_TIME;
     }
 
@@ -393,12 +399,19 @@ void CompoundPoissonGenerator::generatePacket() {
 
     int packetSize = headerSize + bodySize;
     if (bufferCurSize + packetSize <= bufferMaxSize) {
-        this->burstQueue--;
-        packetBuffer.push({headerSize, bodySize});
+        this->packetBuffer.push({.burstId = this->curBurstId, .headerSize = headerSize, .bodySize = bodySize});
         bufferCurSize += packetSize;
+        //this->burstQueue--;
+        // if last pkt in queue pop and then increment else decrement
+        this->burstQueue.front()--;
+
+        if (this->burstQueue.front() == 0) {
+            this->burstQueue.pop();
+            this->curBurstId++;
+        }
     }
 
-    man.logEvent("PoissonGenerator", 0, "generatePacket", "Generated Packet of size" + to_string(packetSize));
+    man.logEvent("CompoundPoissonGenerator", 0, "generatePacket", "Generated Packet of size" + to_string(packetSize));
     Generator::generatePacket();
 
     second_t nextTime = nextGenTime();

@@ -20,8 +20,11 @@ class Generator {
         bool setFlowId(int id);
 
         struct PacketData {
+            int burstId;
             int headerSize;
             int bodySize;
+
+            //PacketData(int burstId=0, int headerSize=0, int bodySize=0) : burstId(burstId), headerSize(headerSize), bodySize(bodySize) {}
         };
 
         virtual bool startTraffic(); // return if first call
@@ -42,6 +45,8 @@ class Generator {
         bool running;
 
         int flowId;
+
+        int curBurstId;
 
     private:
         void validateGeneratorConfig(json &generatorConfig);
@@ -111,7 +116,8 @@ class CompoundPoissonGenerator: public Generator {
         int headerSize;
         int bodySize;
 
-        int burstQueue;
+        //int burstQueue; // TODO change to vector of burst sizes
+        queue<int> burstQueue;
         double burstRate;
 
         void validateCompoundPoissonGeneratorConfig(json &generatorConfig);

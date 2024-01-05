@@ -3,6 +3,7 @@
 
 #include <nlohmann/json.hpp>
 #include <map>
+#include <set>
 
 #include "networkObject.h"
 #include "manager.h"
@@ -72,6 +73,9 @@ class Flow: public NetworkObject {
         map<int, Packet *> sinkPackets;
         int sourceId;
         int destId;
+
+        // burst tracking
+        map<int, set<int>> bursts; // burstId -> ordered set of packetIds
 
         int ttl;
         int minHops;
@@ -146,24 +150,6 @@ class MBDFlow: public BasicFlow {
         MBDFlow(json &flowConfig);
         Packet *getNextPacket(bool fromSource);
 };
-
-/*
-class CUBICFlow: public Flow {
-    friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
-    public:
-        CUBICFlow(json &flowConfig);
-
-    private:
-        int cwnd;
-
-        int tcpFriendliness;
-        int fastConvergence;
-        double beta;
-        double C;
-
-        int ssthresh; // slow start threshold
-};
-*/
 
 #ifdef _TEST
 class TestFlow: public Flow {
