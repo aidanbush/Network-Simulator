@@ -21,6 +21,7 @@ class Generator {
 
         struct PacketData {
             int burstId;
+            bool lastInBurst;
             int headerSize;
             int bodySize;
 

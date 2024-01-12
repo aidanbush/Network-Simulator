@@ -75,7 +75,7 @@ class Flow: public NetworkObject {
         int destId;
 
         // burst tracking
-        map<int, set<int>> bursts; // burstId -> ordered set of packetIds
+        map<int, set<int>> bursts; // burstId -> set of packetIds ordered increasing value, since packets id are increasing the ordering will be by time created
 
         int ttl;
         int minHops;

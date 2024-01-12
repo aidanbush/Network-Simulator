@@ -5,12 +5,13 @@
 
 #include <cstdio>
 
-Packet::Packet(int id, int sourceId, int destId, int flowId, int burstId, int dataId, int ttl,
+Packet::Packet(int id, int sourceId, int destId, int flowId, int burstId, bool lastInBurst, int dataId, int ttl,
         int headerSize, int bodySize, bool sourcePacket): NetworkObject(id) {
     this->sourceId = sourceId;
     this->destId = destId;
     this->flowId = flowId;
     this->burstId = burstId;
+    this->lastInBurst = lastInBurst;
     this->dataId = dataId;
     this->initialTTL = ttl;
     this->ttl = ttl;
@@ -30,6 +31,7 @@ Packet::Packet(const Packet &p): NetworkObject(p.id) {
     this->destId = p.destId;
     this->flowId = p.flowId;
     this->burstId = p.burstId;
+    this->lastInBurst = p.lastInBurst;
     this->dataId = p.dataId;
     this->initialTTL = p.initialTTL;
     this->ttl = p.ttl;
@@ -45,7 +47,7 @@ Packet::Packet(const Packet &p): NetworkObject(p.id) {
 }
 
 Packet *Packet::clone() {
-    Packet *p = new Packet(id, sourceId, destId, flowId, burstId, dataId, ttl, headerSize, bodySize, sourcePacket);
+    Packet *p = new Packet(id, sourceId, destId, flowId, burstId, lastInBurst, dataId, ttl, headerSize, bodySize, sourcePacket);
 
     p->createTime = this->createTime;
     p->arrivalTime = this->arrivalTime;
@@ -93,9 +95,9 @@ bool Packet::validate() {
 }
 
 /* ManhattanBanditDeflectionPacket */
-MBDPacket::MBDPacket(int id, int sourceId, int destId, int flowId, int burstId, int dataId, int ttl, int headerSize,
-        int bodySize, bool sourcePacket): Packet(id, sourceId, destId, flowId, burstId, dataId, ttl, headerSize,
-            bodySize, sourcePacket) {
+MBDPacket::MBDPacket(int id, int sourceId, int destId, int flowId, int burstId, bool lastInBurst, int dataId,
+        int ttl, int headerSize, int bodySize, bool sourcePacket): Packet(id, sourceId, destId, flowId, burstId,
+            lastInBurst, dataId, ttl, headerSize, bodySize, sourcePacket) {
 }
 
 void MBDPacket::arrive() {

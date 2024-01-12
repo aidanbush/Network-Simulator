@@ -215,6 +215,20 @@ void Flow::initializeFlow() {
 }
 
 void Flow::removePacket(Packet *p) {
+    this->bursts[p->getBurstId()].erase(p->getId());
+    if (this->bursts[p->getBurstId()].empty()) {
+        this->bursts.erase(p->getBurstId());
+    } else if (p->isLastInBurst()) { // else not last packet of burst and was last packet
+        // update next last in burst
+        int nextLastId = *this->bursts[p->getBurstId()].rbegin();
+        // if source check source
+        if (p->isSourcePacket()) {
+            sourcePackets[nextLastId]->setLastInBurst();
+        } else {
+            sinkPackets[nextLastId]->setLastInBurst();
+        }
+    }
+
     if (p->isSourcePacket()) {
         sourcePackets.erase(p->getId());
     } else {
@@ -223,6 +237,8 @@ void Flow::removePacket(Packet *p) {
 }
 
 bool Flow::addPacket(Packet *p) {
+    this->bursts[p->getBurstId()].insert(p->getId());
+
     if (p->isSourcePacket()) {
         return sourcePackets.emplace(p->getId(), p).second;
     }
@@ -348,7 +364,8 @@ Packet *Flow::getNextPacket(bool fromSource) {
     int pId = newPacketId(fromSource);
 
     // create packet for this
-    Packet *p = new Packet(pId, sourceId, destId, id, pData.burstId, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource);
+    Packet *p = new Packet(pId, sourceId, destId, id, pData.burstId, pData.lastInBurst, NULL_DATA_ID, ttl,
+            pData.headerSize, pData.bodySize, fromSource);
 
     if (!addPacket(p)) {
         delete p;
@@ -375,6 +392,8 @@ double Flow::getMaxRate() {
     }
     return h->getMaxOutputRate();
 }
+
+/* BasicFlow */
 
 BasicFlow::BasicFlow(json &flowConfig): Flow(validateBasicFlowConfig(flowConfig)) {
 }
@@ -473,7 +492,7 @@ Packet *BasicFlow::createAckPacket(Packet *toAck) {
     int pId = newPacketId(false);
 
     // create packet
-    Packet *ackPacket = new Packet(pId, destId, sourceId, id, NULL_BURST_ID, NULL_DATA_ID, ttl, ackHeadSize, ackBodySize, false);
+    Packet *ackPacket = new Packet(pId, destId, sourceId, id, NULL_BURST_ID, true, NULL_DATA_ID, ttl, ackHeadSize, ackBodySize, false);
 
     // add state
     ackPacket->setAckData(toAck->getSendTime(), toAck->fullSize(), toAck->getId());
@@ -586,7 +605,7 @@ Packet *MBDFlow::getNextPacket(bool fromSource) {
 
     int pId = newPacketId(fromSource);
 
-    MBDPacket *p = new MBDPacket(pId, sourceId, destId, id, pData.burstId, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource);
+    MBDPacket *p = new MBDPacket(pId, sourceId, destId, id, pData.burstId, pData.lastInBurst, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource);
 
     if (!addPacket(p)) {
         delete p;

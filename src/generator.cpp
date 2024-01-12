@@ -174,7 +174,11 @@ void BasicGenerator::generatePacket() {
     // create packet, if there is room, else wait
     int packetSize = headerSize + bodySize;
     if (bufferCurSize + packetSize <= bufferMaxSize) {
-        packetBuffer.push({headerSize, bodySize, curBurstId});
+        packetBuffer.push({
+                .burstId = curBurstId,
+                .lastInBurst = true,
+                .headerSize = headerSize,
+                .bodySize = bodySize});
         bufferCurSize += packetSize;
         curBurstId++;
     }
@@ -251,7 +255,11 @@ void PoissonGenerator::generatePacket() {
 
     int packetSize = headerSize + bodySize;
     if (bufferCurSize + packetSize <= bufferMaxSize) {
-        packetBuffer.push({headerSize, bodySize, curBurstId});
+        packetBuffer.push({
+                .burstId = curBurstId,
+                .lastInBurst = true,
+                .headerSize = headerSize,
+                .bodySize = bodySize});
         bufferCurSize += packetSize;
         curBurstId++;
     }
@@ -399,12 +407,17 @@ void CompoundPoissonGenerator::generatePacket() {
 
     int packetSize = headerSize + bodySize;
     if (bufferCurSize + packetSize <= bufferMaxSize) {
-        this->packetBuffer.push({.burstId = this->curBurstId, .headerSize = headerSize, .bodySize = bodySize});
-        bufferCurSize += packetSize;
         //this->burstQueue--;
-        // if last pkt in queue pop and then increment else decrement
         this->burstQueue.front()--;
 
+        this->packetBuffer.push({
+                .burstId = this->curBurstId,
+                .lastInBurst = this->burstQueue.front() == 0,
+                .headerSize = headerSize,
+                .bodySize = bodySize});
+        bufferCurSize += packetSize;
+
+        // if last pkt in queue pop and then increment else decrement
         if (this->burstQueue.front() == 0) {
             this->burstQueue.pop();
             this->curBurstId++;

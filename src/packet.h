@@ -13,7 +13,7 @@ class Flow;
 
 class Packet: public NetworkObject {
     public:
-        Packet(int id, int sourceId, int destId, int flowId, int burstId, int dataId, int ttl,
+        Packet(int id, int sourceId, int destId, int flowId, int burstId, bool lastInBurst, int dataId, int ttl,
                 int headerSize, int bodySize, bool sourcePacket);
         Packet(const Packet &p);
         ~Packet() = default;
@@ -23,11 +23,14 @@ class Packet: public NetworkObject {
         int getFlow() {return flowId; }
         int getSource() {return sourceId; }
         int getDest() {return destId; }
+        int getBurstId() {return burstId; }
         int getDataId() {return dataId; }
         int getAckedId() {return ackedId; }
         int getHeaderSize() {return headerSize; }
         int getBodySize() {return bodySize; }
         bool isSourcePacket() {return sourcePacket; }
+        bool isLastInBurst() {return lastInBurst; }
+        void setLastInBurst() {this->lastInBurst = true; }
 
         int fullSize() {return headerSize + bodySize; }
         int fullSizeBits() {return (headerSize + bodySize) * BITS_PER_BYTE; }
@@ -65,6 +68,7 @@ class Packet: public NetworkObject {
         int destId;
         int flowId;
         int burstId;
+        bool lastInBurst;
 
         int dataId;
 
@@ -78,8 +82,8 @@ class Packet: public NetworkObject {
 
 class MBDPacket: public Packet {
     public:
-        MBDPacket(int id, int sourceId, int destId, int flowId, int burstId, int dataId, int ttl,
-                int headerSize, int bodySize, bool sourcePacket);
+        MBDPacket(int id, int sourceId, int destId, int flowId, int burstId, bool lastInBurst, int dataId,
+                int ttl, int headerSize, int bodySize, bool sourcePacket);
 
         void arrive();
         void drop();
