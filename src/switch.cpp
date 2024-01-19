@@ -13,6 +13,7 @@
 #include "endpoint.h"
 #include "config.h"
 #include "observer.h"
+#include "flow.h"
 
 #include "linUCB.h"
 
@@ -32,6 +33,7 @@ enum SwitchType {
     RandomDeflectSwitchType,
     RandomForwardSwitchType,
     ManhattanBanditDeflectionSwitchType,
+    PQDRSwitchType,
 };
 
 Switch *createSwitch(json &switchNetConfig) {
@@ -39,7 +41,8 @@ Switch *createSwitch(json &switchNetConfig) {
         {"basic", BasicSwitchType},
         {"rand_deflect", RandomDeflectSwitchType},
         {"rand_forward", RandomForwardSwitchType},
-        {"mbd", ManhattanBanditDeflectionSwitchType}
+        {"mbd", ManhattanBanditDeflectionSwitchType},
+        {"PQDR", PQDRSwitchType},
     };
 
 
@@ -69,6 +72,9 @@ Switch *createSwitch(json &switchNetConfig) {
             break;
         case ManhattanBanditDeflectionSwitchType:
             netSwitch = new ManhattanBanditDeflectionSwitch(switchNetConfig);
+            break;
+        case PQDRSwitchType:
+            netSwitch = new PQDRSwitch(switchNetConfig);
             break;
         default:
             throw runtime_error("Switch:\nInvalid switch type: " + switchTypeString);
@@ -159,7 +165,7 @@ void Switch::arrivePacket(Packet *p) {
 }
 
 void Switch::updateForwardOrDeflect(Packet *p, int forwardInterfaceId) {
-    set<int> shortestInterfaces = routingTable[p->getDest()].second;
+    set<int> shortestInterfaces = get<1>(routingTable[p->getDest()]);
     if (shortestInterfaces.find(forwardInterfaceId) != shortestInterfaces.end()) {
         forwardPacket(p);
     } else {
@@ -185,7 +191,7 @@ void Switch::rxPacket(Packet *p, int sourceInterfaceId) {
     actionablePackets++;
 
     int interfaceId = routePacket(p, sourceInterfaceId);
-    // TODO if interface id == -1 then drop the packet
+    // if no interface selected, drop the packet
     if (interfaceId == NULL_ID) {
         dropPacket(p);
         return;
@@ -216,7 +222,8 @@ int Switch::routePacket(Packet *p, int sourceInterfaceId) {
         throw runtime_error("Switch: routePacket: not able to route to destination");
     }
 
-    return *destId->second.second.begin();
+    return *get<1>(destId->second).begin();
+    //return *destId->second.second.begin();
 }
 
 int Switch::getInterfaceId(int destId) {
@@ -284,9 +291,9 @@ int Switch::findSmallest(set<int> unvisited, map<int, double> dist) {
 
 // dijkstra
 bool Switch::setupRoutingTable() {
-    map<int, double> dist; // map int to double
-    map<int, set<int>> prev; // map int to set of ints
-    set<int> unvisited; // set?
+    map<int, double> dist; // map destinations to lowest cost
+    map<int, set<int>> prev; // map destinations to set of optimal interfaces
+    set<int> unvisited;
 
     vector<int> handlers = man.getHandlers();
 
@@ -325,16 +332,26 @@ bool Switch::setupRoutingTable() {
     }
 
     // create routing table
-    for (int handler: handlers) {
-        if (handler == id) {
+    for (int handlerId: handlers) {
+        if (handlerId == id) {
             continue;
         }
 
-        if (dist[handler] == numeric_limits<double>::infinity()) {
+        if (dist[handlerId] == numeric_limits<double>::infinity()) {
             return false;
         }
 
-        routingTable[handler] = {dist[handler], prev[handler]};
+        PacketHandler *handler = man.getHandler(handlerId);
+
+        vector<int> handlerInterfacesVec = handler->getInterfaces();
+        set<int> handlerInterfacesSet = set<int>(handlerInterfacesVec.begin(), handlerInterfacesVec.end());
+        set<int> nonOptimalInterfaces;/*all of the handlers interfaces - optimal interfaces*/
+        set<int> optimalInterfaces = prev[handlerId];
+        set_difference(handlerInterfacesSet.begin(), handlerInterfacesSet.end(),
+                optimalInterfaces.begin(), optimalInterfaces.end(),
+                inserter(nonOptimalInterfaces, nonOptimalInterfaces.begin()));
+
+        routingTable[handlerId] = {dist[handlerId], optimalInterfaces, nonOptimalInterfaces};
     }
 
     return true;
@@ -343,8 +360,8 @@ bool Switch::setupRoutingTable() {
 void Switch::printRoutingTable() {
     printf("switch: %d routingTable:\n", id);
     for (auto it : routingTable) {
-        printf("\tdest: %d cost: %e interface:", it.first, it.second.first);
-        for (int interface: it.second.second) {
+        printf("\tdest: %d cost: %e interfaces:", it.first, get<0>(it.second));
+        for (int interface: get<1>(it.second)) {
             printf(" %d", interface);
         }
         printf("\n");
@@ -352,7 +369,7 @@ void Switch::printRoutingTable() {
 }
 
 double Switch::costToDest(int destId) {
-    return routingTable[destId].first;
+    return get<0>(routingTable[destId]);
 }
 
 bool Switch::initSwitch() {
@@ -405,7 +422,7 @@ int RandomForwardSwitch::routePacket(Packet *p, int sourceInterfaceId) {
     // go through forwarding ports and select aviable ones
     vector<int> forwardingIfaces;
 
-    set<int> routingIfaces = routingTable[p->getDest()].second;
+    set<int> routingIfaces = get<1>(routingTable[p->getDest()]);
     for (int iface : routingIfaces) {
         // if free
         Interface *interface = man.getInterface(iface);
@@ -439,12 +456,10 @@ json &RandomDeflectionSwitch::validateRandomDeflectionSwitchConfig(json &switchC
     string message = "";
 
     if (!hasMemberOfType(switchConfig, "deflect_thresh", jsonDouble)) {
-        // TODO error
         message += "No double with name 'deflect_thresh'.\n";
     }
 
     if (!hasMemberOfType(switchConfig, "network_size", jsonInt)) {
-        // TODO error
         message += "No int with name 'network_size'.\n";
     }
 
@@ -791,7 +806,7 @@ void ManhattanBanditDeflectionSwitch::setupStates() {
                     // go through routing table and create list of switches 1 hop away
                     vector<int> switchIds;
                     for (auto it: routingTable) {
-                        if (it.second.first == 1.0) {
+                        if (get<0>(it.second) == 1.0) {
                             switchIds.push_back(it.first);
                         }
                     }
@@ -806,7 +821,7 @@ void ManhattanBanditDeflectionSwitch::setupStates() {
                     // go through routing table and create list of switches 1 hop away
                     vector<int> switchIds;
                     for (auto it: routingTable) {
-                        if (it.second.first == 1.0 || it.second.first == 2.0) {
+                        if (get<0>(it.second) == 1.0 || get<0>(it.second) == 2.0) {
                             switchIds.push_back(it.first);
                         }
                     }
@@ -821,7 +836,7 @@ void ManhattanBanditDeflectionSwitch::setupStates() {
                     // go through routing table and create list of switches 2 hop away
                     vector<int> switchIds;
                     for (auto it: routingTable) {
-                        if (it.second.first == 2.0) {
+                        if (get<0>(it.second) == 2.0) {
                             switchIds.push_back(it.first);
                         }
                     }
@@ -1206,6 +1221,179 @@ void ManhattanBanditDeflectionSwitch::rewardAction(int pId, double reward) {
 
     // apply update
     agent->updateAgent(get<0>(stateAction), get<1>(stateAction), reward);
+}
+
+/* PQDRSwitch */
+
+PQDRSwitch::PQDRSwitch(json &switchConfig):
+    RandomForwardSwitch(validatePQDRSwitchConfig(switchConfig)) {
+    // set learning rates
+    this->learningRate = switchConfig["learning_rate"];
+    this->recoveryLearningRate = switchConfig["recovery_learning_rate"];
+    this->discountFactor = switchConfig["discount_factor"];
+    this->timeWindow = switchConfig["time_window"];
+}
+
+json &PQDRSwitch::validatePQDRSwitchConfig(json &switchConfig) {
+    // TODO implement
+    return switchConfig;
+}
+
+bool PQDRSwitch::initSwitch() {
+    // initialize tables
+    // initialize send / discarded
+    // initialize blocked interfaces to NULL_BURST_ID
+    return true;
+}
+
+void PQDRSwitch::startSwitch() {
+    RandomForwardSwitch::startSwitch();
+    // TODO implement
+}
+
+bool PQDRSwitch::blockInterface(int interfaceId, int flowId, int burstId, int packetId) {
+    // add to maps
+    if (this->blockedInterfaces.emplace(interfaceId, make_tuple(flowId, burstId, packetId)).second == false) {
+        throw runtime_error("PQDRSwitch: blockInterface: Tried to reserve an already blocked interface");
+    }
+    if (this->burstInterfaces.emplace(make_pair(flowId, burstId), interfaceId).second == false) {
+        throw runtime_error("PQDRSwitch: blockInterface: the burst already has a reserved interface");
+    }
+}
+
+void PQDRSwitch::freeBlockedInterface(int flowId, int burstId) {
+    int interfaceId = burstInterfaces[{flowId, burstId}];
+    burstInterfaces.erase({flowId, burstId});
+    blockedInterfaces.erase(interfaceId);
+}
+
+int PQDRSwitch::getReservedInterface(int flowId, int burstId) {
+    if (burstInterfaces.find({flowId, burstId}) == burstInterfaces.end()) {
+        return NULL_ID;
+    }
+
+    return this->burstInterfaces[{flowId, burstId}];
+}
+
+void PQDRSwitch::updateIfFree(int interfaceId) {
+    // if blocked
+    // get flow id and burst id
+    // if last packet has passed
+    // free blocked interface
+    if (blockedInterfaces.find(interfaceId) == blockedInterfaces.end()) {
+        return;
+    }
+    tuple<int, int, int> blockTuple = blockedInterfaces[interfaceId];
+
+    int flowId = get<0>(blockTuple);
+    int burstId = get<1>(blockTuple);
+    int packetId = get<2>(blockTuple);
+
+    //check if packet id is the last packet
+    Flow *f = man.getFlow(flowId);
+    if (packetId == f->getBurstLastPacketId(burstId)) {
+        /*
+        what if packetId is older than the current last packet???
+            compare packet id's call flow function for this
+        */
+    }
+}
+
+int PQDRSwitch::routePacket(Packet *p, int sourceInterfaceId) {
+    int burstId = p->getBurstId();
+    int flowId = p->getFlow();
+    // if has interface reserved use that
+    int interfaceId = getReservedInterface(flowId, burstId);
+    if (interfaceId != NULL_ID) {
+        // free up if last packet
+        if (p->isLastInBurst()) {
+            freeBlockedInterface(flowId, burstId);
+        }
+        // send along
+        return interfaceId;
+    }
+
+    // if it is in the dropBurst set, then drop
+    //  update last encountered to current time
+    //  if last packet erase from dropBurst
+    //  every once in a while flush the set using the time if time > 10*prop time
+    if (this->dropBursts.find({flowId, burstId}) != this->dropBursts.end()) {
+        if (p->isLastInBurst()) {
+            this->dropBursts.erase({flowId, burstId});
+            return NULL_ID;
+        }
+        // update
+        this->dropBursts[{flowId, burstId}] = man.time;
+
+        if (true) {//(TODO replace so it runs every once in a while) {
+            // TODO only check the first / oldest element if the ordering is based on when they are inserted use this method
+            // loop through blocked interfaces
+            for (auto it = this->dropBursts.cbegin(); it != this->dropBursts.cend();) {
+                second_t last_packet_time = it->second;
+                if (last_packet_time + 5 > man.time) {
+                    it = this->dropBursts.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+        }
+
+        // drop
+        return NULL_ID;
+    }
+
+    // otherwise if free optimal interface free
+    // create list of optimal switches
+    // for optimal switches
+    //  update if free
+    //  add to list if free
+    // if list not empty
+    //  select one - send along - if last is not set reserve the interface
+    vector<int> availableIfaces;
+
+    set<int> routingIfaces = get<1>(routingTable[p->getDest()]);
+    for (int iface : routingIfaces) {
+        // update if free
+        updateIfFree(iface);
+        // if not blocked then add to available
+        if (blockedInterfaces.find(iface) == blockedInterfaces.end()) {
+            Interface *interface = man.getInterface(iface);
+            if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
+                availableIfaces.push_back(iface);
+            }
+        }
+    }
+
+    // if there are any
+    if (!availableIfaces.empty()) {
+        // randomly select one
+        int iface = availableIfaces[generator() % availableIfaces.size()];
+        blockInterface(iface, flowId, burstId, p->getId());
+        return iface;
+    }
+
+    // otherwise deflect on other links
+    // create list of non-optimal switches
+    // for non-optimal switches
+    //  update if free
+    //  add to list if free
+    // if list not empty
+    //  select one - send along - if last is not set reserve the interface
+    set<int> deflectionIfaces = get<2>(routingTable[p->getDest()]);
+    for (int iface : deflectionIfaces) {
+        // update if free
+        // if not blocked
+        // add to list
+        updateIfFree(iface);
+        if (blockedInterfaces.find(iface) == blockedInterfaces.end()) {
+            availableIfaces.push_back(iface);
+        }
+    }
+
+    // else set to drop
+    //  if not the last packet - store that the burst is to be dropped
+    this->dropBursts.emplace(make_pair(flowId, burstId), man.time);
+    return NULL_ID;
 }
 
 #ifdef _TEST

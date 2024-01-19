@@ -42,6 +42,8 @@ class Flow: public NetworkObject {
 
         virtual void packetGenerationNotification() = 0;
 
+        int getBurstLastPacketId(int burstId); // returns the packet id of the last packet in the burst if known otherwise NULL_ID
+
     protected:
 
         bool running;

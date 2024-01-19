@@ -393,6 +393,15 @@ double Flow::getMaxRate() {
     return h->getMaxOutputRate();
 }
 
+// returns the packet id of the last packet in the burst if known otherwise NULL_ID
+int Flow::getBurstLastPacketId(int burstId) {
+    if (this->bursts.find(burstId) == bursts.end()) {
+        return NULL_ID;
+    }
+
+    return *this->bursts[burstId].rbegin();
+}
+
 /* BasicFlow */
 
 BasicFlow::BasicFlow(json &flowConfig): Flow(validateBasicFlowConfig(flowConfig)) {

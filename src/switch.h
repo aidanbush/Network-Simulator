@@ -13,6 +13,8 @@
 
 class LinUCB;
 
+typedef double second_t;
+
 using namespace std;
 
 using json = nlohmann::json;
@@ -39,7 +41,8 @@ class Switch: public PacketHandler {
 #endif /* _TEST */
 
     protected:
-        map<int, pair<double, set<int>>> routingTable; // dest Id to cost and interface Id's
+        // dest Id to  optimal cost and interface id's, and then remaining interface id's
+        map<int, tuple<double, set<int>, set<int>>> routingTable;
         vector<pair<int, int>> switchNeighbourIfaces; // all the interfaces that connect to a switch (interface id, switch id)
 
         int getNeighbourSwitch(int interfaceId);
@@ -238,6 +241,50 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
 
     private:
         json &validateManhattanBanditDeflectionSwitchConfig(json &switchConfig);
+};
+
+class PQDRSwitch: public RandomForwardSwitch {
+    public:
+        PQDRSwitch(json &switchConfig);
+
+        virtual bool initSwitch();
+        virtual void startSwitch();
+
+    protected:
+        int routePacket(Packet *p, int sourceInterfaceId);
+
+        double learningRate; // alpha
+        double recoveryLearningRate; // beta
+        double discountFactor; // gamma
+        double timeWindow; // used to reset discarded and transmitted packets counters
+
+        // tables index dest, link
+        vector<vector<double>> tableQ;
+        vector<vector<double>> tableB;
+        vector<vector<double>> tableR;
+        vector<vector<second_t>> tableU;
+        vector<double> tableP;
+
+        bool blockInterface(int interfaceId, int flowId, int burstId, int packetId);
+        void freeBlockedInterface(int flowId, int burstId);
+        int getReservedInterface(int flowId, int burstId);
+        void updateIfFree(int interfaceId);
+
+        // the maps are used in conjunction
+        // maps the interface id to the reserved flow id and burst id and last packet id to travel through
+        map<int, tuple<int, int, int>> blockedInterfaces;
+        // a map of flow id and burst id to blocked interfaces
+        map<pair<int, int>, int> burstInterfaces;
+        // a map of flow id and burst ids that are to be dropped to the time they were last encountered
+        map<pair<int, int>, second_t> dropBursts;
+
+        vector<int> discardedPackets;
+        vector<int> transmittedPackets;
+
+        default_random_engine generator;
+
+    private:
+        json &validatePQDRSwitchConfig(json &switchConfig);
 };
 
 #ifdef _TEST
