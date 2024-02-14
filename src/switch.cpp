@@ -16,6 +16,7 @@
 #include "flow.h"
 
 #include "linUCB.h"
+#include "NDDAgents.h"
 
 #define SWITCH_STR          "Switch"
 #define SWITCH_RX_EVENT_STR "switch rx"
@@ -33,7 +34,7 @@ enum SwitchType {
     RandomDeflectSwitchType,
     RandomForwardSwitchType,
     ManhattanBanditDeflectionSwitchType,
-    PQDRSwitchType,
+    NDDSwitchType,
 };
 
 Switch *createSwitch(json &switchNetConfig) {
@@ -42,7 +43,7 @@ Switch *createSwitch(json &switchNetConfig) {
         {"rand_deflect", RandomDeflectSwitchType},
         {"rand_forward", RandomForwardSwitchType},
         {"mbd", ManhattanBanditDeflectionSwitchType},
-        {"PQDR", PQDRSwitchType},
+        {"NDD", NDDSwitchType},
     };
 
 
@@ -73,8 +74,8 @@ Switch *createSwitch(json &switchNetConfig) {
         case ManhattanBanditDeflectionSwitchType:
             netSwitch = new ManhattanBanditDeflectionSwitch(switchNetConfig);
             break;
-        case PQDRSwitchType:
-            netSwitch = new PQDRSwitch(switchNetConfig);
+        case NDDSwitchType:
+            netSwitch = new NDDSwitch(switchNetConfig);
             break;
         default:
             throw runtime_error("Switch:\nInvalid switch type: " + switchTypeString);
@@ -1223,177 +1224,231 @@ void ManhattanBanditDeflectionSwitch::rewardAction(int pId, double reward) {
     agent->updateAgent(get<0>(stateAction), get<1>(stateAction), reward);
 }
 
-/* PQDRSwitch */
+/* NDDSwitch */
 
-PQDRSwitch::PQDRSwitch(json &switchConfig):
-    RandomForwardSwitch(validatePQDRSwitchConfig(switchConfig)) {
-    // set learning rates
-    this->learningRate = switchConfig["learning_rate"];
-    this->recoveryLearningRate = switchConfig["recovery_learning_rate"];
-    this->discountFactor = switchConfig["discount_factor"];
-    this->timeWindow = switchConfig["time_window"];
+NDDSwitch::NDDSwitch(json &switchConfig): RandomForwardSwitch(validateNDDSwitchConfig(switchConfig)) {
+    this->DHCMax = switchConfig["DHC_max"];
+    this->DNMaxTime = switchConfig["DN_max_time"];
+
+    this->DNTimer = 0.0;
+
+    this->DfT = 0.0;
+    this->deflectionId = NULL_ID;
+    this->lastAction = -1;
+
+    // create agent
+    agent = new RandNDDAgent(switchConfig["NDDAgent"]);
 }
 
-json &PQDRSwitch::validatePQDRSwitchConfig(json &switchConfig) {
-    // TODO implement
+json &NDDSwitch::validateNDDSwitchConfig(json &switchConfig) {
+    string message = "";
+
+    if (!hasMemberOfType(switchConfig, "DHC_max", jsonInt)) {
+        message += "No int with name 'DHC_max'.\n";
+    }
+
+    if (!hasMemberOfType(switchConfig, "DN_max_time", jsonDouble)) {
+        message += "No double with name 'DN_max_time'.\n";
+    }
+
+    // NDD agent
+    if (!hasMember(switchConfig, "NDDAgent")) {
+        message += "No int with name 'NDDAgent'.\n";
+    }
+
+    if (!message.empty()) {
+        message = "NDDSwitch:\n" + message + switchConfig.dump(4);
+        throw runtime_error(message);
+    }
+
     return switchConfig;
 }
 
-bool PQDRSwitch::initSwitch() {
-    // initialize tables
-    // initialize send / discarded
-    // initialize blocked interfaces to NULL_BURST_ID
+bool NDDSwitch::initSwitch() {
+    Switch::initSwitch();
+
+    // setupt action interfaces lookup table
+    for (auto it: interfaces) {
+        this->actionInterfaces.push_back(it.second);
+    }
+    for (int i = 0; i < this->actionInterfaces.size(); i++) {
+        this->interfaceToAction.emplace(this->actionInterfaces[i], i);
+    }
+
+    // map outgoing optimal interfaces to a int corresponding to the state based on that the switches they use
+    map<set<int>, int> interfaceToStateInt;
+    int currentStateInt = 0;
+
+    for (auto &[dest, routingTuple]: routingTable) {
+        // add to interface state int
+        set<int> optimalIfaces = get<1>(routingTuple);
+        // if not in
+        if (interfaceToStateInt.find(optimalIfaces) == interfaceToStateInt.end()) {
+            // add
+            interfaceToStateInt.emplace(optimalIfaces, currentStateInt);
+            currentStateInt++;
+        }
+        int stateInt = interfaceToStateInt.find(optimalIfaces)->second;
+        // add to dest to state
+        this->destToState.emplace(dest, stateInt);
+    }
+
+    this->numDestStates = currentStateInt;
+
+    int numActions = this->actionInterfaces.size();
+    int stateSize = this->switchNeighbourIfaces.size() + currentStateInt;
+    agent->init(stateSize, numActions);
+
     return true;
 }
 
-void PQDRSwitch::startSwitch() {
+void NDDSwitch::startSwitch() {
     RandomForwardSwitch::startSwitch();
-    // TODO implement
 }
 
-bool PQDRSwitch::blockInterface(int interfaceId, int flowId, int burstId, int packetId) {
-    // add to maps
-    if (this->blockedInterfaces.emplace(interfaceId, make_tuple(flowId, burstId, packetId)).second == false) {
-        throw runtime_error("PQDRSwitch: blockInterface: Tried to reserve an already blocked interface");
+vector<int> NDDSwitch::getState(Packet *p) {
+    vector<int> state = {};
+    // set avaiable interfaces, 1 == available
+    for (pair<int,int> ifaceSwitch: switchNeighbourIfaces) {
+        int iface = ifaceSwitch.first;
+        Interface *interface = man.getInterface(iface);
+        if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
+            state.push_back(1);
+        } else {
+            state.push_back(0);
+        }
     }
-    if (this->burstInterfaces.emplace(make_pair(flowId, burstId), interfaceId).second == false) {
-        throw runtime_error("PQDRSwitch: blockInterface: the burst already has a reserved interface");
+
+    for (int i = 0; i < this->numDestStates; i++) {
+        state.push_back(0);
     }
+
+    // set destination
+    state[switchNeighbourIfaces.size() + this->destToState.find(p->getDest())->second] = 1;
+
+    return state;
 }
 
-void PQDRSwitch::freeBlockedInterface(int flowId, int burstId) {
-    int interfaceId = burstInterfaces[{flowId, burstId}];
-    burstInterfaces.erase({flowId, burstId});
-    blockedInterfaces.erase(interfaceId);
+void NDDSwitch::createDNEvent() {
+    this->DNTimer = man.time + this->DNMaxTime;
+    EventI *e = new Event<NDDSwitch>(this->DNTimer, &NDDSwitch::DNTimerEvent, this);
+    man.pushEvent(e);
 }
 
-int PQDRSwitch::getReservedInterface(int flowId, int burstId) {
-    if (burstInterfaces.find({flowId, burstId}) == burstInterfaces.end()) {
+int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
+    vector<int> routingIfaces;
+    NDDPacket *NDDp = dynamic_cast<NDDPacket *>(p);
+
+    for (int iface: get<1>(this->routingTable.find(p->getDest())->second)) {
+        Interface *interface = man.getInterface(iface);
+        if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
+            routingIfaces.push_back(iface);
+        }
+    }
+
+    // TODO this does all not just optimal need two sets
+    if (!routingIfaces.empty()) {
+        //randomly select amongst the optimal interfaces
+        return routingIfaces[generator() % routingIfaces.size()];
+    }
+
+    // determine the set of actions that are possible
+    set<int> deflectionInterfaces = get<2>(this->routingTable.find(p->getDest())->second);
+    vector<int> availableActions, allActions;
+    for (int iface: deflectionInterfaces) {
+        Interface *interface = man.getInterface(iface);
+        if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
+            availableActions.push_back(this->interfaceToAction[iface]);
+        }
+        allActions.push_back(this->interfaceToAction[iface]);
+    }
+
+    // if no available deflection interfaces drop packet
+    if (availableActions.empty()) {
         return NULL_ID;
     }
 
-    return this->burstInterfaces[{flowId, burstId}];
-}
+    vector<int> state = getState(p);
+    //if packet.deflection_id == NULL_ID and no current deflecting packet
+    if (NDDp->getDeflectionId() == NULL_ID && this->deflectionId == NULL_ID) {
+        int numActions = deflectionInterfaces.size();
+        this->lastAction = agent->selectAction(state, availableActions, true); // true allows exploration
+        this->lastActionSet = allActions;
 
-void PQDRSwitch::updateIfFree(int interfaceId) {
-    // if blocked
-    // get flow id and burst id
-    // if last packet has passed
-    // free blocked interface
-    if (blockedInterfaces.find(interfaceId) == blockedInterfaces.end()) {
-        return;
-    }
-    tuple<int, int, int> blockTuple = blockedInterfaces[interfaceId];
-
-    int flowId = get<0>(blockTuple);
-    int burstId = get<1>(blockTuple);
-    int packetId = get<2>(blockTuple);
-
-    //check if packet id is the last packet
-    Flow *f = man.getFlow(flowId);
-    if (packetId == f->getBurstLastPacketId(burstId)) {
-        /*
-        what if packetId is older than the current last packet???
-            compare packet id's call flow function for this
-        */
-    }
-}
-
-int PQDRSwitch::routePacket(Packet *p, int sourceInterfaceId) {
-    int burstId = p->getBurstId();
-    int flowId = p->getFlow();
-    // if has interface reserved use that
-    int interfaceId = getReservedInterface(flowId, burstId);
-    if (interfaceId != NULL_ID) {
-        // free up if last packet
-        if (p->isLastInBurst()) {
-            freeBlockedInterface(flowId, burstId);
+        deflectionId++;
+        if (!NDDp->deflect(deflectionId, this->id, 1)) {
+            // TODO handler error the packet was deflected before
         }
-        // send along
-        return interfaceId;
+        // set unique deflection id, record deflecting switch, set the initial DHC
+        // create DN event
+        createDNEvent();
+        // record switch side variables
+        this->DfT = man.time;
+        this->lastState = state; // this safely copies over the vector
+        //store action in best actions?
+        return this->actionInterfaces[this->lastAction];
     }
 
-    // if it is in the dropBurst set, then drop
-    //  update last encountered to current time
-    //  if last packet erase from dropBurst
-    //  every once in a while flush the set using the time if time > 10*prop time
-    if (this->dropBursts.find({flowId, burstId}) != this->dropBursts.end()) {
-        if (p->isLastInBurst()) {
-            this->dropBursts.erase({flowId, burstId});
-            return NULL_ID;
-        }
-        // update
-        this->dropBursts[{flowId, burstId}] = man.time;
+    // undeflected packet and currently deflecting - TODO do I specify it as deflected once?
+    if (NDDp->getDeflectionId() == NULL_ID && this->deflectionId != NULL_ID){
+        int action = agent->selectAction(state, availableActions, false);
+        // outgoing_interface = best previous action
+        return this->actionInterfaces[action];
+    }
 
-        if (true) {//(TODO replace so it runs every once in a while) {
-            // TODO only check the first / oldest element if the ordering is based on when they are inserted use this method
-            // loop through blocked interfaces
-            for (auto it = this->dropBursts.cbegin(); it != this->dropBursts.cend();) {
-                second_t last_packet_time = it->second;
-                if (last_packet_time + 5 > man.time) {
-                    it = this->dropBursts.erase(it);
-                } else {
-                    ++it;
-                }
-            }
-        }
-
-        // drop
+    // the packet was deflected
+    if (NDDp->getDHC() > this->DHCMax) {
+        dropPacketFeedback(p);
         return NULL_ID;
     }
 
-    // otherwise if free optimal interface free
-    // create list of optimal switches
-    // for optimal switches
-    //  update if free
-    //  add to list if free
-    // if list not empty
-    //  select one - send along - if last is not set reserve the interface
-    vector<int> availableIfaces;
+    int action = agent->selectAction(state, availableActions, false);
+    // outgoing_interface = best previous action
+    NDDp->incrementDHC();
+    return this->actionInterfaces[action];
+}
 
-    set<int> routingIfaces = get<1>(routingTable[p->getDest()]);
-    for (int iface : routingIfaces) {
-        // update if free
-        updateIfFree(iface);
-        // if not blocked then add to available
-        if (blockedInterfaces.find(iface) == blockedInterfaces.end()) {
-            Interface *interface = man.getInterface(iface);
-            if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
-                availableIfaces.push_back(iface);
-            }
-        }
+void NDDSwitch::dropPacketFeedback(Packet *p) {
+    NDDPacket *NDDp = dynamic_cast<NDDPacket *>(p);
+
+    if (NDDp->getDeflectionId() != NULL_ID) {
+        int deflectingSwitch = NDDp->getDeflectingSwitchId();
+        NDDFeedbackMessage feedback = {
+            .deflectionId = NDDp->getDeflectionId(),
+            .DHC = NDDp->getDHC(),
+        };
+
+        Switch *s = man.getSwitch(deflectingSwitch);
+        NDDSwitch *NDDs = dynamic_cast<NDDSwitch *>(s);
+        NDDs->feedbackArrived(feedback);
     }
+}
 
-    // if there are any
-    if (!availableIfaces.empty()) {
-        // randomly select one
-        int iface = availableIfaces[generator() % availableIfaces.size()];
-        blockInterface(iface, flowId, burstId, p->getId());
-        return iface;
+void NDDSwitch::DNTimerEvent() {
+    // check if the original timer should still be going and feedback has not arrived
+    if (man.time == this->DNTimer and this->deflectionId != NULL_ID) {
+        double reward = calculateReward(0.0, 0.0);
+        agent->update(this->lastState, this->lastAction, reward, this->lastActionSet);
+        this->DNTimer = 0.0;
+        this->deflectionId == NULL_ID;
+        this->DfT = 0.0;
     }
+}
 
-    // otherwise deflect on other links
-    // create list of non-optimal switches
-    // for non-optimal switches
-    //  update if free
-    //  add to list if free
-    // if list not empty
-    //  select one - send along - if last is not set reserve the interface
-    set<int> deflectionIfaces = get<2>(routingTable[p->getDest()]);
-    for (int iface : deflectionIfaces) {
-        // update if free
-        // if not blocked
-        // add to list
-        updateIfFree(iface);
-        if (blockedInterfaces.find(iface) == blockedInterfaces.end()) {
-            availableIfaces.push_back(iface);
-        }
+void NDDSwitch::feedbackArrived(NDDFeedbackMessage feedback) {
+    // check if current feedback via deflection_id
+    if (feedback.deflectionId == this->deflectionId) {
+        double TTT = man.time - this->DfT;
+        double reward = calculateReward(TTT, feedback.DHC);
+        agent->update(this->lastState, this->lastAction, reward, this->lastActionSet);
+        this->DNTimer = 0.0;
+        this->deflectionId = NULL_ID;
+        this->DfT = 0.0;
     }
+}
 
-    // else set to drop
-    //  if not the last packet - store that the burst is to be dropped
-    this->dropBursts.emplace(make_pair(flowId, burstId), man.time);
-    return NULL_ID;
+double NDDSwitch::calculateReward(double TTT, int DHC) {
+    return (TTT / this->DNMaxTime + double(DHC) / this->DHCMax) / 2;
 }
 
 #ifdef _TEST

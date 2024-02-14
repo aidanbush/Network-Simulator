@@ -172,6 +172,28 @@ void MBDPacket::updateSwitches(bool arrived) {
     }
 }
 
+/* NDDPacket */
+
+NDDPacket::NDDPacket(int id, int sourceId, int destId, int flowId, int burstId, bool lastInBurst, int dataId,
+        int ttl, int headerSize, int bodySize, bool sourcePacket): Packet(id, sourceId, destId, flowId, burstId,
+            lastInBurst, dataId, ttl, headerSize, bodySize, sourcePacket) {
+    this->deflectionId = NULL_ID;
+    this->DHC = 0;
+    this->deflectingSwitchId = NULL_ID;
+}
+
+bool NDDPacket::deflect(int deflectionId, int deflectingSwitchId, int initialDHC) {
+    if (deflectionId != NULL_ID) {
+        return false;
+    }
+
+    this->deflectionId = deflectionId;
+    this->DHC = initialDHC;
+    this->deflectingSwitchId = deflectingSwitchId;
+
+    return true;
+}
+
 #ifdef _TEST
 #include "tests/throwAssert.h"
 

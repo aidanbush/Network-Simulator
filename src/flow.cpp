@@ -626,6 +626,32 @@ Packet *MBDFlow::getNextPacket(bool fromSource) {
     return p;
 }
 
+/* NDD Flow */
+
+NDDFlow::NDDFlow(json &flowConfig): BasicFlow(flowConfig) {
+}
+
+Packet *NDDFlow::getNextPacket(bool fromSource) {
+    Generator::PacketData pData;
+
+    if (!generator->getNextPacket(pData)) {
+        return NULL;
+    }
+
+    int pId = newPacketId(fromSource);
+
+    NDDPacket *p = new NDDPacket(pId, sourceId, destId, id, pData.burstId, pData.lastInBurst, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource);
+
+    if (!addPacket(p)) {
+        delete p;
+        return NULL;
+    }
+
+    packetsCreated++;
+
+    return p;
+}
+
 /* CUBIC Flow */
 /*
 CUBICFlow::CUBICFlow(json &flowConfig): Flow(flowConfig) {

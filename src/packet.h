@@ -98,6 +98,24 @@ class MBDPacket: public Packet {
         vector<int> switches;
 };
 
+class NDDPacket: public Packet {
+    public:
+        NDDPacket(int id, int sourceId, int destId, int flowId, int burstId, bool lastInBurst, int dataId,
+                int ttl, int headerSize, int bodySize, bool sourcePacket);
+
+        bool deflect(int deflectionId, int deflectingSwitchId, int initialDHC);
+
+        int getDeflectionId() {return deflectionId; }
+        int getDeflectingSwitchId() {return deflectingSwitchId; }
+        int getDHC() {return DHC; }
+        void incrementDHC() {DHC++; }
+
+    private:
+        int deflectionId;
+        int DHC;
+        int deflectingSwitchId;
+};
+
 #ifdef _TEST
 int testPacket();
 #endif /* _TEST */

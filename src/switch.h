@@ -12,6 +12,7 @@
 #include "packetHandler.h"
 
 class LinUCB;
+class NDDAgent;
 
 typedef double second_t;
 
@@ -243,48 +244,53 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         json &validateManhattanBanditDeflectionSwitchConfig(json &switchConfig);
 };
 
-class PQDRSwitch: public RandomForwardSwitch {
+class NDDSwitch: public RandomForwardSwitch {
     public:
-        PQDRSwitch(json &switchConfig);
+        NDDSwitch(json &switchConfig);
 
-        virtual bool initSwitch();
-        virtual void startSwitch();
+        bool initSwitch();
+        void startSwitch();
+
+        void DNTimerEvent();
 
     protected:
+        struct NDDFeedbackMessage {
+            int deflectionId;
+            int DHC;
+        };
+
         int routePacket(Packet *p, int sourceInterfaceId);
+        void dropPacketFeedback(Packet *p);
+        vector<int> getState(Packet *p);
+        void createDNEvent();
+        void feedbackArrived(NDDFeedbackMessage feedback);
+        double calculateReward(double TTT, int DHC);
 
-        double learningRate; // alpha
-        double recoveryLearningRate; // beta
-        double discountFactor; // gamma
-        double timeWindow; // used to reset discarded and transmitted packets counters
+        // constants
+        int DHCMax;
+        second_t DNMaxTime;
 
-        // tables index dest, link
-        vector<vector<double>> tableQ;
-        vector<vector<double>> tableB;
-        vector<vector<double>> tableR;
-        vector<vector<second_t>> tableU;
-        vector<double> tableP;
+        NDDAgent *agent;
+        vector<int> actionInterfaces; // index (action) to interface id
+        map<int, int> interfaceToAction; // interface id to action
 
-        bool blockInterface(int interfaceId, int flowId, int burstId, int packetId);
-        void freeBlockedInterface(int flowId, int burstId);
-        int getReservedInterface(int flowId, int burstId);
-        void updateIfFree(int interfaceId);
+        // variables
+        // for waiting on feedback
+        second_t DNTimer;
+        // for updating agent
+        second_t DfT;
+        int deflectionId;
+        int lastAction;
+        vector<int> lastActionSet;
+        vector<int> lastState;
 
-        // the maps are used in conjunction
-        // maps the interface id to the reserved flow id and burst id and last packet id to travel through
-        map<int, tuple<int, int, int>> blockedInterfaces;
-        // a map of flow id and burst id to blocked interfaces
-        map<pair<int, int>, int> burstInterfaces;
-        // a map of flow id and burst ids that are to be dropped to the time they were last encountered
-        map<pair<int, int>, second_t> dropBursts;
+        // TODO refactor to be dest to state not interfaces
+        map<int, int> destToState; // maps all the destination id's to their corresponding state id based on the output interfaces they use
 
-        vector<int> discardedPackets;
-        vector<int> transmittedPackets;
-
-        default_random_engine generator;
+        int numDestStates;
 
     private:
-        json &validatePQDRSwitchConfig(json &switchConfig);
+        json &validateNDDSwitchConfig(json &switchConfig);
 };
 
 #ifdef _TEST

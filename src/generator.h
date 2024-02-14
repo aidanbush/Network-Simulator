@@ -24,8 +24,6 @@ class Generator {
             bool lastInBurst;
             int headerSize;
             int bodySize;
-
-            //PacketData(int burstId=0, int headerSize=0, int bodySize=0) : burstId(burstId), headerSize(headerSize), bodySize(bodySize) {}
         };
 
         virtual bool startTraffic(); // return if first call

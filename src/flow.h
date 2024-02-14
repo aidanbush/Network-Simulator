@@ -153,6 +153,14 @@ class MBDFlow: public BasicFlow {
         Packet *getNextPacket(bool fromSource);
 };
 
+class NDDFlow: public BasicFlow {
+    friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
+
+    protected:
+        NDDFlow(json &flowConfig);
+        Packet *getNextPacket(bool fromSource);
+};
+
 #ifdef _TEST
 class TestFlow: public Flow {
     friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
