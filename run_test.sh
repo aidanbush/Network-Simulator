@@ -83,7 +83,7 @@ wait
 
 # combine data
 echo python3 combine_data.py $tempResultsDir ${resultsDir} results.csv links.csv switches.csv
-time python3 combine_data.py $tempResultsDir ${resultsDir} results.csv links.csv switches.csv
+time python3 combine_data.py $tempResultsDir ${resultsDir} results.csv links.csv switches.csv &> ${resultsDir}/combine_data_output
 
 # plot data
 #echo python3 plotRuns.py ${resultsDir}/results.csv -d ${resultsDir} -f ${plotFormat} -t $testName
