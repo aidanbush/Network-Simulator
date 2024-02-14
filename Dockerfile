@@ -9,10 +9,11 @@ RUN wget https://download.pytorch.org/libtorch/nightly/cpu/libtorch-shared-with-
 RUN unzip libtorch-shared-with-deps-latest.zip
 
 # to run
-#docker run -it -v Network-Simulator:/simulator sim2
+#docker run -it -v Network-Simulator:/simulator sim3
 # experiment example
-#nohup docker run -v ~/Network-Simulator:/simulator sim2 bash -c "cd simulator ; bash many_runs.sh" &
+#nohup docker run -v ~/Network-Simulator:/simulator sim3 bash -c "cd simulator ; bash many_runs.sh" &
 
 # to compile
 # following https://pytorch.org/cppdocs/installing.html
-#cmake -DCMAKE_PREFIX_PATH=/Network-Simulator/src/libtorch/ -S src/ -B build/
+# to setup cmake run `cmake -DCMAKE_PREFIX_PATH=/Network-Simulator/src/libtorch/ -S src/ -B build/`
+# in the build directory run `make`
