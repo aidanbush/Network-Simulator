@@ -401,7 +401,7 @@ def addRoutes(config, flowRoutes):
         config["flows"].append(flow)
 
 #def create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg, states, simulation_length, num_flow_sets, num_flow_changes, runs, flowRoutes=None):
-def create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg, states, simulation_length, flow_gen_type, runs, flowRoutes=None, numChanges=None):
+def create_config(filepath, size, traffic_type, net_util, simulation_length, flow_gen_type, runs, flowRoutes=None, numChanges=None):
 
     for run in range(runs):
         random.seed(seed + run) # run lengths can be increased without changing the initial configuration
@@ -439,38 +439,73 @@ def create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg,
         # add util_data to the flow
         config["util_data"] = util_data
 
-        fname_state = ""
-        if states != None:
-            fname_state = f"_[{','.join(states)}]"
-
-        filepath = os.path.join(dest_dir, f"{size}x{size}")
-
-        if switchConfig["drop_action"]:
-            filepath = os.path.join(filepath, "drop_action")
-
-        alg_text = ""
-        if agent_type == "mbd":
-            alg_text = "_" + agent_alg
-            # if D-LinUCB add discount factor
-            if agent_alg == "D-LinUCB":
-                alg_text += "_" + str(switchConfig["discount_factor"])
-
-        filepath = os.path.join(filepath, f"{agent_type}{alg_text}{fname_state}_prop_{linkConfig['time']}")
-
-        if flow_gen_type == TRAFFIC_CHANGING:
-            filepath = os.path.join(filepath, f"fc_{numChanges}")
-        elif flow_gen_type == TRAFFIC_STATIC:
-            filepath = os.path.join(filepath, f"static")
-
-        filepath = os.path.join(filepath, f"u_{net_util}")
-
-        os.makedirs(filepath, exist_ok=True)
+        #os.makedirs(filepath, exist_ok=True)
 
         filename = f"run_{run}"
         pathname = os.path.join(filepath, filename)
         print("writing to file:", pathname)
-        with open(pathname, "w") as f:
-            f.write(json.dumps(config, indent=4))
+        #with open(pathname, "w") as f:
+        #    f.write(json.dumps(config, indent=4))
+
+def gen_path(dest_dir, size, agent_type, prop_delay, traffic_type, utilization,
+        mbd_update=None, mbd_states=None, mbd_regularizer=None, mbd_delta=None,
+        mbd_discount_factor=None, ndd_agent=None, ndd_alpha=None, ndd_epsilon=None,
+        ndd_gamma=None):
+    filepath = os.path.join(dest_dir, f"{size}x{size}")
+
+    # TODO mbd state
+    if agent_type == "mbd":
+        filepath = os.path.join(filepath, f"mbd")
+        if mbd_update == "slide":
+            filepath = os.path.join(filepath, f"slide")
+        elif mbd_update == "original":
+            filepath = os.path.join(filepath, f"original")
+        elif mbd_update == "D-LinUCB":
+            filepath = os.path.join(filepath, f"D-LinUCB", f"d_{mbd_discount_factor}")
+        else:
+            print(f"mbd_update: {mbd_update} is not supported")
+            return None
+        # parameters
+        states = ','.join(sorted(mbd_states))
+        filepath = os.path.join(filepath, f"s_{states}", f"r_{mbd_regularizer}-d_{mbd_delta}")
+    # NDD
+    elif agent_type == "NDD":
+        filepath = os.path.join(filepath, f"NDD")
+        if ndd_agent == "rand":
+            filepath = os.path.join(filepath, f"rand")
+        elif ndd_agent == "Q-learning":
+            filepath = os.path.join(filepath, f"rand", f"a_{ndd_alpha}-e_{ndd_epsilon}-g_{ndd_gamma}")
+        else:
+            print(f"ndd_agent: {ndd_agent} is not supported")
+            return None
+    elif agent_type == "rand_deflect":
+        filepath = os.path.join(filepath, f"rand_deflect")
+    elif agent_type == "rand_forward":
+        filepath = os.path.join(filepath, f"rand_forward")
+    else:
+        print(f"agent_type: {agent_type} is not supported")
+        return None
+
+    # add prop delay
+    filepath = os.path.join(filepath, f"p_{prop_delay}")
+
+    # add traffic type
+    if traffic_type == TRAFFIC_MICE_ELEPHANT:
+        filepath = os.path.join(filepath, f"mice-elephant")
+    elif traffic_type == TRAFFIC_STATIC:
+        filepath = os.path.join(filepath, f"static")
+    else:
+        print("traffic type not in allowed set")
+        return None
+
+    # utilization
+    filepath = os.path.join(filepath, f"u_{utilization}")
+
+    if "None" in filepath:
+        print("found None in filepath")
+        return None
+
+    return filepath
 
 def main():
     size = 8
@@ -489,8 +524,12 @@ def main():
 
     traffic_type = "bursty"
     net_utils = [0.05, 0.1, 0.15, 0.2] # [0.1,0.2,0.3,0.4]
-    agent_type = ["mbd", "rand_deflect", "rand_forward"][0]
+    agent_type = ["mbd", "rand_deflect", "rand_forward", "NDD"][0]
     agent_alg = ["original", "slide", "D-LinUCB", None][1]
+    ndd_agent = ["rand", "Q-learning"]
+    ndd_alpha = [0.05][0]
+    ndd_epsilon = [0.05][0]
+    ndd_gamma = [0.99][0]
     states = [[None],
             ["1-2_hop_shortest"],
             ["1-2_hop_shortest", "3x3_section"],
@@ -505,7 +544,7 @@ def main():
             ["2_hop_shortest", "1_hop_shortest", "3x3_section", "drop_probability"],
             ["dest_id"],
             ["dest_id", "deflect_probability"],
-            ["dest_id", "drop_probability"], ["flow_id"]][5:6]#[1:12]#[1:14]#[3:8]
+            ["dest_id", "drop_probability"], ["flow_id"]][5:7]#[1:12]#[1:14]#[3:8]
 
     for net_util in net_utils:
         for state in states:
@@ -513,10 +552,17 @@ def main():
             switchConfig["type"] = agent_type
             switchConfig["agent_alg"] = agent_alg
 
-            print(agent_type, agent_alg, state)
             #flow_gen_type = TRAFFIC_CHANGING#TRAFFIC_MICE_ELEPHANT
             flow_gen_type = TRAFFIC_MICE_ELEPHANT
-            create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg, state, simulation_length, flow_gen_type, runs, numChanges=num_flow_changes)
+
+            filepath = gen_path(dest_dir, size, agent_type, linkConfig['time'],
+                    flow_gen_type, net_util, mbd_update=agent_alg, mbd_states=state,
+                    mbd_regularizer=switchConfig["regularizer"], mbd_delta=switchConfig["delta"],
+                    mbd_discount_factor=switchConfig["discount_factor"], ndd_agent=ndd_agent,
+                    ndd_alpha=ndd_alpha, ndd_epsilon=ndd_epsilon, ndd_gamma=ndd_gamma)
+            print(filepath)
+            #create_config(filepath, size, traffic_type, net_util,
+            #        simulation_length, flow_gen_type, runs, numChanges=num_flow_changes)
 
 if __name__ == "__main__":
     main()
