@@ -14,6 +14,8 @@ seed = 0
 flowId = 1
 
 # switches
+switchConfigDefault = {
+        }
 switchConfig = {
         "type": "mbd",
         #"type": "rand_deflect",
@@ -26,6 +28,9 @@ switchConfig = {
         }
 
 # links
+linkConfigDefault = {
+        "speed": 1500000,
+        }
 linkConfig = {
         "speed": 1500000,
         "time": 0.1 # propagation delay
@@ -400,8 +405,7 @@ def addRoutes(config, flowRoutes):
         flow = dict(list(flowConfig.items()) + list(flow.items()))
         config["flows"].append(flow)
 
-#def create_config(dest_dir, size, traffic_type, net_util, agent_type, agent_alg, states, simulation_length, num_flow_sets, num_flow_changes, runs, flowRoutes=None):
-def create_config(filepath, size, traffic_type, net_util, simulation_length, flow_gen_type, runs, flowRoutes=None, numChanges=None):
+def create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs, numChanges=None):
 
     for run in range(runs):
         random.seed(seed + run) # run lengths can be increased without changing the initial configuration
@@ -439,57 +443,64 @@ def create_config(filepath, size, traffic_type, net_util, simulation_length, flo
         # add util_data to the flow
         config["util_data"] = util_data
 
-        #os.makedirs(filepath, exist_ok=True)
+        os.makedirs(filepath, exist_ok=True)
 
         filename = f"run_{run}"
         pathname = os.path.join(filepath, filename)
         print("writing to file:", pathname)
-        #with open(pathname, "w") as f:
-        #    f.write(json.dumps(config, indent=4))
+        with open(pathname, "w") as f:
+            f.write(json.dumps(config, indent=4))
 
-def gen_path(dest_dir, size, agent_type, prop_delay, traffic_type, utilization,
-        mbd_update=None, mbd_states=None, mbd_regularizer=None, mbd_delta=None,
-        mbd_discount_factor=None, ndd_agent=None, ndd_alpha=None, ndd_epsilon=None,
-        ndd_gamma=None):
+def gen_path(dest_dir, size, experiment_config):
     filepath = os.path.join(dest_dir, f"{size}x{size}")
 
-    # TODO mbd state
-    if agent_type == "mbd":
+    if experiment_config["type"] == "mbd":
         filepath = os.path.join(filepath, f"mbd")
+        mbd_update = experiment_config["mbd_alg"]
         if mbd_update == "slide":
             filepath = os.path.join(filepath, f"slide")
         elif mbd_update == "original":
             filepath = os.path.join(filepath, f"original")
         elif mbd_update == "D-LinUCB":
+            mbd_discount_factor = experiment_config["discount_factor"]
             filepath = os.path.join(filepath, f"D-LinUCB", f"d_{mbd_discount_factor}")
         else:
             print(f"mbd_update: {mbd_update} is not supported")
             return None
         # parameters
+        mbd_regularizer = experiment_config["regularizer"]
+        mbd_delta = experiment_config["delta"]
+        mbd_states = experiment_config["states"]
         states = ','.join(sorted(mbd_states))
         filepath = os.path.join(filepath, f"s_{states}", f"r_{mbd_regularizer}-d_{mbd_delta}")
     # NDD
-    elif agent_type == "NDD":
+    elif experiment_config["type"] == "NDD":
         filepath = os.path.join(filepath, f"NDD")
+        ndd_agent = experiment_config["ndd_alg"]
         if ndd_agent == "rand":
             filepath = os.path.join(filepath, f"rand")
         elif ndd_agent == "Q-learning":
+            ndd_alpha = experiment_config["ndd_alpha"]
+            ndd_epsilon = experiment_config["ndd_epsilon"]
+            ndd_gamma = experiment_config["ndd_gamma"]
             filepath = os.path.join(filepath, f"rand", f"a_{ndd_alpha}-e_{ndd_epsilon}-g_{ndd_gamma}")
         else:
             print(f"ndd_agent: {ndd_agent} is not supported")
             return None
-    elif agent_type == "rand_deflect":
+    elif experiment_config["type"] == "rand_deflect":
         filepath = os.path.join(filepath, f"rand_deflect")
-    elif agent_type == "rand_forward":
+    elif experiment_config["type"] == "rand_forward":
         filepath = os.path.join(filepath, f"rand_forward")
     else:
         print(f"agent_type: {agent_type} is not supported")
         return None
 
     # add prop delay
+    prop_delay = experiment_config["prop_delay"]
     filepath = os.path.join(filepath, f"p_{prop_delay}")
 
     # add traffic type
+    traffic_type = experiment_config["traffic_type"]
     if traffic_type == TRAFFIC_MICE_ELEPHANT:
         filepath = os.path.join(filepath, f"mice-elephant")
     elif traffic_type == TRAFFIC_STATIC:
@@ -499,6 +510,7 @@ def gen_path(dest_dir, size, agent_type, prop_delay, traffic_type, utilization,
         return None
 
     # utilization
+    utilization = experiment_config["net_util"]
     filepath = os.path.join(filepath, f"u_{utilization}")
 
     if "None" in filepath:
@@ -507,31 +519,105 @@ def gen_path(dest_dir, size, agent_type, prop_delay, traffic_type, utilization,
 
     return filepath
 
+def setup_configs(experiment_config):
+    global switchConfig, linkConfig
+    switchConfig = switchConfigDefault.copy()
+    linkConfig = linkConfigDefault.copy()
+
+    linkConfig["time"] = experiment_config["prop_delay"]
+
+    # set switch type
+    switchConfig["type"] = experiment_config["type"]
+    if experiment_config["type"] == "mbd":
+        switchConfig["drop_action"] = False
+
+        switchConfig["agent_alg"] = experiment_config["mbd_alg"]
+        switchConfig["states"] = experiment_config["states"]
+
+        switchConfig["delta"] = experiment_config["delta"]
+        switchConfig["regularizer"] = experiment_config["regularizer"]
+
+        if experiment_config["mbd_alg"] == "D-LinUCB":
+            switchConfig["discount_factor"] = experiment_config["discount_factor"]
+    elif experiment_config["type"] == "ndd":
+        switchConfig["DHC_max"] = 2
+        switchConfig["DN_max_time"] = _
+        switchConfig["NDDAgent"] == {"NDD_type": experiment_config["ndd_alg"]}
+
+        if experiment_config["ndd_alg"] == "Q-learning":
+            switchConfig["NDDAgent"]["alpha"] = experiment_config["ndd_alpha"]
+            switchConfig["NDDAgent"]["epsilon"] = experiment_config["ndd_epsilon"]
+            switchConfig["NDDAgent"]["gamma"] = experiment_config["ndd_gamma"]
+    elif experiment_config["type"] == "rand_forward":
+        pass
+    elif experiment_config["type"] == "rand_deflect":
+        switchConfig["deflect_thresh"] = 1.0
+
+def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent_algs, mbd_states,
+        mbd_regularizer, mbd_delta, mbd_discount_factor, ndd_alg, ndd_alpha, ndd_epsilon, ndd_gamma):
+
+    agent_dicts = []
+
+    if "ndd" in agent_types:
+        ndd_algs = []
+        # ndd qlearning
+        if "Q-learning" in ndd_alg:
+            ndd_q_learning = [{"ndd_alg":"Q-learning", "ndd_alpha":a, "ndd_epsilon":e, "ndd_gamma":g}
+                    for a in ndd_alpha for e in ndd_epsilon for g in ndd_gamma]
+            ndd_algs += ndd_q_learning
+        if "rand" in ndd_alg:
+            ndd_rand = [{"ndd_alg": "rand"}]
+        ndd_algs += ndd_rand
+        agent_dicts += ndd_algs
+
+    # mbd
+    if "mbd" in agent_types:
+        mbd_algs = []
+        mbd_dict = [{"type": "mbd", "drop_action": False, "states": s, "regularizer":r, "delta":d}
+                for s in mbd_states for r in mbd_regularizer for d in mbd_delta]
+
+        if "D-LinUCB" in mbd_agent_algs:
+            mbd_algs += [{**d, **{"mbd_alg": "D-LinUCB", "discount_factor":df}}
+                    for d in mbd_dict for df in mbd_discount_factor]
+        if "original" in mbd_agent_algs:
+            mbd_algs += [{**d, **{"mbd_alg": "original"}} for d in mbd_dict]
+        if "slide" in mbd_agent_algs:
+            mbd_algs += [{**d, **{"mbd_alg": "slide"}} for d in mbd_dict]
+
+        agent_dicts += mbd_algs
+
+    if "rand_forward" in agent_types:
+        rand_forward_dict = [{"type": "rand_forward"}]
+        agent_dicts += rand_forward_dict
+
+    if "rand_deflect" in agent_types:
+        rand_deflect_dict = [{"type": "rand_deflect"}]
+        agent_dicts += rand_deflect_dict
+
+    experiment_dicts = [{**d, **{"net_util": u, "prop_delay": p, "traffic_type": t}}
+            for d in agent_dicts for u in net_utils for p in prop_delay for t in traffic_types]
+
+    return experiment_dicts
+
 def main():
     size = 8
     runs = 30
     simulation_length = 2000 # 1000
-    num_flow_sets = 1
     num_flow_changes = 200 # 100
 
     flowConfig["ttl"] = size * 3
-    switchConfig["drop_action"] = False#True
-    switchConfig["discount_factor"] = 0.9999
-
-    linkConfig["time"] = 0.1 # 0.01, 0.5 # propagation delay
 
     dest_dir = "configs"
 
-    traffic_type = "bursty"
+    traffic_types = [TRAFFIC_MICE_ELEPHANT, TRAFFIC_CHANGING, TRAFFIC_STATIC][0:1]
     net_utils = [0.05, 0.1, 0.15, 0.2] # [0.1,0.2,0.3,0.4]
-    agent_type = ["mbd", "rand_deflect", "rand_forward", "NDD"][0]
-    agent_alg = ["original", "slide", "D-LinUCB", None][1]
-    ndd_agent = ["rand", "Q-learning"]
-    ndd_alpha = [0.05][0]
-    ndd_epsilon = [0.05][0]
-    ndd_gamma = [0.99][0]
-    states = [[None],
-            ["1-2_hop_shortest"],
+    prop_delays = [0.01,0.1,0.5][1:2]
+    agent_types = ["mbd", "rand_deflect", "rand_forward", "NDD"][2:3]
+    mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
+    mbd_regularizers = [1.0]
+    mbd_deltas = [1.0]
+    mbd_discount_factors = [0.99, 0.999, 0.9999]
+    mbd_states = [["1-2_hop_shortest"],
             ["1-2_hop_shortest", "3x3_section"],
             ["2_hop_shortest"],
             ["1_hop_shortest"],
@@ -545,24 +631,23 @@ def main():
             ["dest_id"],
             ["dest_id", "deflect_probability"],
             ["dest_id", "drop_probability"], ["flow_id"]][5:7]#[1:12]#[1:14]#[3:8]
+    ndd_algs = ["rand", "Q-learning"][0:2]
+    ndd_alphas = [0.05][0:1]
+    ndd_epsilons = [0.05][0:1]
+    ndd_gammas = [0.99][0:1]
 
-    for net_util in net_utils:
-        for state in states:
-            switchConfig["states"] = state
-            switchConfig["type"] = agent_type
-            switchConfig["agent_alg"] = agent_alg
+    experiment_configs = gen_config_list(net_utils, prop_delays, traffic_types, agent_types,
+            mbd_agent_algs, mbd_states, mbd_regularizers, mbd_deltas, mbd_discount_factors,
+            ndd_algs, ndd_alphas, ndd_epsilons, ndd_gammas)
 
-            #flow_gen_type = TRAFFIC_CHANGING#TRAFFIC_MICE_ELEPHANT
-            flow_gen_type = TRAFFIC_MICE_ELEPHANT
+    for experiment_config in experiment_configs:
+        setup_configs(experiment_config)
+        net_util = experiment_config["net_util"]
+        flow_gen_type = experiment_config["traffic_type"]
 
-            filepath = gen_path(dest_dir, size, agent_type, linkConfig['time'],
-                    flow_gen_type, net_util, mbd_update=agent_alg, mbd_states=state,
-                    mbd_regularizer=switchConfig["regularizer"], mbd_delta=switchConfig["delta"],
-                    mbd_discount_factor=switchConfig["discount_factor"], ndd_agent=ndd_agent,
-                    ndd_alpha=ndd_alpha, ndd_epsilon=ndd_epsilon, ndd_gamma=ndd_gamma)
-            print(filepath)
-            #create_config(filepath, size, traffic_type, net_util,
-            #        simulation_length, flow_gen_type, runs, numChanges=num_flow_changes)
+        filepath = gen_path(dest_dir, size, experiment_config)
+        print("generating:", filepath)
+        create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs)
 
 if __name__ == "__main__":
     main()
