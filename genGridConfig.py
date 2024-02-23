@@ -511,7 +511,7 @@ def gen_path(dest_dir, size, experiment_config):
 
     return filepath
 
-def setup_configs(experiment_config):
+def setup_configs(size, experiment_config):
     global switchConfig, linkConfig
     switchConfig = switchConfigDefault.copy()
     linkConfig = linkConfigDefault.copy()
@@ -533,10 +533,11 @@ def setup_configs(experiment_config):
             switchConfig["discount_factor"] = experiment_config["discount_factor"]
 
         switchConfig["deflect_thresh"] = 1.0 # required because it inherits from rand_deflect
-    elif experiment_config["type"] == "ndd":
+    elif experiment_config["type"] == "NDD":
         switchConfig["DHC_max"] = 2
-        switchConfig["DN_max_time"] = _
-        switchConfig["NDDAgent"] == {"NDD_type": experiment_config["ndd_alg"]}
+        # DN max time = longest path with most deflections
+        switchConfig["DN_max_time"] = (2 * (size - 1) + 2) * 2 * experiment_config["prop_delay"]
+        switchConfig["NDDAgent"] = {"NDD_type": experiment_config["ndd_alg"]}
 
         if experiment_config["ndd_alg"] == "Q-learning":
             switchConfig["NDDAgent"]["alpha"] = experiment_config["ndd_alpha"]
@@ -550,17 +551,21 @@ def setup_configs(experiment_config):
 def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent_algs, mbd_states,
         mbd_regularizer, mbd_delta, mbd_discount_factor, ndd_alg, ndd_alpha, ndd_epsilon, ndd_gamma):
 
+    print(agent_types)
+
     agent_dicts = []
 
-    if "ndd" in agent_types:
+    if "NDD" in agent_types:
         ndd_algs = []
+        ndd_dict = [{"type":"NDD"}]
         # ndd qlearning
         if "Q-learning" in ndd_alg:
-            ndd_q_learning = [{"ndd_alg":"Q-learning", "ndd_alpha":a, "ndd_epsilon":e, "ndd_gamma":g}
-                    for a in ndd_alpha for e in ndd_epsilon for g in ndd_gamma]
+            ndd_q_learning = [{**d, **{"ndd_alg":"Q-learning", "ndd_alpha":a, "ndd_epsilon":e, "ndd_gamma":g}}
+                    for d in ndd_dict for a in ndd_alpha for e in ndd_epsilon for g in ndd_gamma]
             ndd_algs += ndd_q_learning
         if "rand" in ndd_alg:
-            ndd_rand = [{"ndd_alg": "rand"}]
+            ndd_rand = [{**d, **{"ndd_alg": "rand"}}
+                    for d in ndd_dict]
         ndd_algs += ndd_rand
         agent_dicts += ndd_algs
 
@@ -604,9 +609,9 @@ def main():
     dest_dir = "configs"
 
     traffic_types = [TRAFFIC_MICE_ELEPHANT, TRAFFIC_CHANGING, TRAFFIC_STATIC][0:1]
-    net_utils = [0.05, 0.1, 0.15, 0.2] # [0.1,0.2,0.3,0.4]
+    net_utils = [0.05, 0.1, 0.15, 0.2][0:1] # [0.1,0.2,0.3,0.4]
     prop_delays = [0.01,0.1,0.5][1:2]
-    agent_types = ["mbd", "rand_deflect", "rand_forward", "NDD"][0:3]
+    agent_types = ["mbd", "rand_deflect", "rand_forward", "NDD"][3:4]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
     mbd_regularizers = [1.0]
     mbd_deltas = [1.0]
@@ -625,7 +630,7 @@ def main():
             ["dest_id"],
             ["dest_id", "deflect_probability"],
             ["dest_id", "drop_probability"], ["flow_id"]][3:7]#[1:12]#[1:14]#[3:8]
-    ndd_algs = ["rand", "Q-learning"][0:2]
+    ndd_algs = ["rand", "Q-learning"][0:1]
     ndd_alphas = [0.05][0:1]
     ndd_epsilons = [0.05][0:1]
     ndd_gammas = [0.99][0:1]
@@ -635,7 +640,7 @@ def main():
             ndd_algs, ndd_alphas, ndd_epsilons, ndd_gammas)
 
     for experiment_config in experiment_configs:
-        setup_configs(experiment_config)
+        setup_configs(size, experiment_config)
         net_util = experiment_config["net_util"]
         flow_gen_type = experiment_config["traffic_type"]
 
