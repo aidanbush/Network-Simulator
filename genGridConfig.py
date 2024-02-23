@@ -15,16 +15,9 @@ flowId = 1
 
 # switches
 switchConfigDefault = {
+        "discount_factor": 1.0,
         }
 switchConfig = {
-        "type": "mbd",
-        #"type": "rand_deflect",
-        "deflect_thresh": 1.0,
-        "regularizer": 1.0,
-        "discount_factor": 0.999,
-        "delta": 1.0,
-        "drop_action": False,
-        "states": ["flow_id"],
         }
 
 # links
@@ -33,7 +26,6 @@ linkConfigDefault = {
         }
 linkConfig = {
         "speed": 1500000,
-        "time": 0.1 # propagation delay
         }
 
 # flows
@@ -214,7 +206,7 @@ def add_random_flow(config, size, switches, open_switches, fullSwitches, start_t
     return flowRate * num_hops, (sourceId, destId) # utilization of the flow
 
 def gen_flows(config, util_thresh, net_size, sim_end_time):
-    flow_length = 250#10
+    flow_length = 10
     cur_util = 0
     net_band = len(config["links"]) * linkConfig["speed"] * 2
 
@@ -539,6 +531,8 @@ def setup_configs(experiment_config):
 
         if experiment_config["mbd_alg"] == "D-LinUCB":
             switchConfig["discount_factor"] = experiment_config["discount_factor"]
+
+        switchConfig["deflect_thresh"] = 1.0 # required because it inherits from rand_deflect
     elif experiment_config["type"] == "ndd":
         switchConfig["DHC_max"] = 2
         switchConfig["DN_max_time"] = _
@@ -612,7 +606,7 @@ def main():
     traffic_types = [TRAFFIC_MICE_ELEPHANT, TRAFFIC_CHANGING, TRAFFIC_STATIC][0:1]
     net_utils = [0.05, 0.1, 0.15, 0.2] # [0.1,0.2,0.3,0.4]
     prop_delays = [0.01,0.1,0.5][1:2]
-    agent_types = ["mbd", "rand_deflect", "rand_forward", "NDD"][2:3]
+    agent_types = ["mbd", "rand_deflect", "rand_forward", "NDD"][0:3]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
     mbd_regularizers = [1.0]
     mbd_deltas = [1.0]
@@ -630,7 +624,7 @@ def main():
             ["2_hop_shortest", "1_hop_shortest", "3x3_section", "drop_probability"],
             ["dest_id"],
             ["dest_id", "deflect_probability"],
-            ["dest_id", "drop_probability"], ["flow_id"]][5:7]#[1:12]#[1:14]#[3:8]
+            ["dest_id", "drop_probability"], ["flow_id"]][3:7]#[1:12]#[1:14]#[3:8]
     ndd_algs = ["rand", "Q-learning"][0:2]
     ndd_alphas = [0.05][0:1]
     ndd_epsilons = [0.05][0:1]
