@@ -17,6 +17,11 @@ def multiple_run_throughput(test_name, utilization, net_size, run_name_data):
     y_lim = (0, 300000)
     multiple_run_plot(test_name, utilization, mean_field, "Throughputs", y_lim, "/results.csv", net_size, run_name_data)
 
+def multiple_run_sent_rate(test_name, utilization, net_size, run_name_data):
+    mean_field = "SentRate mean"
+    y_lim = (0, 300000)
+    multiple_run_plot(test_name, utilization, mean_field, "Sent Rates", y_lim, "/results.csv", net_size, run_name_data)
+
 # plot averages of multiple runs throughputs
 def multiple_run_hop_ratio(test_name, utilization, net_size, run_name_data):
     mean_field = "HopRatio mean"
@@ -154,7 +159,7 @@ def get_runs_data(filename, field_name, exact_match=True):
     return np.array(data)
 
 def multiple_run_plot(test_name, utilization, mean_field, fig_type, ylim, file_suffix, net_size, run_name_data):
-    fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization {fig_type} fc 200 long"
+    fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization {fig_type}"
     output_name = fig_name.replace(' ', '_')
 
     directory = "results/"
@@ -301,8 +306,8 @@ def get_no_util_run_name(net_size, infix, suffix):
     return prefix + infix + suffix
 
 def get_run_name(net_size, utilization, infix, suffix):
-    prefix = f"{net_size}_bursty_{utilization}_"
-    return prefix + infix + suffix
+    prefix = f"{net_size}_"
+    return prefix + infix + suffix + "_u_" + utilization
 
 utilizations = ["0.05","0.1","0.15","0.2"]
 net_size = "8x8"
@@ -336,46 +341,61 @@ run_infixes = [#"rand_forward_fc_200_long",
 
 experiment_name ="algorithm test"
 run_infixes = [
-               "rand_forward_fc_200_long",
-               "rand_forward_prop_0.5_fc_200",
-               "rand_forward_prop_0.01_fc_200",
-               "mbd_original_[1_hop_shortest,3x3_section]_fc_200",
-               "mbd_slide_[1_hop_shortest,3x3_section]_fc_200",
-               "mbd_D-LinUCB_0.999_[1_hop_shortest,3x3_section]_fc_200",
-               "mbd_D-LinUCB_0.9999_[1_hop_shortest,3x3_section]_fc_200",
+               "rand_forward_prop_0.1",
+               "mbd_original_[1_hop_shortest,3x3_section]_prop_0.1",
+               "mbd_slide_[1_hop_shortest,3x3_section]_prop_0.1",
+               "mbd_D-LinUCB_0.999_[1_hop_shortest,3x3_section]_prop_0.1",
+               "mbd_D-LinUCB_0.9999_[1_hop_shortest,3x3_section]_prop_0.1",
             ]
 
 
 experiment_name = "state test"
 run_infixes = [
-               #"rand_forward_fc_200_long",
-               #"rand_deflect_fc_200_long",
-               "mbd_slide_[1_hop_shortest]_fc_200",
-               "mbd_slide_[1_hop_shortest,3x3_section]_fc_200",
-               "mbd_slide_[2_hop_shortest,1_hop_shortest]_fc_200",
-               "mbd_slide_[2_hop_shortest,1_hop_shortest,3x3_section]_fc_200",
-               "mbd_slide_[1-2_hop_shortest]_fc_200",
-               "mbd_slide_[1-2_hop_shortest,3x3_section]_fc_200",
+               #"rand_forward_prop_0.1",
+               #"rand_deflect_prop_0.1",
+               "mbd_slide_[1_hop_shortest]_prop_0.1",
+               "mbd_slide_[1_hop_shortest,3x3_section]_prop_0.1",
+               "mbd_slide_[2_hop_shortest,1_hop_shortest]_prop_0.1",
+               "mbd_slide_[2_hop_shortest,1_hop_shortest,3x3_section]_prop_0.1",
+               "mbd_slide_[1-2_hop_shortest]_prop_0.1",
+               "mbd_slide_[1-2_hop_shortest,3x3_section]_prop_0.1",
             ]
 
 experiment_name = "propagation test"
 run_infixes = [
-               "rand_forward_fc_200",
-               "rand_forward_prop_0.01_fc_200",
-               "rand_forward_prop_0.5_fc_200",
-               "mbd_slide_[1_hop_shortest,3x3_section]_fc_200",
-               "mbd_slide_[1_hop_shortest,3x3_section]_prop_0.01_fc_200",
-               "mbd_slide_[1_hop_shortest,3x3_section]_prop_0.5_fc_200",
+               "rand_forward_prop_0.1",
+               "rand_forward_prop_0.01",
+               "rand_forward_prop_0.5",
+               "mbd_slide_[1_hop_shortest,3x3_section]_prop_0.1",
+               "mbd_slide_[1_hop_shortest,3x3_section]_prop_0.01",
+               "mbd_slide_[1_hop_shortest,3x3_section]_prop_0.5",
             ]
 
 run_suffix = ""
 
+'''
 experiment_name = "changing flows test"
 run_infixes = [
                 "mbd_slide_[1_hop_shortest,3x3_section]_prop_0.1",
                 "rand_forward_prop_0.1",
                 "rand_deflect_prop_0.1",
             ]
+run_suffix = ""
+'''
+
+utilizations = ["0.05"]
+experiment_name = "changes test"
+run_infixes = [
+                "rand_forward_prop_0.1",
+                "delete_prop_0.1",
+            ]
+run_suffix = ""
+
+experiment_name = "delete"
+run_infixes = [
+        "mbd_slide_s_[1_hop_shortest,3x3_section]_r_1.0_d_1.0_mice-elephant_p_0.1",
+        "rand_forward_mice-elephant_p_0.1",
+        ]
 run_suffix = ""
 
 run_name_data = (run_infixes, run_suffix)
@@ -384,12 +404,13 @@ for utilization in utilizations:
     multiple_run_throughput(experiment_name, utilization, net_size, run_name_data)
     multiple_run_hop_ratio(experiment_name, utilization, net_size, run_name_data)
     multiple_run_drop_rate(experiment_name, utilization, net_size, run_name_data)
-    multiple_run_link_usage(experiment_name, utilization, net_size, run_name_data)
-    multiple_run_out_of_order(experiment_name, utilization, net_size, run_name_data)
+    #multiple_run_link_usage(experiment_name, utilization, net_size, run_name_data)
+    #multiple_run_out_of_order(experiment_name, utilization, net_size, run_name_data)
+    #multiple_run_sent_rate(experiment_name, utilization, net_size, run_name_data)
 
-plot_across_utils(experiment_name, utilizations, "DropRate mean", "Drop Rate", (0,.3), "/results.csv", net_size, run_name_data)
-plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (0,3), "/results.csv", net_size, run_name_data)
-plot_across_utils(experiment_name, utilizations, "OutOfOrderRatio mean", "Out of Order Ratio", (0,.5), "/results.csv", net_size, run_name_data)
+#plot_across_utils(experiment_name, utilizations, "DropRate mean", "Drop Rate", (0,.3), "/results.csv", net_size, run_name_data)
+#plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (0,3), "/results.csv", net_size, run_name_data)
+#plot_across_utils(experiment_name, utilizations, "OutOfOrderRatio mean", "Out of Order Ratio", (0,.5), "/results.csv", net_size, run_name_data)
 # link mean
-plot_across_utils(experiment_name, utilizations, "mean", "Link Usage", (0,.5), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=True)
-plot_across_utils(experiment_name, utilizations, "mean", "Link Usage stdev", (0,.2), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=False, stdev_not_mean=True)
+#plot_across_utils(experiment_name, utilizations, "mean", "Link Usage", (0,.5), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=True)
+#plot_across_utils(experiment_name, utilizations, "mean", "Link Usage stdev", (0,.2), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=False, stdev_not_mean=True)
