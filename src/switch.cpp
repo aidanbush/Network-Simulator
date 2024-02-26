@@ -1338,6 +1338,9 @@ void NDDSwitch::createDNEvent() {
 int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
     vector<int> routingIfaces;
     NDDPacket *NDDp = dynamic_cast<NDDPacket *>(p);
+    if (NDDp == NULL) {
+        throw runtime_error("NDDSwitch:\npacket is not an NDDPacket");
+    }
 
     for (int iface: get<1>(this->routingTable.find(p->getDest())->second)) {
         Interface *interface = man.getInterface(iface);

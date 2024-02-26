@@ -40,6 +40,7 @@ using namespace std;
 enum FlowType {
     BasicFlowType,
     MBDFlowType,
+    NDDFlowType,
 #ifdef _TEST
     TestFlowType,
 #endif /* _TEST */
@@ -68,6 +69,7 @@ Flow *createFlow(json &flowNetConfig, json &flowTestConfig) {
     static map<string, FlowType> flowTypeMap = {
         {"basic", BasicFlowType},
         {"mbd", MBDFlowType},
+        {"ndd", NDDFlowType},
 #ifdef _TEST
         {"test", TestFlowType},
 #endif /* _TEST */
@@ -96,6 +98,9 @@ Flow *createFlow(json &flowNetConfig, json &flowTestConfig) {
             break;
         case MBDFlowType:
             flow = new MBDFlow(flowNetConfig);
+            break;
+        case NDDFlowType:
+            flow = new NDDFlow(flowNetConfig);
             break;
 #ifdef _TEST
         case TestFlowType:

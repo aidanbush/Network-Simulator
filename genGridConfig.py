@@ -517,6 +517,7 @@ def setup_configs(size, experiment_config):
     linkConfig = linkConfigDefault.copy()
 
     linkConfig["time"] = experiment_config["prop_delay"]
+    flowConfig["type"] = experiment_config["flow_type"]
 
     # set switch type
     switchConfig["type"] = experiment_config["type"]
@@ -551,13 +552,11 @@ def setup_configs(size, experiment_config):
 def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent_algs, mbd_states,
         mbd_regularizer, mbd_delta, mbd_discount_factor, ndd_alg, ndd_alpha, ndd_epsilon, ndd_gamma):
 
-    print(agent_types)
-
     agent_dicts = []
 
     if "NDD" in agent_types:
         ndd_algs = []
-        ndd_dict = [{"type":"NDD"}]
+        ndd_dict = [{"type":"NDD", "flow_type":"ndd"}]
         # ndd qlearning
         if "Q-learning" in ndd_alg:
             ndd_q_learning = [{**d, **{"ndd_alg":"Q-learning", "ndd_alpha":a, "ndd_epsilon":e, "ndd_gamma":g}}
@@ -572,7 +571,7 @@ def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent
     # mbd
     if "mbd" in agent_types:
         mbd_algs = []
-        mbd_dict = [{"type": "mbd", "drop_action": False, "states": s, "regularizer":r, "delta":d}
+        mbd_dict = [{"type": "mbd", "flow_type":"mbd", "drop_action": False, "states": s, "regularizer":r, "delta":d}
                 for s in mbd_states for r in mbd_regularizer for d in mbd_delta]
 
         if "D-LinUCB" in mbd_agent_algs:
@@ -586,11 +585,11 @@ def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent
         agent_dicts += mbd_algs
 
     if "rand_forward" in agent_types:
-        rand_forward_dict = [{"type": "rand_forward"}]
+        rand_forward_dict = [{"type": "rand_forward", "flow_type": "basic"}]
         agent_dicts += rand_forward_dict
 
     if "rand_deflect" in agent_types:
-        rand_deflect_dict = [{"type": "rand_deflect"}]
+        rand_deflect_dict = [{"type": "rand_deflect", "flow_type": "basic"}]
         agent_dicts += rand_deflect_dict
 
     experiment_dicts = [{**d, **{"net_util": u, "prop_delay": p, "traffic_type": t}}
@@ -611,7 +610,7 @@ def main():
     traffic_types = [TRAFFIC_MICE_ELEPHANT, TRAFFIC_CHANGING, TRAFFIC_STATIC][0:1]
     net_utils = [0.05, 0.1, 0.15, 0.2][0:1] # [0.1,0.2,0.3,0.4]
     prop_delays = [0.01,0.1,0.5][1:2]
-    agent_types = ["mbd", "rand_deflect", "rand_forward", "NDD"][3:4]
+    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][1:4]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
     mbd_regularizers = [1.0]
     mbd_deltas = [1.0]

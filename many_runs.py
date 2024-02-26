@@ -19,7 +19,7 @@ def gen_experiment_name(size, config):
         if mbd_type == "D-LinUCB":
             agent += "_df_" + str(config["discount_factor"])
         agent += "_r_" + str(config["regularizer"]) + "_d_" + str(config["delta"])
-    elif agent == "ndd":
+    elif agent == "NDD":
         ndd_type = config["ndd_alg"]
         agent += f"_{ndd_type}"
         if ndd_type == "Q-learning":
@@ -30,6 +30,7 @@ def gen_experiment_name(size, config):
     elif agent == "rand_deflect":
         pass
     else:
+        print("agent not valid type")
         return None
 
     return f"{size}x{size}_{agent}_{traffic_type}_p_{prop_delay}_u_{net_util}"
@@ -42,7 +43,7 @@ def main():
     traffic_types = [helper.TRAFFIC_MICE_ELEPHANT, helper.TRAFFIC_CHANGING, helper.TRAFFIC_STATIC][0:1]
     net_utils = [0.05, 0.1, 0.15, 0.2][0:1]
     prop_delays = [0.01,0.1,0.5][1:2]
-    agent_types = ["mbd", "rand_forward", "rand_deflect", "NDD"][1:2]
+    agent_types = ["mbd", "rand_forward", "rand_deflect", "NDD"][3:4]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
     mbd_regularizers = [1.0]
     mbd_deltas = [1.0]
@@ -60,8 +61,8 @@ def main():
             ["2_hop_shortest", "1_hop_shortest", "3x3_section", "drop_probability"],
             ["dest_id"],
             ["dest_id", "deflect_probability"],
-            ["dest_id", "drop_probability"]][5:6]
-    ndd_algs = ["rand", "Q-learning"][0:2]
+            ["dest_id", "drop_probability"]][4:5]
+    ndd_algs = ["rand", "Q-learning"][0:1]
     ndd_alphas = [0.05][0:1]
     ndd_epsilons = [0.05][0:1]
     ndd_gammas = [0.99][0:1]
