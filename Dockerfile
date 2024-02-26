@@ -5,8 +5,10 @@ RUN apt install -y vim cmake g++ wget unzip nlohmann-json3-dev libboost-all-dev 
 RUN pip install numpy pandas
 
 #try local download
-RUN wget https://download.pytorch.org/libtorch/nightly/cpu/libtorch-shared-with-deps-latest.zip
-RUN unzip libtorch-shared-with-deps-latest.zip
+#RUN wget https://download.pytorch.org/libtorch/nightly/cpu/libtorch-shared-with-deps-latest.zip
+#RUN unzip libtorch-shared-with-deps-latest.zip
+RUN wget https://download.pytorch.org/libtorch/nightly/cpu/libtorch-shared-with-deps-2.1.0.dev20230601%2Bcpu.zip
+RUN unzip libtorch-shared-with-deps-2.1.0.dev20230601+cpu.zip
 
 # to run
 #docker run -it -v Network-Simulator:/simulator sim3
