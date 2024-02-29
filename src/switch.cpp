@@ -754,9 +754,9 @@ void ManhattanBanditDeflectionSwitch::startSwitch() {
     // neighbour Ifaces - destination iface
     int numActions;
     if (this->dropAction) {
-        numActions = switchNeighbourIfaces.size() + 1;/* number of interfaces +1 if drop*/;
+        numActions = switchNeighbourIfaces.size() + 1;
     } else {
-        numActions = switchNeighbourIfaces.size();/* number of interfaces +1 if drop*/;
+        numActions = switchNeighbourIfaces.size();
     }
     int seed = man.random();/* get from manager random */
     // initialize agent
@@ -1156,6 +1156,8 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
         return NULL_ID;
     }
 
+    // TODO if not enough hops left to get to destination drop
+
     pair<int, double> action = agent->selectAction(state, nonBlockedActions);
     int actionInterface = actionInterfaces[action.first];
 
@@ -1349,12 +1351,13 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
         }
     }
 
-    // TODO this does all not just optimal need two sets
+    // if any optimal interfaces avaiable take them
     if (!routingIfaces.empty()) {
         //randomly select amongst the optimal interfaces
         return routingIfaces[generator() % routingIfaces.size()];
     }
 
+    // otherwise go through non optimal interfaces
     // determine the set of actions that are possible
     set<int> deflectionInterfaces = get<2>(this->routingTable.find(p->getDest())->second);
     vector<int> availableActions, allActions;
@@ -1414,6 +1417,7 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
 void NDDSwitch::dropPacketFeedback(Packet *p) {
     NDDPacket *NDDp = dynamic_cast<NDDPacket *>(p);
 
+    // TODO is feedback ever sent
     if (NDDp->getDeflectionId() != NULL_ID) {
         int deflectingSwitch = NDDp->getDeflectingSwitchId();
         NDDFeedbackMessage feedback = {

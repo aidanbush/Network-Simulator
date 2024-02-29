@@ -86,6 +86,7 @@ TabQLearning::TabQLearning(json &NDDAgentConfig):
     NDDAgent(validateTabQLearningConfig(NDDAgentConfig)) {
     //double alpha, double epsilon, double gamma, int seed
     this->alpha = NDDAgentConfig["alpha"];
+    // TODO is epsilon 1 / what is the value?
     this->epsilon = NDDAgentConfig["epsilon"];
     this->gamma = NDDAgentConfig["gamma"];
 }
@@ -133,6 +134,7 @@ int TabQLearning::selectAction(vector<int> observation, vector<int> availableAct
     int state = obsToState(observation);
 
     if (explore && (double)generator()/(generator.max() - generator.min()) < this->epsilon) {
+        // TODO are only random actions taken
         return availableActions[generator() % availableActions.size()];
     }
 
