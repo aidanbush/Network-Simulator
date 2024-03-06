@@ -13,6 +13,7 @@
 
 class LinUCB;
 class NDDAgent;
+class MBDPacket;
 
 typedef double second_t;
 
@@ -221,7 +222,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         void sendActionUpdate(int prevSwitch, Packet *p, actionResult result, double actionValue);
         void recieveActionUpdate(int pId, actionResult result, double nextValue, int nextMinHops);
 
-        void recordAction(Packet *p, vector<double> context, int action);
+        void recordAction(MBDPacket *p, vector<double> context, int action);
         tuple<vector<double>, int, int> peekAction(int pId);
         tuple<vector<double>, int, int> retrieveAction(int pId);
         vector<int> availableInterfaces(Packet *p);
@@ -280,6 +281,7 @@ class NDDSwitch: public RandomForwardSwitch {
         // for updating agent
         second_t DfT;
         int deflectionId;
+        int deflectionIdCounter;
         int lastAction;
         vector<int> lastActionSet;
         vector<int> lastState;

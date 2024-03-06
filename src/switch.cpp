@@ -192,10 +192,16 @@ void Switch::rxPacket(Packet *p, int sourceInterfaceId) {
     actionablePackets++;
 
     int interfaceId = routePacket(p, sourceInterfaceId);
+
     // if no interface selected, drop the packet
     if (interfaceId == NULL_ID) {
         dropPacket(p);
         return;
+    }
+
+    // check if valid interface for switch
+    if (!this->hasInterface(interfaceId)) {
+        throw runtime_error("Switch: rxPacket: trying to route to non existing interface");
     }
 
     // if in routing map then forward otherwise deflect
@@ -344,15 +350,35 @@ bool Switch::setupRoutingTable() {
 
         PacketHandler *handler = man.getHandler(handlerId);
 
-        vector<int> handlerInterfacesVec = handler->getInterfaces();
-        set<int> handlerInterfacesSet = set<int>(handlerInterfacesVec.begin(), handlerInterfacesVec.end());
+        vector<int> allInterfacesVec = this->getInterfaces();
+        set<int> allInterfacesSet = set<int>(allInterfacesVec.begin(), allInterfacesVec.end());
+        // todo this should be the current switches interfaces not the destination!!!
         set<int> nonOptimalInterfaces;/*all of the handlers interfaces - optimal interfaces*/
         set<int> optimalInterfaces = prev[handlerId];
-        set_difference(handlerInterfacesSet.begin(), handlerInterfacesSet.end(),
+        set_difference(allInterfacesSet.begin(), allInterfacesSet.end(),
                 optimalInterfaces.begin(), optimalInterfaces.end(),
                 inserter(nonOptimalInterfaces, nonOptimalInterfaces.begin()));
 
         routingTable[handlerId] = {dist[handlerId], optimalInterfaces, nonOptimalInterfaces};
+
+        ostringstream optimalStream;
+        copy(optimalInterfaces.begin(), optimalInterfaces.end(), ostream_iterator<int>(optimalStream, ","));
+        string optimalString = optimalStream.str();
+
+        ostringstream nonOptimalStream;
+        copy(nonOptimalInterfaces.begin(), nonOptimalInterfaces.end(), ostream_iterator<int>(nonOptimalStream, ","));
+        string nonOptimalString = nonOptimalStream.str();
+
+        ostringstream allStream;
+        copy(allInterfacesSet.begin(), allInterfacesSet.end(), ostream_iterator<int>(allStream, ","));
+        string allString = allStream.str();
+
+
+        man.logEvent(SWITCH_STR, id, "Switch: setupRoutingTable",
+                "dest: " + to_string(handlerId) + " num optimal: " + to_string(optimalInterfaces.size()) +
+                " num non-optimal: " + to_string(nonOptimalInterfaces.size()) +
+                " optimal: " + optimalString + " non-optimal: " + nonOptimalString +
+                " all interfaces " + allString);
     }
 
     return true;
@@ -887,6 +913,9 @@ int ManhattanBanditDeflectionSwitch::getNumDims() {
             case dropProbState:
                 numDims += dropProbStateDims;
                 break;
+            default:
+                throw runtime_error("ManhattanBanditDeflectionSwitch: getNumDims: unsupported state");
+                break;
         }
     }
 
@@ -1085,6 +1114,9 @@ vector<double> ManhattanBanditDeflectionSwitch::getState(Packet *p) {
             case dropProbState:
                 setDropProbState(state, p);
                 break;
+            default:
+                throw runtime_error("ManhattanBanditDeflectionSwitch: getState: unsupported state");
+                break;
         }
     }
 
@@ -1139,10 +1171,13 @@ void ManhattanBanditDeflectionSwitch::rxPacket(Packet *p, int sourceInterfaceId)
 }
 
 int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceId) {
-    // get state
+    MBDPacket *MBDP = dynamic_cast<MBDPacket *>(p);
+    if (MBDP == NULL) {
+        throw runtime_error("Switch:\nMBD switch passed a non MBD packet\n");
+    }
+
     vector<double> state = getState(p);
 
-    // get available actions
     vector<int> nonBlockedActions = availableInterfaces(p);
 
     // force a drop if all ports are blocked
@@ -1156,17 +1191,45 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
         return NULL_ID;
     }
 
-    // TODO if not enough hops left to get to destination drop
+    // if not enough hops left to get to destination drop
+    if (this->manhattanDistance(
+                getCoords(this->id, this->networkSize), getCoords(p->getDest(), this->networkSize))
+            > p->getTTL()) {
+#ifdef ONE_HOP_REWARD
+        if (sourceInterfaceId != NULL_ID) { // address when a packet was just created
+            int prevSwitch = interfaceToNeighbour[sourceInterfaceId];
+            sendActionUpdate(prevSwitch, p, actionDrop, 0);
+        }
+#endif /* ONE_HOP_REWARD */
+        return NULL_ID;
+    }
+
+    // TODO if deflected too many times drop
+    if (MBDP->deflectionsRemaining() <= 0) {
+#ifdef ONE_HOP_REWARD
+        if (sourceInterfaceId != NULL_ID) { // address when a packet was just created
+            int prevSwitch = interfaceToNeighbour[sourceInterfaceId];
+            sendActionUpdate(prevSwitch, p, actionDrop, 0);
+        }
+#endif /* ONE_HOP_REWARD */
+        return NULL_ID;
+    }
 
     pair<int, double> action = agent->selectAction(state, nonBlockedActions);
     int actionInterface = actionInterfaces[action.first];
 
-    recordAction(p, state, action.first);
+    recordAction(MBDP, state, action.first);
+
+    // if deflection - ie in routing table non optimal set
+    if (get<2>(this->routingTable.find(p->getDest())->second).contains(action.first)) {
+        MBDP->recordDeflection();
+    }
 
     // update previous switch with the value from agent->selectAction
 #ifdef ONE_HOP_REWARD
     if (sourceInterfaceId != NULL_ID) { // packet arrived from a neighbour we need to update them
         int prevSwitch = interfaceToNeighbour[sourceInterfaceId];
+
         if (actionInterface != NULL_ID) {
             sendActionUpdate(prevSwitch, p, actionForward, action.second);
         } else {
@@ -1182,11 +1245,10 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
     return actionInterface;
 }
 
-void ManhattanBanditDeflectionSwitch::recordAction(Packet *p, vector<double> context, int action) {
+void ManhattanBanditDeflectionSwitch::recordAction(MBDPacket *MBDP, vector<double> context, int action) {
     // TODO if exists add to queue else create queue
-    actionStore[p->getId()].push(tuple<vector<double>, int, int>{context, action, p->getDest()});
+    actionStore[MBDP->getId()].push(tuple<vector<double>, int, int>{context, action, MBDP->getDest()});
 
-    MBDPacket *MBDP = dynamic_cast<MBDPacket *>(p);
     MBDP->recordAction(id);
 }
 
@@ -1236,6 +1298,7 @@ NDDSwitch::NDDSwitch(json &switchConfig): RandomForwardSwitch(validateNDDSwitchC
 
     this->DfT = 0.0;
     this->deflectionId = NULL_ID;
+    this->deflectionIdCounter = 0;
     this->lastAction = -1;
 
     // create agent
@@ -1344,6 +1407,8 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
         throw runtime_error("NDDSwitch:\npacket is not an NDDPacket");
     }
 
+    man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket", "packet: " + to_string(NDDp->getId()));
+
     for (int iface: get<1>(this->routingTable.find(p->getDest())->second)) {
         Interface *interface = man.getInterface(iface);
         if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
@@ -1353,6 +1418,8 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
 
     // if any optimal interfaces avaiable take them
     if (!routingIfaces.empty()) {
+        man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket", "optimal path - packet: " +
+                to_string(NDDp->getId()));
         //randomly select amongst the optimal interfaces
         return routingIfaces[generator() % routingIfaces.size()];
     }
@@ -1371,19 +1438,25 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
 
     // if no available deflection interfaces drop packet
     if (availableActions.empty()) {
+        man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket",
+                "dropping Packet: " + to_string(NDDp->getId()));
         return NULL_ID;
     }
 
     vector<int> state = getState(p);
     //if packet.deflection_id == NULL_ID and no current deflecting packet
     if (NDDp->getDeflectionId() == NULL_ID && this->deflectionId == NULL_ID) {
-        int numActions = deflectionInterfaces.size();
         this->lastAction = agent->selectAction(state, availableActions, true); // true allows exploration
-        this->lastActionSet = allActions;
+        this->lastActionSet = allActions; // TODO this should be avaiable deflection actions
+        man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket",
+                "first deflection of packet: " + to_string(NDDp->getId()) + " deflectionId: " +
+                to_string(this->deflectionIdCounter + 1) + " action: " + to_string(this->lastAction) +
+                " num actions: " + to_string(availableActions.size()) +
+                " num deflection interfaces: " + to_string(deflectionInterfaces.size()));
 
-        deflectionId++;
-        if (!NDDp->deflect(deflectionId, this->id, 1)) {
-            // TODO handler error the packet was deflected before
+        this->deflectionIdCounter++;
+        if (!NDDp->deflect(this->deflectionIdCounter, this->id, 1)) {
+            throw runtime_error("NDDSwitch:\nroutePacket: packet already deflected with no deflection id\n");
         }
         // set unique deflection id, record deflecting switch, set the initial DHC
         // create DN event
@@ -1391,23 +1464,31 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
         // record switch side variables
         this->DfT = man.time;
         this->lastState = state; // this safely copies over the vector
+        this->deflectionId = this->deflectionIdCounter;
         //store action in best actions?
         return this->actionInterfaces[this->lastAction];
     }
 
-    // undeflected packet and currently deflecting - TODO do I specify it as deflected once?
+    // undeflected packet and currently deflecting - it's DHC will be incremented later
     if (NDDp->getDeflectionId() == NULL_ID && this->deflectionId != NULL_ID){
+        man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket",
+                "deflecting undeflected packet while tracking another: " +
+                to_string(NDDp->getId()));
         int action = agent->selectAction(state, availableActions, false);
         // outgoing_interface = best previous action
         return this->actionInterfaces[action];
     }
 
-    // the packet was deflected
-    if (NDDp->getDHC() > this->DHCMax) {
-        dropPacketFeedback(p);
+    // the packet was deflected and must be dropped
+    if (NDDp->getDHC() >= this->DHCMax) {
+        man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket", "drop DHC packet: " +
+                to_string(NDDp->getId()));
+        this->dropPacketFeedback(p);
         return NULL_ID;
     }
 
+    man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket", "deflect previously deflected packet: " +
+            to_string(NDDp->getId()) + " deflection id:" + to_string(NDDp->getDeflectionId()));
     int action = agent->selectAction(state, availableActions, false);
     // outgoing_interface = best previous action
     NDDp->incrementDHC();
@@ -1416,8 +1497,10 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
 
 void NDDSwitch::dropPacketFeedback(Packet *p) {
     NDDPacket *NDDp = dynamic_cast<NDDPacket *>(p);
+    if (NDDp == NULL) {
+        throw runtime_error("Switch:\nNDD switch passed a non NDD packet\n");
+    }
 
-    // TODO is feedback ever sent
     if (NDDp->getDeflectionId() != NULL_ID) {
         int deflectingSwitch = NDDp->getDeflectingSwitchId();
         NDDFeedbackMessage feedback = {
@@ -1435,19 +1518,31 @@ void NDDSwitch::DNTimerEvent() {
     // check if the original timer should still be going and feedback has not arrived
     if (man.time == this->DNTimer and this->deflectionId != NULL_ID) {
         double reward = calculateReward(0.0, 0.0);
+        man.logEvent(SWITCH_STR, id, "DNTimerEvent", "deflection notificaiton timer elapsed without feedback: " +
+                to_string(this->deflectionId) + " reward: " + to_string(reward));
+
         agent->update(this->lastState, this->lastAction, reward, this->lastActionSet);
+
         this->DNTimer = 0.0;
-        this->deflectionId == NULL_ID;
+        this->deflectionId = NULL_ID;
         this->DfT = 0.0;
     }
 }
 
 void NDDSwitch::feedbackArrived(NDDFeedbackMessage feedback) {
+    man.logEvent(SWITCH_STR, id, "dropPacketFeedback", "recieved feedback message for deflection: " +
+            to_string(feedback.deflectionId) + ", " + to_string(this->deflectionId) +
+            " DHC: " + to_string(feedback.DHC) + " TTT: " + to_string(man.time - this->DfT) +
+            " reward: " + to_string(calculateReward(man.time - this->DfT, feedback.DHC)));
+
     // check if current feedback via deflection_id
     if (feedback.deflectionId == this->deflectionId) {
         double TTT = man.time - this->DfT;
         double reward = calculateReward(TTT, feedback.DHC);
         agent->update(this->lastState, this->lastAction, reward, this->lastActionSet);
+
+        man.logEvent(SWITCH_STR, id, "dropPacketFeedback", "agent updated action: " + to_string(this->lastAction) + " reward: " + to_string(reward));
+
         this->DNTimer = 0.0;
         this->deflectionId = NULL_ID;
         this->DfT = 0.0;

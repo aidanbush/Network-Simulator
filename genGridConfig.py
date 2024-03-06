@@ -25,39 +25,35 @@ linkConfigDefault = {
         "speed": 1500000,
         }
 linkConfig = {
-        "speed": 1500000,
         }
 
 # flows
-flowConfig = {
-        "start_rate": linkConfig["speed"], # TODO remove from flow class
+flowConfigDefault = {
+        "start_rate": linkConfigDefault["speed"], # TODO remove from flow class
         "type": "mbd",
         "start_time": 0,
         "end_time": 0,
         "ttl": None,
-#        "generator": {
-#            "type": "poisson",
-#            "header": 20,
-#            "body": 1480,
-#            "bitrate": 1000000,
-#            "buffer_size": 150000
-#            }
         "generator": {
             "type": "compound_poisson",
             "header": 20,
             "body": 1480,
-            "burst_rate": linkConfig["speed"],
+            "burst_rate": linkConfigDefault["speed"],
             "burst_mean_len": 6.25/2,# 75000 b (6.25 * pktsize * 8)
             "mean_rate" : 500000/2,
             "buffer_size": 150000 # 100 packets TODO remove from generator class
             }
         }
+flowConfig = {
+        }
 #
 
 # interfaces
 interfaceConfig = {
-        "out_buf_size": 1*(flowConfig["generator"]["header"] + flowConfig["generator"]["body"]),
-        "in_buf_size": 1*(flowConfig["generator"]["header"] + flowConfig["generator"]["body"])
+        "out_buf_size": 1*(flowConfigDefault["generator"]["header"] +
+            flowConfigDefault["generator"]["body"]),
+        "in_buf_size": 1*(flowConfigDefault["generator"]["header"] +
+            flowConfigDefault["generator"]["body"])
         }
 
 flowRoutes = [{
@@ -475,7 +471,7 @@ def gen_path(dest_dir, size, experiment_config):
             ndd_alpha = experiment_config["ndd_alpha"]
             ndd_epsilon = experiment_config["ndd_epsilon"]
             ndd_gamma = experiment_config["ndd_gamma"]
-            filepath = os.path.join(filepath, f"rand", f"a_{ndd_alpha}-e_{ndd_epsilon}-g_{ndd_gamma}")
+            filepath = os.path.join(filepath, f"Q-learning", f"a_{ndd_alpha}-e_{ndd_epsilon}-g_{ndd_gamma}")
         else:
             print(f"ndd_agent: {ndd_agent} is not supported")
             return None
@@ -512,9 +508,10 @@ def gen_path(dest_dir, size, experiment_config):
     return filepath
 
 def setup_configs(size, experiment_config):
-    global switchConfig, linkConfig
+    global switchConfig, linkConfig, flowConfig
     switchConfig = switchConfigDefault.copy()
     linkConfig = linkConfigDefault.copy()
+    flowConfig = flowConfigDefault.copy()
 
     linkConfig["time"] = experiment_config["prop_delay"]
     flowConfig["type"] = experiment_config["flow_type"]
@@ -533,6 +530,7 @@ def setup_configs(size, experiment_config):
         if experiment_config["mbd_alg"] == "D-LinUCB":
             switchConfig["discount_factor"] = experiment_config["discount_factor"]
 
+        flowConfig["static deflections"] = experiment_config["static deflections"]
         switchConfig["deflect_thresh"] = 1.0 # required because it inherits from rand_deflect
     elif experiment_config["type"] == "NDD":
         switchConfig["DHC_max"] = 2
@@ -565,13 +563,14 @@ def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent
         if "rand" in ndd_alg:
             ndd_rand = [{**d, **{"ndd_alg": "rand"}}
                     for d in ndd_dict]
-        ndd_algs += ndd_rand
+            ndd_algs += ndd_rand
         agent_dicts += ndd_algs
 
     # mbd
     if "mbd" in agent_types:
         mbd_algs = []
-        mbd_dict = [{"type": "mbd", "flow_type":"mbd", "drop_action": False, "states": s, "regularizer":r, "delta":d}
+        mbd_dict = [{"type": "mbd", "flow_type":"mbd", "drop_action": False, "static deflections": 2,
+            "states": s, "regularizer":r, "delta":d}
                 for s in mbd_states for r in mbd_regularizer for d in mbd_delta]
 
         if "D-LinUCB" in mbd_agent_algs:
@@ -603,18 +602,18 @@ def main():
     simulation_length = 2000 # 1000
     num_flow_changes = 200 # 100
 
-    flowConfig["ttl"] = size * 3
+    flowConfigDefault["ttl"] = size * 3
 
     dest_dir = "configs"
 
     traffic_types = [TRAFFIC_MICE_ELEPHANT, TRAFFIC_CHANGING, TRAFFIC_STATIC][0:1]
     net_utils = [0.05, 0.1, 0.15, 0.2][0:1] # [0.1,0.2,0.3,0.4]
-    prop_delays = [0.01,0.1,0.5][1:2]
-    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][1:4]
+    prop_delays = [0.01,0.1,0.5][0:1]
+    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][0:1]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
-    mbd_regularizers = [1.0]
-    mbd_deltas = [1.0]
-    mbd_discount_factors = [0.99, 0.999, 0.9999]
+    mbd_regularizers = [0.5,0.9,1.0,1.1,2.0][2:3]
+    mbd_deltas = [0.1,0.5,0.9,1.0][3:4]
+    mbd_discount_factors = [0.99, 0.999, 0.9999][1:2]
     mbd_states = [["1-2_hop_shortest"],
             ["1-2_hop_shortest", "3x3_section"],
             ["2_hop_shortest"],
@@ -628,10 +627,10 @@ def main():
             ["2_hop_shortest", "1_hop_shortest", "3x3_section", "drop_probability"],
             ["dest_id"],
             ["dest_id", "deflect_probability"],
-            ["dest_id", "drop_probability"], ["flow_id"]][3:7]#[1:12]#[1:14]#[3:8]
-    ndd_algs = ["rand", "Q-learning"][0:1]
-    ndd_alphas = [0.05][0:1]
-    ndd_epsilons = [0.05][0:1]
+            ["dest_id", "drop_probability"], ["flow_id"]][4:5]#[1:12]#[1:14]#[3:8]
+    ndd_algs = ["rand", "Q-learning"][0:2]
+    ndd_alphas = [0.05,0.01,0.005][0:1]
+    ndd_epsilons = [0.05,0.01,0.005][0:1]
     ndd_gammas = [0.99][0:1]
 
     experiment_configs = gen_config_list(net_utils, prop_delays, traffic_types, agent_types,

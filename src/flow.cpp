@@ -607,7 +607,37 @@ void BasicFlow::recordData() {
 
 /* Manhattan Bandit Deflection Flow */
 
-MBDFlow::MBDFlow(json &flowConfig): BasicFlow(flowConfig) {
+MBDFlow::MBDFlow(json &flowConfig): BasicFlow(validateMBDFlowConfig(flowConfig)) {
+    this->maxDeflections = flowConfig["static deflections"];
+    //this->dynamicDeflectionDenom = flowConfig["dynamic deflection denominator"];
+}
+
+json &MBDFlow::validateMBDFlowConfig(json &flowConfig) {
+    string message = "";
+    if (!hasMemberOfType(flowConfig, "static deflections", jsonInt)) {
+        message += "No integer with name 'static deflections'.\n";
+    }
+
+    /*
+    if (!hasMemberOfType(flowConfig, "dynamic deflection denominator", jsonDouble)) {
+        message += "No integer with name 'dynamic deflection denominator'.\n";
+    }
+    */
+
+    if (!message.empty()) {
+        message = "MBD Flow:\n" + message + flowConfig.dump(4);
+        throw runtime_error(message);
+    }
+
+    return flowConfig;
+}
+
+void MBDFlow::initializeFlow() {
+    BasicFlow::initializeFlow();
+
+    //Switch *s = man.getSwitch(this->sourceId);
+    //int hops = s->getHops(this->destId);
+    //this->maxDeflections += floor(hops / this->dynamicDeflectionDenom);
 }
 
 Packet *MBDFlow::getNextPacket(bool fromSource) {
@@ -619,7 +649,7 @@ Packet *MBDFlow::getNextPacket(bool fromSource) {
 
     int pId = newPacketId(fromSource);
 
-    MBDPacket *p = new MBDPacket(pId, sourceId, destId, id, pData.burstId, pData.lastInBurst, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource);
+    MBDPacket *p = new MBDPacket(pId, sourceId, destId, id, pData.burstId, pData.lastInBurst, NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource, this->maxDeflections);
 
     if (!addPacket(p)) {
         delete p;

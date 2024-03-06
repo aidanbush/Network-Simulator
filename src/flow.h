@@ -121,7 +121,7 @@ class BasicFlow: public Flow {
     friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
     public:
 
-        void initializeFlow();
+        virtual void initializeFlow();
         void startFlow();
         void stopFlow();
         virtual void txPacketEvent();
@@ -147,10 +147,16 @@ class BasicFlow: public Flow {
 
 class MBDFlow: public BasicFlow {
     friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
+    public:
+        void initializeFlow();
 
     protected:
         MBDFlow(json &flowConfig);
+        static json &validateMBDFlowConfig(json &flowConfig);
+
         Packet *getNextPacket(bool fromSource);
+
+        int maxDeflections;
 };
 
 class NDDFlow: public BasicFlow {

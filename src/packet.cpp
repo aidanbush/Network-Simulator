@@ -96,8 +96,9 @@ bool Packet::validate() {
 
 /* ManhattanBanditDeflectionPacket */
 MBDPacket::MBDPacket(int id, int sourceId, int destId, int flowId, int burstId, bool lastInBurst, int dataId,
-        int ttl, int headerSize, int bodySize, bool sourcePacket): Packet(id, sourceId, destId, flowId, burstId,
-            lastInBurst, dataId, ttl, headerSize, bodySize, sourcePacket) {
+        int ttl, int headerSize, int bodySize, bool sourcePacket, int remainingDeflections): Packet(id, sourceId,
+            destId, flowId, burstId, lastInBurst, dataId, ttl, headerSize, bodySize, sourcePacket) {
+    this->remainingDeflections = remainingDeflections;
 }
 
 void MBDPacket::arrive() {
@@ -183,7 +184,7 @@ NDDPacket::NDDPacket(int id, int sourceId, int destId, int flowId, int burstId, 
 }
 
 bool NDDPacket::deflect(int deflectionId, int deflectingSwitchId, int initialDHC) {
-    if (deflectionId != NULL_ID) {
+    if (this->deflectionId != NULL_ID) {
         return false;
     }
 

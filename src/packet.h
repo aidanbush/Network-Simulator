@@ -83,19 +83,21 @@ class Packet: public NetworkObject {
 class MBDPacket: public Packet {
     public:
         MBDPacket(int id, int sourceId, int destId, int flowId, int burstId, bool lastInBurst, int dataId,
-                int ttl, int headerSize, int bodySize, bool sourcePacket);
+                int ttl, int headerSize, int bodySize, bool sourcePacket, int deflectionsRemaining);
 
         void arrive();
         void drop();
 
         void recordAction(int switchId);
+        void recordDeflection() {this->remainingDeflections--; }
+        int deflectionsRemaining() {return this->remainingDeflections; }
 
     protected:
-        void updateSwitches(bool arrived);
-
-        double shortestPath(int source, int dest);
-
+        int remainingDeflections;
         vector<int> switches;
+
+        void updateSwitches(bool arrived);
+        double shortestPath(int source, int dest);
 };
 
 class NDDPacket: public Packet {
@@ -105,10 +107,10 @@ class NDDPacket: public Packet {
 
         bool deflect(int deflectionId, int deflectingSwitchId, int initialDHC);
 
-        int getDeflectionId() {return deflectionId; }
-        int getDeflectingSwitchId() {return deflectingSwitchId; }
-        int getDHC() {return DHC; }
-        void incrementDHC() {DHC++; }
+        int getDeflectionId() {return this->deflectionId; }
+        int getDeflectingSwitchId() {return this->deflectingSwitchId; }
+        int getDHC() {return this->DHC; }
+        void incrementDHC() {this->DHC++; }
 
     private:
         int deflectionId;
