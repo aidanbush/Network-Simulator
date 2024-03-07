@@ -1221,7 +1221,7 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
     recordAction(MBDP, state, action.first);
 
     // if deflection - ie in routing table non optimal set
-    if (get<2>(this->routingTable.find(p->getDest())->second).contains(action.first)) {
+    if (get<2>(this->routingTable.find(p->getDest())->second).contains(actionInterface)) {
         MBDP->recordDeflection();
     }
 

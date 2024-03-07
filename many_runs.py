@@ -18,7 +18,8 @@ def gen_experiment_name(size, config):
         agent += f"_{mbd_type}" + "_s_[" + ",".join(sorted(config["states"])) + "]"
         if mbd_type == "D-LinUCB":
             agent += "_df_" + str(config["discount_factor"])
-        agent += "_r_" + str(config["regularizer"]) + "_d_" + str(config["delta"])
+        agent += "_r_" + str(config["regularizer"]) + "_d_" + str(config["delta"]) \
+                + "_sd_" + str(config["static_deflections"])
     elif agent == "NDD":
         ndd_type = config["ndd_alg"]
         agent += f"_{ndd_type}"
@@ -42,12 +43,13 @@ def main():
 
     traffic_types = [helper.TRAFFIC_MICE_ELEPHANT, helper.TRAFFIC_CHANGING, helper.TRAFFIC_STATIC][0:1]
     net_utils = [0.05, 0.1, 0.15, 0.2][0:1]
-    prop_delays = [0.01,0.1,0.5][1:2]
-    agent_types = ["mbd", "rand_forward", "rand_deflect", "NDD"][3:4]
+    prop_delays = [0.01,0.1,0.5][0:1]
+    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][0:1]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
-    mbd_regularizers = [1.0]
-    mbd_deltas = [1.0]
-    mbd_discount_factors = [0.99, 0.999, 0.9999][2:3]
+    mbd_regularizers = [0.5,0.9,1.0,1.1,2.0][2:3]
+    mbd_deltas = [0.1,0.5,0.9,1.0][3:4]
+    mbd_discount_factors = [0.99, 0.999, 0.9999][3:4]
+    mbd_static_deflect = [-1,2,4][0:3]
     mbd_states = [["1-2_hop_shortest"],
             ["1-2_hop_shortest", "3x3_section"],
             ["2_hop_shortest"],
@@ -63,13 +65,14 @@ def main():
             ["dest_id", "deflect_probability"],
             ["dest_id", "drop_probability"]][4:5]
     ndd_algs = ["rand", "Q-learning"][0:1]
-    ndd_alphas = [0.05][0:1]
-    ndd_epsilons = [0.05][0:1]
+    ndd_alphas = [0.05,0.01,0.005][0:1]
+    ndd_epsilons = [0.05,0.01,0.005][0:1]
     ndd_gammas = [0.99][0:1]
 
     experiment_configs = helper.gen_config_list(net_utils, prop_delays, traffic_types,
             agent_types, mbd_agent_algs, mbd_states, mbd_regularizers, mbd_deltas,
-            mbd_discount_factors, ndd_algs, ndd_alphas, ndd_epsilons, ndd_gammas)
+            mbd_discount_factors, mbd_static_deflect, ndd_algs, ndd_alphas, ndd_epsilons,
+            ndd_gammas)
 
     for config in experiment_configs:
         run_name = gen_experiment_name(size, config)

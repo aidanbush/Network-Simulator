@@ -456,11 +456,15 @@ def gen_path(dest_dir, size, experiment_config):
             print(f"mbd_update: {mbd_update} is not supported")
             return None
         # parameters
-        mbd_regularizer = experiment_config["regularizer"]
-        mbd_delta = experiment_config["delta"]
         mbd_states = experiment_config["states"]
         states = ','.join(sorted(mbd_states))
-        filepath = os.path.join(filepath, f"s_{states}", f"r_{mbd_regularizer}-d_{mbd_delta}")
+
+        mbd_regularizer = experiment_config["regularizer"]
+        mbd_delta = experiment_config["delta"]
+        mbd_static_deflect = experiment_config["static_deflections"]
+
+        filepath = os.path.join(filepath, f"s_{states}",
+                f"r_{mbd_regularizer}-d_{mbd_delta}-sd_{mbd_static_deflect}")
     # NDD
     elif experiment_config["type"] == "NDD":
         filepath = os.path.join(filepath, f"NDD")
@@ -530,7 +534,7 @@ def setup_configs(size, experiment_config):
         if experiment_config["mbd_alg"] == "D-LinUCB":
             switchConfig["discount_factor"] = experiment_config["discount_factor"]
 
-        flowConfig["static deflections"] = experiment_config["static deflections"]
+        flowConfig["static_deflections"] = experiment_config["static_deflections"]
         switchConfig["deflect_thresh"] = 1.0 # required because it inherits from rand_deflect
     elif experiment_config["type"] == "NDD":
         switchConfig["DHC_max"] = 2
@@ -542,13 +546,14 @@ def setup_configs(size, experiment_config):
             switchConfig["NDDAgent"]["alpha"] = experiment_config["ndd_alpha"]
             switchConfig["NDDAgent"]["epsilon"] = experiment_config["ndd_epsilon"]
             switchConfig["NDDAgent"]["gamma"] = experiment_config["ndd_gamma"]
+
     elif experiment_config["type"] == "rand_forward":
         pass
     elif experiment_config["type"] == "rand_deflect":
         switchConfig["deflect_thresh"] = 1.0
 
 def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent_algs, mbd_states,
-        mbd_regularizer, mbd_delta, mbd_discount_factor, ndd_alg, ndd_alpha, ndd_epsilon, ndd_gamma):
+        mbd_regularizer, mbd_delta, mbd_discount_factor, mbd_static_deflect, ndd_alg, ndd_alpha, ndd_epsilon, ndd_gamma):
 
     agent_dicts = []
 
@@ -569,9 +574,9 @@ def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent
     # mbd
     if "mbd" in agent_types:
         mbd_algs = []
-        mbd_dict = [{"type": "mbd", "flow_type":"mbd", "drop_action": False, "static deflections": 2,
-            "states": s, "regularizer":r, "delta":d}
-                for s in mbd_states for r in mbd_regularizer for d in mbd_delta]
+        mbd_dict = [{"type": "mbd", "flow_type":"mbd", "drop_action": False,
+            "static_deflections": sd, "states": s, "regularizer":r, "delta":d}
+                for sd in mbd_static_deflect for s in mbd_states for r in mbd_regularizer for d in mbd_delta]
 
         if "D-LinUCB" in mbd_agent_algs:
             mbd_algs += [{**d, **{"mbd_alg": "D-LinUCB", "discount_factor":df}}
@@ -614,6 +619,7 @@ def main():
     mbd_regularizers = [0.5,0.9,1.0,1.1,2.0][2:3]
     mbd_deltas = [0.1,0.5,0.9,1.0][3:4]
     mbd_discount_factors = [0.99, 0.999, 0.9999][1:2]
+    mbd_static_deflect = [-1,2,4][0:3]
     mbd_states = [["1-2_hop_shortest"],
             ["1-2_hop_shortest", "3x3_section"],
             ["2_hop_shortest"],
@@ -635,7 +641,7 @@ def main():
 
     experiment_configs = gen_config_list(net_utils, prop_delays, traffic_types, agent_types,
             mbd_agent_algs, mbd_states, mbd_regularizers, mbd_deltas, mbd_discount_factors,
-            ndd_algs, ndd_alphas, ndd_epsilons, ndd_gammas)
+            mbd_static_deflect, ndd_algs, ndd_alphas, ndd_epsilons, ndd_gammas)
 
     for experiment_config in experiment_configs:
         setup_configs(size, experiment_config)

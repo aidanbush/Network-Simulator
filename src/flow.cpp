@@ -608,14 +608,14 @@ void BasicFlow::recordData() {
 /* Manhattan Bandit Deflection Flow */
 
 MBDFlow::MBDFlow(json &flowConfig): BasicFlow(validateMBDFlowConfig(flowConfig)) {
-    this->maxDeflections = flowConfig["static deflections"];
+    this->maxDeflections = flowConfig["static_deflections"];
     //this->dynamicDeflectionDenom = flowConfig["dynamic deflection denominator"];
 }
 
 json &MBDFlow::validateMBDFlowConfig(json &flowConfig) {
     string message = "";
-    if (!hasMemberOfType(flowConfig, "static deflections", jsonInt)) {
-        message += "No integer with name 'static deflections'.\n";
+    if (!hasMemberOfType(flowConfig, "static_deflections", jsonInt)) {
+        message += "No integer with name 'static_deflections'.\n";
     }
 
     /*
@@ -638,6 +638,9 @@ void MBDFlow::initializeFlow() {
     //Switch *s = man.getSwitch(this->sourceId);
     //int hops = s->getHops(this->destId);
     //this->maxDeflections += floor(hops / this->dynamicDeflectionDenom);
+    if (this->maxDeflections == -1) {
+        this->maxDeflections = INT_MAX;
+    }
 }
 
 Packet *MBDFlow::getNextPacket(bool fromSource) {
