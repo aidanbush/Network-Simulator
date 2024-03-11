@@ -80,6 +80,17 @@ class Packet: public NetworkObject {
         second_t arrivalTime; // currently not used
 };
 
+class RandDeflectPacket: public Packet {
+    public:
+        RandDeflectPacket(int id, int sourceId, int destId, int flowId, int burstId, bool lastInBurst, int dataId,
+                int ttl, int headerSize, int bodySize, bool sourcePacket, int deflectionsRemaining);
+
+        void recordDeflection() {this->remainingDeflections--; }
+        int deflectionsRemaining() {return this->remainingDeflections; }
+    protected:
+        int remainingDeflections;
+};
+
 class MBDPacket: public Packet {
     public:
         MBDPacket(int id, int sourceId, int destId, int flowId, int burstId, bool lastInBurst, int dataId,

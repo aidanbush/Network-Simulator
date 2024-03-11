@@ -611,6 +611,17 @@ int RandomDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceId) {
         return optimalInterfaces[generator() % optimalInterfaces.size()];
     }
 
+    RandDeflectPacket *RDP = dynamic_cast<RandDeflectPacket *>(p);
+    if (RDP == NULL) {
+        throw runtime_error("RandomForwardSwitch:\nMBD switch passed a non MBD packet\n");
+    }
+
+    if (RDP->deflectionsRemaining() <= 0) {
+        man.logEvent(SWITCH_STR, id, "RandomDeflectionSwitch: routePacket",
+                "out of deflections dropping packet: " + to_string(RDP->getId()));
+        return NULL_ID;
+    }
+
     // deflect interfaces
     for (auto it : routes.second) {
         // if room add to deflect
@@ -622,6 +633,7 @@ int RandomDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceId) {
 
     // if not empty randomly send to one
     if (!deflectInterfaces.empty()) {
+        RDP->recordDeflection();
         return deflectInterfaces[generator() % deflectInterfaces.size()];
     }
 
@@ -1301,6 +1313,8 @@ NDDSwitch::NDDSwitch(json &switchConfig): RandomForwardSwitch(validateNDDSwitchC
     this->deflectionIdCounter = 0;
     this->lastAction = -1;
 
+    this->onlyForward = switchConfig["only_forward"];
+
     // create agent
     agent = new RandNDDAgent(switchConfig["NDDAgent"]);
 }
@@ -1314,6 +1328,10 @@ json &NDDSwitch::validateNDDSwitchConfig(json &switchConfig) {
 
     if (!hasMemberOfType(switchConfig, "DN_max_time", jsonDouble)) {
         message += "No double with name 'DN_max_time'.\n";
+    }
+
+    if (!hasMemberOfType(switchConfig, "only_forward", jsonBool)) {
+        message += "No bool with name 'only_forward'.\n";
     }
 
     // NDD agent
@@ -1422,6 +1440,12 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
                 to_string(NDDp->getId()));
         //randomly select amongst the optimal interfaces
         return routingIfaces[generator() % routingIfaces.size()];
+    }
+
+    if (this->onlyForward) {
+        man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket", "only forwarding - dropping packet: " +
+                to_string(NDDp->getId()));
+        return NULL_ID;
     }
 
     // otherwise go through non optimal interfaces

@@ -39,6 +39,7 @@ using namespace std;
 
 enum FlowType {
     BasicFlowType,
+    RandDeflectFlowType,
     MBDFlowType,
     NDDFlowType,
 #ifdef _TEST
@@ -70,6 +71,7 @@ Flow *createFlow(json &flowNetConfig, json &flowTestConfig) {
         {"basic", BasicFlowType},
         {"mbd", MBDFlowType},
         {"ndd", NDDFlowType},
+        {"rand_deflect", RandDeflectFlowType},
 #ifdef _TEST
         {"test", TestFlowType},
 #endif /* _TEST */
@@ -101,6 +103,9 @@ Flow *createFlow(json &flowNetConfig, json &flowTestConfig) {
             break;
         case NDDFlowType:
             flow = new NDDFlow(flowNetConfig);
+            break;
+        case RandDeflectFlowType:
+            flow = new RandDeflectFlow(flowNetConfig);
             break;
 #ifdef _TEST
         case TestFlowType:
@@ -603,6 +608,64 @@ void BasicFlow::recordData() {
     second_t nextRecord = man.time + man.miTime;
     EventI *e = new Event<BasicFlow>(nextRecord, &BasicFlow::recordData, this);
     man.pushEvent(e);
+}
+
+RandDeflectFlow::RandDeflectFlow(json &flowConfig):
+    BasicFlow(validateRandDeflectFlowConfig(flowConfig)) {
+    this->maxDeflections = flowConfig["static_deflections"];
+}
+
+json &RandDeflectFlow::validateRandDeflectFlowConfig(json &flowConfig) {
+    string message = "";
+    if (!hasMemberOfType(flowConfig, "static_deflections", jsonInt)) {
+        message += "No integer with name 'static_deflections'.\n";
+    }
+
+    /*
+    if (!hasMemberOfType(flowConfig, "dynamic deflection denominator", jsonDouble)) {
+        message += "No integer with name 'dynamic deflection denominator'.\n";
+    }
+    */
+
+    if (!message.empty()) {
+        message = "RandDeflect Flow:\n" + message + flowConfig.dump(4);
+        throw runtime_error(message);
+    }
+
+    return flowConfig;
+}
+
+Packet *RandDeflectFlow::getNextPacket(bool fromSource) {
+    Generator::PacketData pData;
+
+    if (!generator->getNextPacket(pData)) {
+        return NULL;
+    }
+
+    int pId = newPacketId(fromSource);
+
+    RandDeflectPacket *p = new RandDeflectPacket(pId, sourceId, destId, id, pData.burstId, pData.lastInBurst,
+            NULL_DATA_ID, ttl, pData.headerSize, pData.bodySize, fromSource, this->maxDeflections);
+
+    if (!addPacket(p)) {
+        delete p;
+        return NULL;
+    }
+
+    packetsCreated++;
+
+    return p;
+}
+
+void RandDeflectFlow::initializeFlow() {
+    BasicFlow::initializeFlow();
+
+    //Switch *s = man.getSwitch(this->sourceId);
+    //int hops = s->getHops(this->destId);
+    //this->maxDeflections += floor(hops / this->dynamicDeflectionDenom);
+    if (this->maxDeflections == -1) {
+        this->maxDeflections = INT_MAX;
+    }
 }
 
 /* Manhattan Bandit Deflection Flow */

@@ -26,6 +26,8 @@ def gen_experiment_name(size, config):
         if ndd_type == "Q-learning":
             agent += "_a_" + str(config["ndd_alpha"]) + "_e_" + str(config["ndd_epsilon"]) \
                     + "_g_" + str(config["ndd_gamma"])
+        if config["only_forward"] == True:
+            agent += "_of"
     elif agent == "rand_forward":
         pass
     elif agent == "rand_deflect":
@@ -44,7 +46,7 @@ def main():
     traffic_types = [helper.TRAFFIC_MICE_ELEPHANT, helper.TRAFFIC_CHANGING, helper.TRAFFIC_STATIC][0:1]
     net_utils = [0.05, 0.1, 0.15, 0.2][0:1]
     prop_delays = [0.01,0.1,0.5][0:1]
-    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][0:1]
+    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][3:4]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
     mbd_regularizers = [0.5,0.9,1.0,1.1,2.0][2:3]
     mbd_deltas = [0.1,0.5,0.9,1.0][3:4]
@@ -68,11 +70,12 @@ def main():
     ndd_alphas = [0.05,0.01,0.005][0:1]
     ndd_epsilons = [0.05,0.01,0.005][0:1]
     ndd_gammas = [0.99][0:1]
+    ndd_only_forward = [False, True][0]
 
     experiment_configs = helper.gen_config_list(net_utils, prop_delays, traffic_types,
             agent_types, mbd_agent_algs, mbd_states, mbd_regularizers, mbd_deltas,
             mbd_discount_factors, mbd_static_deflect, ndd_algs, ndd_alphas, ndd_epsilons,
-            ndd_gammas)
+            ndd_gammas, ndd_only_forward)
 
     for config in experiment_configs:
         run_name = gen_experiment_name(size, config)

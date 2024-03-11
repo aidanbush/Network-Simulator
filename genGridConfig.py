@@ -479,6 +479,8 @@ def gen_path(dest_dir, size, experiment_config):
         else:
             print(f"ndd_agent: {ndd_agent} is not supported")
             return None
+        if experiment_config["only_forward"] == True:
+            filepath = os.path.join(filepath, "of")
     elif experiment_config["type"] == "rand_deflect":
         filepath = os.path.join(filepath, f"rand_deflect")
     elif experiment_config["type"] == "rand_forward":
@@ -546,20 +548,23 @@ def setup_configs(size, experiment_config):
             switchConfig["NDDAgent"]["alpha"] = experiment_config["ndd_alpha"]
             switchConfig["NDDAgent"]["epsilon"] = experiment_config["ndd_epsilon"]
             switchConfig["NDDAgent"]["gamma"] = experiment_config["ndd_gamma"]
+        switchConfig["only_forward"] = experiment_config["only_forward"]
 
     elif experiment_config["type"] == "rand_forward":
         pass
     elif experiment_config["type"] == "rand_deflect":
         switchConfig["deflect_thresh"] = 1.0
+        flowConfig["static_deflections"] = 2
 
 def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent_algs, mbd_states,
-        mbd_regularizer, mbd_delta, mbd_discount_factor, mbd_static_deflect, ndd_alg, ndd_alpha, ndd_epsilon, ndd_gamma):
+        mbd_regularizer, mbd_delta, mbd_discount_factor, mbd_static_deflect, ndd_alg, ndd_alpha, ndd_epsilon,
+                    ndd_gamma, ndd_only_forward):
 
     agent_dicts = []
 
     if "NDD" in agent_types:
         ndd_algs = []
-        ndd_dict = [{"type":"NDD", "flow_type":"ndd"}]
+        ndd_dict = [{"type":"NDD", "flow_type":"ndd", "only_forward":ndd_only_forward}]
         # ndd qlearning
         if "Q-learning" in ndd_alg:
             ndd_q_learning = [{**d, **{"ndd_alg":"Q-learning", "ndd_alpha":a, "ndd_epsilon":e, "ndd_gamma":g}}
@@ -593,7 +598,7 @@ def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent
         agent_dicts += rand_forward_dict
 
     if "rand_deflect" in agent_types:
-        rand_deflect_dict = [{"type": "rand_deflect", "flow_type": "basic"}]
+        rand_deflect_dict = [{"type": "rand_deflect", "flow_type": "rand_deflect"}]
         agent_dicts += rand_deflect_dict
 
     experiment_dicts = [{**d, **{"net_util": u, "prop_delay": p, "traffic_type": t}}
@@ -614,7 +619,7 @@ def main():
     traffic_types = [TRAFFIC_MICE_ELEPHANT, TRAFFIC_CHANGING, TRAFFIC_STATIC][0:1]
     net_utils = [0.05, 0.1, 0.15, 0.2][0:1] # [0.1,0.2,0.3,0.4]
     prop_delays = [0.01,0.1,0.5][0:1]
-    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][0:1]
+    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][1:2]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
     mbd_regularizers = [0.5,0.9,1.0,1.1,2.0][2:3]
     mbd_deltas = [0.1,0.5,0.9,1.0][3:4]
@@ -634,14 +639,15 @@ def main():
             ["dest_id"],
             ["dest_id", "deflect_probability"],
             ["dest_id", "drop_probability"], ["flow_id"]][4:5]#[1:12]#[1:14]#[3:8]
-    ndd_algs = ["rand", "Q-learning"][0:2]
+    ndd_algs = ["rand", "Q-learning"][0:1]
     ndd_alphas = [0.05,0.01,0.005][0:1]
     ndd_epsilons = [0.05,0.01,0.005][0:1]
     ndd_gammas = [0.99][0:1]
+    ndd_only_forward = [False, True][0]
 
     experiment_configs = gen_config_list(net_utils, prop_delays, traffic_types, agent_types,
             mbd_agent_algs, mbd_states, mbd_regularizers, mbd_deltas, mbd_discount_factors,
-            mbd_static_deflect, ndd_algs, ndd_alphas, ndd_epsilons, ndd_gammas)
+            mbd_static_deflect, ndd_algs, ndd_alphas, ndd_epsilons, ndd_gammas, ndd_only_forward)
 
     for experiment_config in experiment_configs:
         setup_configs(size, experiment_config)

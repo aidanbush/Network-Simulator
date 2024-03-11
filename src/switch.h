@@ -276,6 +276,7 @@ class NDDSwitch: public RandomForwardSwitch {
         map<int, int> interfaceToAction; // interface id to action
 
         // variables
+        bool onlyForward; // used for validating the only forwarding behaviour
         // for waiting on feedback
         second_t DNTimer;
         // for updating agent
