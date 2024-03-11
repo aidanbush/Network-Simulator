@@ -44,8 +44,8 @@ def multiple_run_link_usage(test_name, utilization, net_size, run_name_data):
     ylim = (0, .4)
 
     mean_field = "mean"
-    mean_fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization mean {fig_type} fc 200 long"
-    stdev_fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization stdev {fig_type} fc 200 long"
+    mean_fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization mean {fig_type}"
+    stdev_fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization stdev {fig_type}"
     mean_output_name = mean_fig_name.replace(' ', '_')
     stdev_output_name = stdev_fig_name.replace(' ', '_')
 
@@ -391,12 +391,50 @@ run_infixes = [
             ]
 run_suffix = ""
 
-experiment_name = "delete"
+utilizations = ["0.05"]
+experiment_name = "test NDD"
 run_infixes = [
-        "mbd_slide_s_[1_hop_shortest,3x3_section]_r_1.0_d_1.0_mice-elephant_p_0.1",
-        "rand_forward_mice-elephant_p_0.1",
+        #"mbd_slide_s_[1_hop_shortest,3x3_section]_r_1.0_d_1.0_mice-elephant_p_0.1",
+        #"rand_forward_mice-elephant_p_0.1",
+        #"NDD_rand_mice-elephant_p_0.01",
+        #"NDD_Q-learning_a_0.05_e_0.05_g_0.99_mice-elephant_p_0.1",
+        #"NDD_drop_mice-elephant_p_0.1",
+        #"NDD_Q-learning_a_0.05_e_0.05_g_0.99_mice-elephant_p_0.01",
+        "NDD_Q-learning_a_0.05_e_0.05_g_0.99_mice-elephant_p_0.01",
+        "NDD_rand_mice-elephant_p_0.01",
+        "mbd_slide_s_[1_hop_shortest,3x3_section]_r_1.0_d_1.0_sd_-1_mice-elephant_p_0.01",
+        "mbd_slide_s_[1_hop_shortest,3x3_section]_r_1.0_d_1.0_sd_2_mice-elephant_p_0.01",
+        "mbd_slide_s_[1_hop_shortest,3x3_section]_r_1.0_d_1.0_sd_4_mice-elephant_p_0.01",
         ]
 run_suffix = ""
+
+'''
+utilizations = ["0.2"]
+experiment_name = "test NDD"
+run_infixes = [
+        "NDD_Q-learning_a_0.05_e_0.05_g_0.99_mice-elephant_p_0.01",
+        "NDD_rand_mice-elephant_p_0.01",
+        "mbd_slide_s_[1_hop_shortest,3x3_section]_r_1.0_d_1.0_sd_-1_mice-elephant_p_0.01",
+        "rand_forward_mice-elephant_p_0.01",
+        ]
+run_suffix = ""
+'''
+
+'''
+experiment_name = "parameter sweep"
+run_infixes = [
+        "mbd_slide_s_[1_hop_shortest,3x3_section]_r_0.9_d_0.9_mice-elephant_p_0.1",
+        "mbd_slide_s_[1_hop_shortest,3x3_section]_r_0.9_d_1.0_mice-elephant_p_0.1",
+        "mbd_slide_s_[1_hop_shortest,3x3_section]_r_1.0_d_0.9_mice-elephant_p_0.1",
+        "mbd_slide_s_[1_hop_shortest,3x3_section]_r_1.0_d_1.0_mice-elephant_p_0.1",
+        "mbd_slide_s_[1_hop_shortest,3x3_section]_r_1.1_d_0.9_mice-elephant_p_0.1",
+        "mbd_slide_s_[1_hop_shortest,3x3_section]_r_1.1_d_1.0_mice-elephant_p_0.1",
+        "mbd_slide_s_[1_hop_shortest,3x3_section]_r_0.9_d_0.5_mice-elephant_p_0.1",
+        "mbd_slide_s_[1_hop_shortest,3x3_section]_r_1.0_d_0.5_mice-elephant_p_0.1",
+        "mbd_slide_s_[1_hop_shortest,3x3_section]_r_1.1_d_0.5_mice-elephant_p_0.1",
+        ]
+run_suffix = ""
+'''
 
 run_name_data = (run_infixes, run_suffix)
 
@@ -404,9 +442,9 @@ for utilization in utilizations:
     multiple_run_throughput(experiment_name, utilization, net_size, run_name_data)
     multiple_run_hop_ratio(experiment_name, utilization, net_size, run_name_data)
     multiple_run_drop_rate(experiment_name, utilization, net_size, run_name_data)
-    #multiple_run_link_usage(experiment_name, utilization, net_size, run_name_data)
+    multiple_run_link_usage(experiment_name, utilization, net_size, run_name_data)
     #multiple_run_out_of_order(experiment_name, utilization, net_size, run_name_data)
-    #multiple_run_sent_rate(experiment_name, utilization, net_size, run_name_data)
+    multiple_run_sent_rate(experiment_name, utilization, net_size, run_name_data)
 
 #plot_across_utils(experiment_name, utilizations, "DropRate mean", "Drop Rate", (0,.3), "/results.csv", net_size, run_name_data)
 #plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (0,3), "/results.csv", net_size, run_name_data)
