@@ -145,6 +145,20 @@ class BasicFlow: public Flow {
         void sourcePacketArrived(Packet *p);
 };
 
+class RandDeflectFlow: public BasicFlow {
+    friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
+    public:
+        void initializeFlow();
+
+    protected:
+        RandDeflectFlow(json &flowConfig);
+        static json &validateRandDeflectFlowConfig(json &flowConfig);
+
+        Packet *getNextPacket(bool fromSource);
+
+        int maxDeflections;
+};
+
 class MBDFlow: public BasicFlow {
     friend Flow *createFlow(json &flowNetConfig, json &flowTestConfig);
     public:
