@@ -561,7 +561,7 @@ def setup_configs(size, experiment_config):
 
 def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent_algs, mbd_states,
         mbd_regularizer, mbd_delta, mbd_discount_factor, mbd_static_deflect, ndd_alg, ndd_alpha, ndd_epsilon,
-                    ndd_gamma, ndd_only_forward):
+        ndd_gamma, ndd_only_forward, rand_deflect_static_deflects):
 
     agent_dicts = []
 
@@ -601,7 +601,8 @@ def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent
         agent_dicts += rand_forward_dict
 
     if "rand_deflect" in agent_types:
-        rand_deflect_dict = [{"type": "rand_deflect", "flow_type": "rand_deflect", "static_deflections": 2}]
+        rand_deflect_dict = [{"type": "rand_deflect", "flow_type": "rand_deflect", "static_deflections": sd}
+                for sd in rand_deflect_static_deflects]
         agent_dicts += rand_deflect_dict
 
     experiment_dicts = [{**d, **{"net_util": u, "prop_delay": p, "traffic_type": t}}
@@ -647,10 +648,12 @@ def main():
     ndd_epsilons = [0.05,0.01,0.005][0:1]
     ndd_gammas = [0.99][0:1]
     ndd_only_forward = [False, True][1]
+    rand_deflect_static_deflects = [-1,2][1:2]
 
     experiment_configs = gen_config_list(net_utils, prop_delays, traffic_types, agent_types,
             mbd_agent_algs, mbd_states, mbd_regularizers, mbd_deltas, mbd_discount_factors,
-            mbd_static_deflect, ndd_algs, ndd_alphas, ndd_epsilons, ndd_gammas, ndd_only_forward)
+            mbd_static_deflect, ndd_algs, ndd_alphas, ndd_epsilons, ndd_gammas, ndd_only_forward,
+            rand_deflect_static_deflects)
 
     for experiment_config in experiment_configs:
         setup_configs(size, experiment_config)
@@ -659,7 +662,7 @@ def main():
 
         filepath = gen_path(dest_dir, size, experiment_config)
         print("generating:", filepath)
-        create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs)
+        #create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs)
 
 if __name__ == "__main__":
     main()
