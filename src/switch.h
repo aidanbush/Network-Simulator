@@ -130,7 +130,6 @@ class RandomDeflectionSwitch: public Switch {
 
         pair<vector<int>, vector<int>> generateRoutingLists(pair<int, int> destCoords);
         void createManhattanRoutingTable();
-        pair<vector<int>, vector<int>> availableRouteSets(Packet *p);
 
         int routePacket(Packet *p, int sourceInterfaceId);
 
@@ -228,7 +227,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         vector<int> availableInterfaces(Packet *p);
 
         map<int, stack<tuple<vector<double>, int, int>>> actionStore; // packet id -> (context, action, dest_id)
-        vector<int> actionInterfaces;
+        vector<int> actionInterfaces; // vector of neighbouring interfaces - the index cooresponds to the action
         LinUCB *agent;
         string agentAlg;
 

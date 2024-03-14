@@ -566,43 +566,15 @@ int RandomDeflectionSwitch::manhattanDistance(pair<int, int> coord1, pair<int, i
     return abs(coord1.first - coord2.first) + abs(coord1.second - coord2.second);
 }
 
-// blocked interfaces are not removed
-pair<vector<int>, vector<int>> RandomDeflectionSwitch::availableRouteSets(Packet *p) {
-    pair<int, int> dest = getCoords(p->getDest(), networkSize);
-
-    int i = 0;
-
-    if (dest.first > coords.first) { // if dest.x > x : right
-        i += RIGHT;
-    } else if (dest.first < coords.first) { // if dest.x < x : left
-        i += LEFT;
-    }
-    if (dest.second > coords.second) { // if dest.y > y : up
-        i += UP;
-    } else if (dest.second < coords.second) { // if dest.y < y : down
-        i += DOWN;
-    }
-
-    // use lookup tables for all 8 + 1 possible directions (+1 is at dest)
-    return manhattanRouting[i];
-}
-
 int RandomDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceId) {
-    pair<vector<int>, vector<int>> routes = availableRouteSets(p);
-
-    // if both sets empty
-    if (routes.first.empty() && routes.second.empty()) {
-        return NULL_ID;
-    }
-
     vector<int> optimalInterfaces;
     vector<int> deflectInterfaces;
 
-    for (auto it : routes.first) {
+    for (int iface: get<1>(this->routingTable.find(p->getDest())->second)) {
         // if room add to optimal
-        Interface *interface = man.getInterface(it);
+        Interface *interface = man.getInterface(iface);
         if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
-            optimalInterfaces.push_back(it);
+            optimalInterfaces.push_back(iface);
         }
     }
 
@@ -623,11 +595,11 @@ int RandomDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceId) {
     }
 
     // deflect interfaces
-    for (auto it : routes.second) {
+    for (int iface: get<2>(this->routingTable.find(p->getDest())->second)) {
         // if room add to deflect
-        Interface *interface = man.getInterface(it);
+        Interface *interface = man.getInterface(iface);
         if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
-            deflectInterfaces.push_back(it);
+            deflectInterfaces.push_back(iface);
         }
     }
 
@@ -771,14 +743,11 @@ bool ManhattanBanditDeflectionSwitch::initSwitch() {
 void ManhattanBanditDeflectionSwitch::startSwitch() {
     RandomDeflectionSwitch::startSwitch();
 
-    // TODO setup action interface list
-    /*vector<int> actionInterfaces;*/ // add to class
+    // setup action interface list
     for (auto it: interfaces) {
-        // TODO remove??? no longer using endpoints
-        // if not endpoint TODO remove endpoints this is a hack
-        if (man.getEndpoint(it.first) == NULL) {
-            actionInterfaces.push_back(it.second);
-        }
+        actionInterfaces.push_back(it.second);
+        man.logEvent(SWITCH_STR, id, "MBDSwitch: startSwitch actionInterfaces", "interface id: " +
+                to_string(it.second));
     }
 
     // add drop action
@@ -937,7 +906,6 @@ int ManhattanBanditDeflectionSwitch::getNumDims() {
 vector<int> ManhattanBanditDeflectionSwitch::availableInterfaces(Packet *p) {
     vector<int> available;
 
-    //for (int ifaceId : actionInterfaces) {
     for (int i = 0; i < actionInterfaces.size(); i++) {
         int ifaceId = actionInterfaces[i];
         // account for drop action
@@ -1191,6 +1159,7 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
     vector<double> state = getState(p);
 
     vector<int> nonBlockedActions = availableInterfaces(p);
+    // TODO log actions
 
     // force a drop if all ports are blocked
     if ((!dropAction && nonBlockedActions.empty()) || (dropAction && nonBlockedActions.size() == 1)) {
@@ -1207,6 +1176,9 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
     if (this->manhattanDistance(
                 getCoords(this->id, this->networkSize), getCoords(p->getDest(), this->networkSize))
             > p->getTTL()) {
+
+        man.logEvent(SWITCH_STR, id, "MBDSwitch: routePacket",
+                "not enough hops to get to destination; packet: " + to_string(p->getId()));
 #ifdef ONE_HOP_REWARD
         if (sourceInterfaceId != NULL_ID) { // address when a packet was just created
             int prevSwitch = interfaceToNeighbour[sourceInterfaceId];
@@ -1218,6 +1190,8 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
 
     // TODO if deflected too many times drop
     if (MBDP->deflectionsRemaining() <= 0) {
+        man.logEvent(SWITCH_STR, id, "MBDSwitch: routePacket",
+                "packet ran out of deflections; packet: " + to_string(p->getId()));
 #ifdef ONE_HOP_REWARD
         if (sourceInterfaceId != NULL_ID) { // address when a packet was just created
             int prevSwitch = interfaceToNeighbour[sourceInterfaceId];
@@ -1350,10 +1324,11 @@ json &NDDSwitch::validateNDDSwitchConfig(json &switchConfig) {
 bool NDDSwitch::initSwitch() {
     Switch::initSwitch();
 
-    // setupt action interfaces lookup table
+    // setup action interfaces lookup table
     for (auto it: interfaces) {
         this->actionInterfaces.push_back(it.second);
     }
+
     for (int i = 0; i < this->actionInterfaces.size(); i++) {
         this->interfaceToAction.emplace(this->actionInterfaces[i], i);
     }
