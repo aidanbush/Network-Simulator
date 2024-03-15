@@ -202,6 +202,7 @@ def add_random_flow(config, size, switches, open_switches, fullSwitches, start_t
     return flowRate * num_hops, (sourceId, destId) # utilization of the flow
 
 def gen_flows(config, util_thresh, net_size, sim_end_time):
+    num_elephants = 2
     flow_length = 10
     cur_util = 0
     net_band = len(config["links"]) * linkConfig["speed"] * 2
@@ -219,10 +220,9 @@ def gen_flows(config, util_thresh, net_size, sim_end_time):
             }
 
     # generate two elephant flows
-    flow_band, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, 0, sim_end_time)
-    cur_util += flow_band / net_band
-    flow_band, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, 0, sim_end_time)
-    cur_util += flow_band / net_band
+    for _ in range(num_elephants):
+        flow_band, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, 0, sim_end_time)
+        cur_util += flow_band / net_band
 
 
     # generate initial flows
@@ -237,9 +237,10 @@ def gen_flows(config, util_thresh, net_size, sim_end_time):
         live_flows.append((end_time, flow_util, source_dest[0], source_dest[1]))
 
     # go through all the current flows and update their ending times
-    for i in range(len(live_flows)):
+    for i in range(len(live_flows) - num_elephants):
         new_end = (i+1) / len(config["flows"]) * flow_length
-        config["flows"][i]["end_time"] = new_end
+        flow_i = i + num_elephants
+        config["flows"][flow_i]["end_time"] = new_end
 
         # update flow
         live_flows[i] = list(live_flows[i])
@@ -648,7 +649,7 @@ def main():
     ndd_epsilons = [0.05,0.01,0.005][0:1]
     ndd_gammas = [0.99][0:1]
     ndd_only_forward = [False, True][1]
-    rand_deflect_static_deflects = [-1,2][1:2]
+    rand_deflect_static_deflects = [-1,2][0:1]
 
     experiment_configs = gen_config_list(net_utils, prop_delays, traffic_types, agent_types,
             mbd_agent_algs, mbd_states, mbd_regularizers, mbd_deltas, mbd_discount_factors,
@@ -662,7 +663,7 @@ def main():
 
         filepath = gen_path(dest_dir, size, experiment_config)
         print("generating:", filepath)
-        #create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs)
+        create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs)
 
 if __name__ == "__main__":
     main()
