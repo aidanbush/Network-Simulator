@@ -31,7 +31,9 @@ def gen_experiment_name(size, config):
     elif agent == "rand_forward":
         pass
     elif agent == "rand_deflect":
-        pass
+        sd = config["static_deflections"]
+        if sd != -1:
+            agent += f"_sd_{sd}_"
     else:
         print("agent not valid type")
         return None
@@ -46,7 +48,7 @@ def main():
     traffic_types = [helper.TRAFFIC_MICE_ELEPHANT, helper.TRAFFIC_CHANGING, helper.TRAFFIC_STATIC][0:1]
     net_utils = [0.05, 0.1, 0.15, 0.2][0:1]
     prop_delays = [0.01,0.1,0.5][0:1]
-    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][3:4]
+    agent_types = ["mbd", "NDD", "rand_deflect", "rand_forward"][1:4]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
     mbd_regularizers = [0.5,0.9,1.0,1.1,2.0][2:3]
     mbd_deltas = [0.1,0.5,0.9,1.0][3:4]
@@ -70,19 +72,20 @@ def main():
     ndd_alphas = [0.05,0.01,0.005][0:1]
     ndd_epsilons = [0.05,0.01,0.005][0:1]
     ndd_gammas = [0.99][0:1]
-    ndd_only_forward = [False, True][0]
+    ndd_only_forward = [False, True][1]
+    rand_deflect_static_deflects = [-1,2][1:2]
 
     experiment_configs = helper.gen_config_list(net_utils, prop_delays, traffic_types,
             agent_types, mbd_agent_algs, mbd_states, mbd_regularizers, mbd_deltas,
             mbd_discount_factors, mbd_static_deflect, ndd_algs, ndd_alphas, ndd_epsilons,
-            ndd_gammas, ndd_only_forward)
+            ndd_gammas, ndd_only_forward, rand_deflect_static_deflects)
 
     for config in experiment_configs:
         run_name = gen_experiment_name(size, config)
         run_path = helper.gen_path(config_dir, size, config)
         command_line = f"bash run_test.sh -t 50000 -p {num_runs} -n {num_runs} {run_path} {run_name} {size}x{size}manhattan_flow_params.json"
         print(command_line)
-        os.system(command_line)
+        #os.system(command_line)
 
 if __name__ == "__main__":
     main()
