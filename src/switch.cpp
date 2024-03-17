@@ -396,6 +396,9 @@ void Switch::printRoutingTable() {
 }
 
 double Switch::costToDest(int destId) {
+    if (destId == this->id) {
+        return 0.0;
+    }
     return get<0>(routingTable[destId]);
 }
 
@@ -532,25 +535,10 @@ pair<vector<int>, vector<int>> RandomDeflectionSwitch::generateRoutingLists(pair
     return routes;
 }
 
-void RandomDeflectionSwitch::createManhattanRoutingTable() {
-    pair<int, int> destCoords;
-    // for none left and right
-    for (int i = 0; i < 3; i++) {
-        // for none up and down
-        for (int j = 0; j < 3; j++) {
-            destCoords.first = coords.first + ((i+1) %3) -1;
-            destCoords.second = coords.second + ((j+1) %3) -1;
-
-            manhattanRouting[i+j*3] = generateRoutingLists(destCoords);
-        }
-    }
-}
-
 bool RandomDeflectionSwitch::initSwitch() {
     bool ret = Switch::initSwitch();
 
     this->coords = getCoords(id, networkSize);
-    createManhattanRoutingTable();
 
     generator.seed(man.random());
 
@@ -806,53 +794,81 @@ map<int, set<int>> ManhattanBanditDeflectionSwitch::createShortestLookupTable(ve
     return shortStateMap;
 }
 
+map<int, int> ManhattanBanditDeflectionSwitch::shortestHopsStateMap(int lowHops, int highHops) {
+    // get list of switches between low and high hops away
+    set<int> switches;
+    for (auto it : this->routingTable) {
+        if (get<0>(it.second) >= lowHops && get<0>(it.second) <= highHops) {
+            switches.insert(it.first);
+        }
+    }
+
+    // map of destination to set of closets switches
+    map<int, set<int>> closestSwitches;
+    // loop through destinations
+    for (auto it : this->routingTable) {
+        int dest = it.first;
+
+        // for each destination record set of closest switches
+        // use neighbour switches routing table to get hops to dest
+        set<int> closest;
+        closest.insert(*switches.begin());
+        Switch *netSwitch = man.getSwitch(*switches.begin());
+        double closestHops = netSwitch->costToDest(dest);
+
+        for (int switchId : switches) {
+            netSwitch = man.getSwitch(switchId);
+            double hops = netSwitch->costToDest(dest);
+
+            if (hops < closestHops) {
+                closest.clear();
+                closest.insert(switchId);
+                closestHops = hops;
+            } else if (hops == closestHops) {
+                closest.insert(switchId);
+            }
+        }
+
+        closestSwitches.emplace(dest, closest);
+    }
+
+    set<set<int>> switchCombinations;
+    // create set of set of switches to create ordering and index of these unique closest sets
+    for (auto it: closestSwitches) {
+        switchCombinations.insert(it.second);
+    }
+
+    map<set<int>, int> switchSetToState;// map switches to state index
+    int index = 0;
+    for (set<int> it : switchCombinations) {
+        switchSetToState.emplace(it, index);
+        index++;
+    }
+
+    // create map of destination index in the previous set
+    map<int, int> destToState;
+    for (auto it : this->routingTable) {
+        int dest = it.first;
+        destToState.emplace(dest, switchSetToState[closestSwitches[dest]]);
+    }
+
+    return destToState;
+}
+
 void ManhattanBanditDeflectionSwitch::setupStates() {
     for (auto it: stateTypes) {
         switch (it) {
             case hop1ShortState:
-                {
-                    // go through routing table and create list of switches 1 hop away
-                    vector<int> switchIds;
-                    for (auto it: routingTable) {
-                        if (get<0>(it.second) == 1.0) {
-                            switchIds.push_back(it.first);
-                        }
-                    }
-
-                    hop1ShortStateDims = switchIds.size();
-
-                    hop1ShortStateMap = createShortestLookupTable(switchIds);
-                }
+                this->hop1ShortStateMap = this->shortestHopsStateMap(1,1);
+                this->hop1ShortStateDims = this->hop1ShortStateMap.size();
                 break;
             case hop1_2ShortState:
-                {
-                    // go through routing table and create list of switches 1 hop away
-                    vector<int> switchIds;
-                    for (auto it: routingTable) {
-                        if (get<0>(it.second) == 1.0 || get<0>(it.second) == 2.0) {
-                            switchIds.push_back(it.first);
-                        }
-                    }
-
-                    hop1_2ShortStateDims = switchIds.size();
-
-                    hop1_2ShortStateMap = createShortestLookupTable(switchIds);
-                }
+                this->hop1_2ShortStateMap = this->shortestHopsStateMap(1,2);
+                this->hop1_2ShortStateDims = this->hop1_2ShortStateMap.size();
                 break;
             case hop2ShortState:
-                {
-                    // go through routing table and create list of switches 2 hop away
-                    vector<int> switchIds;
-                    for (auto it: routingTable) {
-                        if (get<0>(it.second) == 2.0) {
-                            switchIds.push_back(it.first);
-                        }
-                    }
-
-                    hop2ShortStateDims = switchIds.size();
-
-                    hop2ShortStateMap = createShortestLookupTable(switchIds);
-                }
+                this->hop2ShortStateMap = this->shortestHopsStateMap(2,2);
+                this->hop2ShortStateDims = this->hop2ShortStateMap.size();
                 break;
             case deflectProbState:
                 // TODO create a map for all neighbours, initialize to 0
@@ -963,9 +979,8 @@ void ManhattanBanditDeflectionSwitch::setHop1ShortState(vector<double> &state, P
         return;
     }*/
 
-    for (int i: hop1ShortStateMap[p->getDest()]) {
-        state[stateOffset + i] = 1;
-    }
+    int oneHotIndex = hop1ShortStateMap[p->getDest()];
+    state[stateOffset + oneHotIndex] = 1;
 }
 
 void ManhattanBanditDeflectionSwitch::setHop1_2ShortState(vector<double> &state, Packet *p) {
@@ -975,9 +990,8 @@ void ManhattanBanditDeflectionSwitch::setHop1_2ShortState(vector<double> &state,
         state.push_back(0);
     }
 
-    for (int i: hop1_2ShortStateMap[p->getDest()]) {
-        state[stateOffset + i] = 1;
-    }
+    int oneHotIndex = hop1_2ShortStateMap[p->getDest()];
+    state[stateOffset + oneHotIndex] = 1;
 }
 
 void ManhattanBanditDeflectionSwitch::setHop2ShortState(vector<double> &state, Packet *p) {
@@ -987,9 +1001,8 @@ void ManhattanBanditDeflectionSwitch::setHop2ShortState(vector<double> &state, P
         state.push_back(0);
     }
 
-    for (int i: hop2ShortStateMap[p->getDest()]) {
-        state[stateOffset + i] = 1;
-    }
+    int oneHotIndex = hop2ShortStateMap[p->getDest()];
+    state[stateOffset + oneHotIndex] = 1;
 }
 
 void ManhattanBanditDeflectionSwitch::setSectionState3x3(vector<double> &state, Packet *p) {

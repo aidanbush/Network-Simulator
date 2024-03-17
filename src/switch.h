@@ -110,16 +110,6 @@ class RandomDeflectionSwitch: public Switch {
     protected:
         int networkSize;
         pair<int, int> coords; // x, y
-        enum directions {
-            RIGHT = 1,
-            LEFT = 2,
-            UP = 3,
-            DOWN = 6,
-        };
-
-        // lookup table containing the optimal and deflect interfaces
-        // index: right +1, left +2, up +3, down +6
-        vector<pair<vector<int>, vector<int>>> manhattanRouting = vector<pair<vector<int>, vector<int>>>(9);
 
         double deflectThresh;
 
@@ -129,7 +119,6 @@ class RandomDeflectionSwitch: public Switch {
         int manhattanDistance(pair<int, int> coord1, pair<int, int> coord2);
 
         pair<vector<int>, vector<int>> generateRoutingLists(pair<int, int> destCoords);
-        void createManhattanRoutingTable();
 
         int routePacket(Packet *p, int sourceInterfaceId);
 
@@ -187,13 +176,14 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         int dropProbStateDims;
         double prevPacketArriveTime;
 
-        map<int, set<int>> hop1ShortStateMap; // destination to index of closest switches
-        map<int, set<int>> hop1_2ShortStateMap; // destination to index of closest switches
-        map<int, set<int>> hop2ShortStateMap; // destination to index of closest switches
+        map<int, int> hop1ShortStateMap; // destination to index of closest switches
+        map<int, int> hop1_2ShortStateMap; // destination to index of closest switches
+        map<int, int> hop2ShortStateMap; // destination to index of closest switches
 
         bool inNeighbourSector(Packet *p);
         bool inHomeSector(Packet *p);
 
+        map<int, int> shortestHopsStateMap(int lowHops, int highHops);
         void setFlowIdState(vector<double> &state, Packet *p);
         void setDestIdState(vector<double> &state, Packet *p);
         void setHop1ShortState(vector<double> &state, Packet *p);
