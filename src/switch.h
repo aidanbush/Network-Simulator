@@ -183,7 +183,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         bool inNeighbourSector(Packet *p);
         bool inHomeSector(Packet *p);
 
-        map<int, int> shortestHopsStateMap(int lowHops, int highHops);
+        tuple<map<int, int>, int> shortestHopsStateMap(int lowHops, int highHops);
         void setFlowIdState(vector<double> &state, Packet *p);
         void setDestIdState(vector<double> &state, Packet *p);
         void setHop1ShortState(vector<double> &state, Packet *p);

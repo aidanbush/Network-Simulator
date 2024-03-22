@@ -746,6 +746,8 @@ void ManhattanBanditDeflectionSwitch::startSwitch() {
     setupStates();
 
     int observeDims = getNumDims();
+    man.logEvent(SWITCH_STR, id, "MBDSwitch: startSwitch:",
+            "id: " + to_string(this->id) + " observeDims: " + to_string(observeDims));
     // neighbour Ifaces - destination iface
     int numActions;
     if (this->dropAction) {
@@ -794,7 +796,7 @@ map<int, set<int>> ManhattanBanditDeflectionSwitch::createShortestLookupTable(ve
     return shortStateMap;
 }
 
-map<int, int> ManhattanBanditDeflectionSwitch::shortestHopsStateMap(int lowHops, int highHops) {
+tuple<map<int, int>, int> ManhattanBanditDeflectionSwitch::shortestHopsStateMap(int lowHops, int highHops) {
     // get list of switches between low and high hops away
     set<int> switches;
     for (auto it : this->routingTable) {
@@ -839,10 +841,10 @@ map<int, int> ManhattanBanditDeflectionSwitch::shortestHopsStateMap(int lowHops,
     }
 
     map<set<int>, int> switchSetToState;// map switches to state index
-    int index = 0;
+    int stateIndex = 0;
     for (set<int> it : switchCombinations) {
-        switchSetToState.emplace(it, index);
-        index++;
+        switchSetToState.emplace(it, stateIndex);
+        stateIndex++;
     }
 
     // create map of destination index in the previous set
@@ -852,23 +854,20 @@ map<int, int> ManhattanBanditDeflectionSwitch::shortestHopsStateMap(int lowHops,
         destToState.emplace(dest, switchSetToState[closestSwitches[dest]]);
     }
 
-    return destToState;
+    return {destToState, stateIndex};
 }
 
 void ManhattanBanditDeflectionSwitch::setupStates() {
     for (auto it: stateTypes) {
         switch (it) {
             case hop1ShortState:
-                this->hop1ShortStateMap = this->shortestHopsStateMap(1,1);
-                this->hop1ShortStateDims = this->hop1ShortStateMap.size();
+                tie(this->hop1ShortStateMap, this->hop1ShortStateDims) = this->shortestHopsStateMap(1,1);
                 break;
             case hop1_2ShortState:
-                this->hop1_2ShortStateMap = this->shortestHopsStateMap(1,2);
-                this->hop1_2ShortStateDims = this->hop1_2ShortStateMap.size();
+                tie(this->hop1_2ShortStateMap, this->hop1_2ShortStateDims) = this->shortestHopsStateMap(1,2);
                 break;
             case hop2ShortState:
-                this->hop2ShortStateMap = this->shortestHopsStateMap(2,2);
-                this->hop2ShortStateDims = this->hop2ShortStateMap.size();
+                tie(this->hop2ShortStateMap, this->hop2ShortStateDims) = this->shortestHopsStateMap(2,2);
                 break;
             case deflectProbState:
                 // TODO create a map for all neighbours, initialize to 0
