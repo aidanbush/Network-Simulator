@@ -20,6 +20,8 @@ def gen_experiment_name(size, config):
             agent += "_df_" + str(config["discount_factor"])
         agent += "_r_" + str(config["regularizer"]) + "_d_" + str(config["delta"]) \
                 + "_sd_" + str(config["static_deflections"])
+        if config["action_limit"] != "none":
+            agent += "_" + config["action_limit"]
     elif agent == "NDD":
         ndd_type = config["ndd_alg"]
         agent += f"_{ndd_type}"
@@ -54,6 +56,7 @@ def main():
     mbd_deltas = [0.1,0.5,0.9,1.0][3:4]
     mbd_discount_factors = [0.99, 0.999, 0.9999][3:4]
     mbd_static_deflect = [-1,2,4][0:3]
+    mbd_action_limits = ["none", "only_deflect", "forward_first"][0:3]
     mbd_states = [["1-2_hop_shortest"],
             ["1-2_hop_shortest", "3x3_section"],
             ["2_hop_shortest"],
@@ -75,10 +78,10 @@ def main():
     ndd_only_forward = [False, True][1]
     rand_deflect_static_deflects = [-1,2][0:2]
 
-    experiment_configs = helper.gen_config_list(net_utils, prop_delays, traffic_types,
-            agent_types, mbd_agent_algs, mbd_states, mbd_regularizers, mbd_deltas,
-            mbd_discount_factors, mbd_static_deflect, ndd_algs, ndd_alphas, ndd_epsilons,
-            ndd_gammas, ndd_only_forward, rand_deflect_static_deflects)
+    experiment_configs = helper.gen_config_list(net_utils, prop_delays, traffic_types, agent_types,
+            mbd_agent_algs, mbd_states, mbd_regularizers, mbd_deltas, mbd_discount_factors,
+            mbd_static_deflect, mbd_action_limits, ndd_algs, ndd_alphas, ndd_epsilons, ndd_gammas,
+            ndd_only_forward, rand_deflect_static_deflects)
 
     for config in experiment_configs:
         run_name = gen_experiment_name(size, config)

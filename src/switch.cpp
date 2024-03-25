@@ -615,12 +615,20 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
         {"deflect_probability", deflectProbState},
         {"drop_probability", dropProbState},
     };
+    static map<string, ActionLimit> actionLimitMap = {
+        {"none", actionLimitNone},
+        {"only_deflect", actionLimitOnlyDeflect},
+        {"forward_first", actionLimitForwardFirst},
+    };
+
     this->regularizer = switchConfig["regularizer"];
     this->delta = switchConfig["delta"];
     this->discountFactor = switchConfig["discount_factor"];
     this->numFlows = switchConfig["num_flows"];
     this->dropAction = switchConfig["drop_action"];
     this->agentAlg = switchConfig["agent_alg"];
+    this->actionLimit = actionLimitMap[switchConfig["action_limit"]];
+
     this->deflectProbTau = 1; // in seconds TODO use config file to import
     this->deflectProb = 0;
     this->dropProbTau = 1; // in seconds TODO use config file to import
@@ -716,6 +724,10 @@ json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchCo
         message += "No string with name 'agent_alg'.\n";
     }
 
+    if (!hasMemberOfType(switchConfig, "action_limit", jsonString)) {
+        message += "No string with name 'agent_alg'.\n";
+    }
+
     if (!message.empty()) {
         message = "ManhattanBanditDeflectionSwitch:\n" + message + switchConfig.dump(4);
         throw runtime_error(message);
@@ -733,9 +745,13 @@ void ManhattanBanditDeflectionSwitch::startSwitch() {
 
     // setup action interface list
     for (auto it: interfaces) {
-        actionInterfaces.push_back(it.second);
+        this->actionInterfaces.push_back(it.second);
         man.logEvent(SWITCH_STR, id, "MBDSwitch: startSwitch actionInterfaces", "interface id: " +
                 to_string(it.second));
+    }
+
+    for (int i = 0; i < this->actionInterfaces.size(); i++) {
+        this->interfaceToAction.emplace(this->actionInterfaces[i], i);
     }
 
     // add drop action
@@ -918,11 +934,37 @@ int ManhattanBanditDeflectionSwitch::getNumDims() {
     return numDims;
 }
 
+vector<int> ManhattanBanditDeflectionSwitch::availableForwardInterfaces(Packet *p) {
+    vector<int> available;
+
+    for (int ifaceId : get<1>(this->routingTable[p->getDest()])) {
+        Interface *interface = man.getInterface(ifaceId);
+        if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
+            available.push_back(this->interfaceToAction[ifaceId]);
+        }
+    }
+
+    return available;
+}
+
+vector<int> ManhattanBanditDeflectionSwitch::availableDeflectInterfaces(Packet *p) {
+    vector<int> available;
+
+    for (int ifaceId : get<2>(this->routingTable[p->getDest()])) {
+        Interface *interface = man.getInterface(ifaceId);
+        if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
+            available.push_back(this->interfaceToAction[ifaceId]);
+        }
+    }
+
+    return available;
+}
+
 vector<int> ManhattanBanditDeflectionSwitch::availableInterfaces(Packet *p) {
     vector<int> available;
 
-    for (int i = 0; i < actionInterfaces.size(); i++) {
-        int ifaceId = actionInterfaces[i];
+    for (int i = 0; i < this->actionInterfaces.size(); i++) {
+        int ifaceId = this->actionInterfaces[i];
         // account for drop action
         if (ifaceId == NULL_ID) {
             available.push_back(i);
@@ -1168,8 +1210,6 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
         throw runtime_error("Switch:\nMBD switch passed a non MBD packet\n");
     }
 
-    vector<double> state = getState(p);
-
     vector<int> nonBlockedActions = availableInterfaces(p);
     // TODO log actions
 
@@ -1200,7 +1240,6 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
         return NULL_ID;
     }
 
-    // TODO if deflected too many times drop
     if (MBDP->deflectionsRemaining() <= 0) {
         man.logEvent(SWITCH_STR, id, "MBDSwitch: routePacket",
                 "packet ran out of deflections; packet: " + to_string(p->getId()));
@@ -1212,8 +1251,41 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
 #endif /* ONE_HOP_REWARD */
         return NULL_ID;
     }
+    int actionInterface = NULL_ID;
 
-    pair<int, double> action = agent->selectAction(state, nonBlockedActions);
+    // if only deflect or forward first take forward actions is avaiable
+    if (this->actionLimit == this->actionLimitOnlyDeflect ||
+        this->actionLimit == this->actionLimitForwardFirst ) {
+        // if forward set not empty set
+        vector<int> forwardAvailableActions = this->availableForwardInterfaces(p);
+        if (forwardAvailableActions.empty()) {
+            if (actionLimitOnlyDeflect) {
+                // if actionLimitOnlyDeflect randomy select forward switch
+                vector<int> availableActions = {forwardAvailableActions[generator() % forwardAvailableActions.size()]};
+                // force agent to take that action
+                this->takeAgentAction(sourceInterfaceId, p, availableActions);
+            } else if (actionLimitForwardFirst) {
+                // if actionForward agent takes an action from the forward set
+                this->takeAgentAction(sourceInterfaceId, p, forwardAvailableActions);
+            } else {
+                throw runtime_error("MBDSwitch:\nroutePacket: attempting to use non valid actionLimit\n");
+            }
+        }
+    } else {
+        actionInterface = this->takeAgentAction(sourceInterfaceId, p, nonBlockedActions);
+    }
+
+    return actionInterface;
+}
+
+int ManhattanBanditDeflectionSwitch::takeAgentAction(int sourceInterfaceId, Packet *p, vector<int> availableActions) {
+    MBDPacket *MBDP = dynamic_cast<MBDPacket *>(p);
+    if (MBDP == NULL) {
+        throw runtime_error("Switch:\nMBD switch passed a non MBD packet\n");
+    }
+
+    vector<double> state = getState(p);
+    pair<int, double> action = agent->selectAction(state, availableActions);
     int actionInterface = actionInterfaces[action.first];
 
     recordAction(MBDP, state, action.first);
@@ -1239,7 +1311,6 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
     }
 #endif /* ONE_HOP_REWARD */
 
-    // convert action into interface
     return actionInterface;
 }
 

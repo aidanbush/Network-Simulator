@@ -463,6 +463,8 @@ def gen_path(dest_dir, size, experiment_config):
         mbd_regularizer = experiment_config["regularizer"]
         mbd_delta = experiment_config["delta"]
         mbd_static_deflect = experiment_config["static_deflections"]
+        if experiment_config["action_limit"] != "none":
+            filepath = os.path.join(filepath, experiment_config["action_limit"])
 
         filepath = os.path.join(filepath, f"s_{states}",
                 f"r_{mbd_regularizer}-d_{mbd_delta}-sd_{mbd_static_deflect}")
@@ -530,6 +532,7 @@ def setup_configs(size, experiment_config):
     switchConfig["type"] = experiment_config["type"]
     if experiment_config["type"] == "mbd":
         switchConfig["drop_action"] = False
+        switchConfig["action_limit"] = experiment_config["action_limit"]
 
         switchConfig["agent_alg"] = experiment_config["mbd_alg"]
         switchConfig["states"] = experiment_config["states"]
@@ -561,8 +564,8 @@ def setup_configs(size, experiment_config):
         flowConfig["static_deflections"] = experiment_config["static_deflections"]
 
 def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent_algs, mbd_states,
-        mbd_regularizer, mbd_delta, mbd_discount_factor, mbd_static_deflect, ndd_alg, ndd_alpha, ndd_epsilon,
-        ndd_gamma, ndd_only_forward, rand_deflect_static_deflects):
+        mbd_regularizer, mbd_delta, mbd_discount_factor, mbd_static_deflect, mbd_action_limits, ndd_alg,
+        ndd_alpha, ndd_epsilon, ndd_gamma, ndd_only_forward, rand_deflect_static_deflects):
 
     agent_dicts = []
 
@@ -584,8 +587,9 @@ def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent
     if "mbd" in agent_types:
         mbd_algs = []
         mbd_dict = [{"type": "mbd", "flow_type":"mbd", "drop_action": False,
-            "static_deflections": sd, "states": s, "regularizer":r, "delta":d}
-                for sd in mbd_static_deflect for s in mbd_states for r in mbd_regularizer for d in mbd_delta]
+            "static_deflections": sd, "states": s, "regularizer":r, "delta":d, "action_limit": al}
+                for sd in mbd_static_deflect for s in mbd_states for r in mbd_regularizer for d in mbd_delta
+                for al in mbd_action_limits]
 
         if "D-LinUCB" in mbd_agent_algs:
             mbd_algs += [{**d, **{"mbd_alg": "D-LinUCB", "discount_factor":df}}
@@ -630,6 +634,7 @@ def main():
     mbd_deltas = [0.1,0.5,0.9,1.0][3:4]
     mbd_discount_factors = [0.99, 0.999, 0.9999][1:2]
     mbd_static_deflect = [-1,2,4][0:3]
+    mbd_action_limits = ["none", "only_deflect", "forward_first"][0:3]
     mbd_states = [["1-2_hop_shortest"],
             ["1-2_hop_shortest", "3x3_section"],
             ["2_hop_shortest"],
@@ -653,8 +658,8 @@ def main():
 
     experiment_configs = gen_config_list(net_utils, prop_delays, traffic_types, agent_types,
             mbd_agent_algs, mbd_states, mbd_regularizers, mbd_deltas, mbd_discount_factors,
-            mbd_static_deflect, ndd_algs, ndd_alphas, ndd_epsilons, ndd_gammas, ndd_only_forward,
-            rand_deflect_static_deflects)
+            mbd_static_deflect, mbd_action_limits, ndd_algs, ndd_alphas, ndd_epsilons, ndd_gammas,
+            ndd_only_forward, rand_deflect_static_deflects)
 
     for experiment_config in experiment_configs:
         setup_configs(size, experiment_config)

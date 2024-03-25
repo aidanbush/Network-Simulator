@@ -43,7 +43,7 @@ class Switch: public PacketHandler {
 #endif /* _TEST */
 
     protected:
-        // dest Id to  optimal cost and interface id's, and then remaining interface id's
+        // dest Id to {optimal cost, optimal interface id's, remaining interface id's}
         map<int, tuple<double, set<int>, set<int>>> routingTable;
         vector<pair<int, int>> switchNeighbourIfaces; // all the interfaces that connect to a switch (interface id, switch id)
 
@@ -161,6 +161,12 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
             actionForward
         };
 
+        enum ActionLimit {
+            actionLimitNone,
+            actionLimitOnlyDeflect,
+            actionLimitForwardFirst
+        };
+
         map<int, set<int>> createShortestLookupTable(vector<int> switches);
 
         // state variables
@@ -208,6 +214,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         int getNumDims();
         vector<double> getState(Packet *p);
 
+        int takeAgentAction(int sourceInterfaceId, Packet *p, vector<int> availableActions);
         void sendActionUpdate(int prevSwitch, Packet *p, actionResult result, double actionValue);
         void recieveActionUpdate(int pId, actionResult result, double nextValue, int nextMinHops);
 
@@ -215,9 +222,12 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         tuple<vector<double>, int, int> peekAction(int pId);
         tuple<vector<double>, int, int> retrieveAction(int pId);
         vector<int> availableInterfaces(Packet *p);
+        vector<int> availableForwardInterfaces(Packet *p);
+        vector<int> availableDeflectInterfaces(Packet *p);
 
         map<int, stack<tuple<vector<double>, int, int>>> actionStore; // packet id -> (context, action, dest_id)
         vector<int> actionInterfaces; // vector of neighbouring interfaces - the index cooresponds to the action
+        map<int, int> interfaceToAction; // interface id to action
         LinUCB *agent;
         string agentAlg;
 
@@ -229,6 +239,8 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         // state variables
         int numFlows;
         set<StateType> stateTypes;
+
+        ActionLimit actionLimit;
 
     private:
         json &validateManhattanBanditDeflectionSwitchConfig(json &switchConfig);
