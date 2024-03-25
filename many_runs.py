@@ -75,7 +75,7 @@ def main():
     ndd_alphas = [0.05,0.01,0.005][0:1]
     ndd_epsilons = [0.05,0.01,0.005][0:1]
     ndd_gammas = [0.99][0:1]
-    ndd_only_forward = [False, True][1]
+    ndd_only_forward = [False, True][0:2]
     rand_deflect_static_deflects = [-1,2][0:2]
 
     experiment_configs = helper.gen_config_list(net_utils, prop_delays, traffic_types, agent_types,

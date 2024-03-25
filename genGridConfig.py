@@ -571,7 +571,8 @@ def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent
 
     if "NDD" in agent_types:
         ndd_algs = []
-        ndd_dict = [{"type":"NDD", "flow_type":"ndd", "only_forward":ndd_only_forward}]
+        ndd_dict = [{"type":"NDD", "flow_type":"ndd", "only_forward": ndd_of}
+                for ndd_of in ndd_only_forward]
         # ndd qlearning
         if "Q-learning" in ndd_alg:
             ndd_q_learning = [{**d, **{"ndd_alg":"Q-learning", "ndd_alpha":a, "ndd_epsilon":e, "ndd_gamma":g}}
@@ -653,7 +654,7 @@ def main():
     ndd_alphas = [0.05,0.01,0.005][0:1]
     ndd_epsilons = [0.05,0.01,0.005][0:1]
     ndd_gammas = [0.99][0:1]
-    ndd_only_forward = [False, True][1]
+    ndd_only_forward = [False, True][0:2]
     rand_deflect_static_deflects = [-1,2][0:1]
 
     experiment_configs = gen_config_list(net_utils, prop_delays, traffic_types, agent_types,
