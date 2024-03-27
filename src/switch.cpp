@@ -1258,7 +1258,7 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
         this->actionLimit == this->actionLimitForwardFirst ) {
         // if forward set not empty set
         vector<int> forwardAvailableActions = this->availableForwardInterfaces(p);
-        if (forwardAvailableActions.empty()) {
+        if (!forwardAvailableActions.empty()) {
             if (actionLimitOnlyDeflect) {
                 // if actionLimitOnlyDeflect randomy select forward switch
                 vector<int> availableActions = {forwardAvailableActions[generator() % forwardAvailableActions.size()]};
@@ -1270,6 +1270,8 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
             } else {
                 throw runtime_error("MBDSwitch:\nroutePacket: attempting to use non valid actionLimit\n");
             }
+        } else { // deflect
+            actionInterface = this->takeAgentAction(sourceInterfaceId, p, nonBlockedActions);
         }
     } else {
         actionInterface = this->takeAgentAction(sourceInterfaceId, p, nonBlockedActions);
