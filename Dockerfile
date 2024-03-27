@@ -17,5 +17,5 @@ RUN unzip libtorch-shared-with-deps-2.1.0.dev20230601+cpu.zip
 
 # to compile
 # following https://pytorch.org/cppdocs/installing.html
-# to setup cmake run `cmake -DCMAKE_PREFIX_PATH=/Network-Simulator/src/libtorch/ -S src/ -B build/`
+# to setup cmake run `cmake -DCMAKE_PREFIX_PATH=/libtorch/ -S src/ -B build/`
 # in the build directory run `make`
