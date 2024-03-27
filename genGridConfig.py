@@ -78,12 +78,26 @@ flowRoutes = [{
 def calculate_id(x, y, n):
     return y * n + x + 1
 
+'''
+def calculate_3d_id(x, y, z, n):
+    return
+'''
 def get_X(Id, n):
     return (Id - 1) % n
 
 def get_Y(Id, n):
     return (Id - 1) // n
 
+def get_num_hops(source_id, dest_id, size, switches):
+    return sum([abs(s- d) for s, d in zip(switches[source_id][2], switches[dest_id][2])])
+
+'''
+def gen_3d_network(n, config):
+    for z in range(n):
+        for y in range(n):
+            for x in range(n):
+                pass
+'''
 def gen_nxn_network(n, config):
     # create network
     for y in range(n):
@@ -92,7 +106,8 @@ def gen_nxn_network(n, config):
             switch = {
                     "id": calculate_id(x, y, n),
                     "internal_speed": 0,
-                    "network_size": n
+                    "network_size": n,
+                    "coordinates": [x+1, y+1],
                     }
             switch.update(switchConfig)
 
@@ -154,11 +169,11 @@ def gen_nxn_network(n, config):
 
 def createValidSwitches(config):
     # structure: {id: [current, max]}
-    switchIds = [s["id"] for s in config["switches"]]
+    switchIds = [(s["id"], s["coordinates"]) for s in config["switches"]]
     switch_max_rate = {sId: linkConfig["speed"] * sum([1 if i["handler_id"] == sId else 0 for i in config["interfaces"]])
-                    for sId in switchIds}
+                    for sId, _ in switchIds}
 
-    return {switchId: [0, switch_max_rate[switchId]] for switchId in switchIds}
+    return {switchId: [0, switch_max_rate[switchId], coordinate] for switchId, coordinate in switchIds}
 
 def add_random_flow(config, size, switches, open_switches, fullSwitches, start_time, end_time):
     global flowId
@@ -198,7 +213,7 @@ def add_random_flow(config, size, switches, open_switches, fullSwitches, start_t
         open_switches.pop(destId)
         fullSwitches.append(destId)
 
-    num_hops = abs(get_X(sourceId, size) - get_X(destId, size)) + abs(get_Y(sourceId, size) - get_Y(destId, size))
+    num_hops = get_num_hops(sourceId, destId, size, switches)
     return flowRate * num_hops, (sourceId, destId) # utilization of the flow
 
 def gen_flows(config, util_thresh, net_size, sim_end_time):
@@ -397,6 +412,7 @@ def addRoutes(config, flowRoutes):
 def create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs, numChanges=None):
 
     for run in range(runs):
+        np.random.seed(seed + run)
         random.seed(seed + run) # run lengths can be increased without changing the initial configuration
         #random.seed(seed) # uncomment to have all runs have the same flow configuration
         # create base object
