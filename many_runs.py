@@ -3,6 +3,11 @@ import genGridConfig as helper
 
 def gen_experiment_name(size, config):
     net_util = config["net_util"]
+
+    network_shape = f"{size}x{size}"
+    if network_type == helper.NETWORK_3D:
+        network_shape = f"{size}_3d"
+
     traffic_type = ""
     if config["traffic_type"] == helper.TRAFFIC_MICE_ELEPHANT:
         traffic_type = "mice-elephant"
@@ -40,12 +45,13 @@ def gen_experiment_name(size, config):
         print("agent not valid type")
         return None
 
-    return f"{size}x{size}_{agent}_{traffic_type}_p_{prop_delay}_u_{net_util}"
+    return f"{network_shape}_{agent}_{traffic_type}_p_{prop_delay}_u_{net_util}"
 
 def main():
     size = 8
     num_runs = 30
     config_dir = "configs"
+    network_type = [helper.NETWORK_2D, helper.NETWORK_3D][0]
 
     traffic_types = [helper.TRAFFIC_MICE_ELEPHANT, helper.TRAFFIC_CHANGING, helper.TRAFFIC_STATIC][0:1]
     net_utils = [0.05, 0.1, 0.15, 0.2][0:1]
@@ -85,7 +91,7 @@ def main():
 
     for config in experiment_configs:
         run_name = gen_experiment_name(size, config)
-        run_path = helper.gen_path(config_dir, size, config)
+        run_path = helper.gen_path(config_dir, size, network_type, config)
         command_line = f"bash run_test.sh -t 50000 -p {num_runs} -n {num_runs} {run_path} {run_name} {size}x{size}manhattan_flow_params.json"
         print(command_line)
         os.system(command_line)

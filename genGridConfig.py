@@ -9,6 +9,10 @@ TRAFFIC_MICE_ELEPHANT = 1
 TRAFFIC_STATIC = 2
 TRAFFIC_CHANGING = 3
 
+NETWORK_2D = 1
+NETWORK_3D = 2
+NETWORK_OTHER = 3
+
 seed = 0
 
 flowId = 1
@@ -78,26 +82,98 @@ flowRoutes = [{
 def calculate_id(x, y, n):
     return y * n + x + 1
 
-'''
 def calculate_3d_id(x, y, z, n):
-    return
-'''
-def get_X(Id, n):
-    return (Id - 1) % n
-
-def get_Y(Id, n):
-    return (Id - 1) // n
+    return z * n**2 + y * n + x + 1
 
 def get_num_hops(source_id, dest_id, size, switches):
-    return sum([abs(s- d) for s, d in zip(switches[source_id][2], switches[dest_id][2])])
+    return sum([abs(s - d) for s, d in zip(switches[source_id][2], switches[dest_id][2])])
 
-'''
 def gen_3d_network(n, config):
     for z in range(n):
         for y in range(n):
             for x in range(n):
-                pass
-'''
+                switch = {
+                        "id": calculate_3d_id(x, y, z, n),
+                        "internal_speed": 0,
+                        "network_size": n,
+                        "coordinates": [x, y, z],
+                        }
+                switch.update(switchConfig)
+                # create interfaces
+                # interface IDs id * 6 + (0-6, [up, right, in, down, left, out])
+                interfaces = []
+
+                # create up
+                if y > 0:
+                    interfaces.append({
+                        "id": switch["id"] * 6 + 0,
+                        "handler_id": switch["id"]
+                        })
+                    interfaces[-1].update(interfaceConfig)
+                # create right
+                if x < n - 1:
+                    interfaces.append({
+                        "id": switch["id"] * 6 + 1,
+                        "handler_id": switch["id"]
+                        })
+                    interfaces[-1].update(interfaceConfig)
+                # create in
+                if z < n - 1:
+                    interfaces.append({
+                        "id": switch["id"] * 6 + 2,
+                        "handler_id": switch["id"]
+                        })
+                    interfaces[-1].update(interfaceConfig)
+                # create down
+                if y < n - 1:
+                    interfaces.append({
+                        "id": switch["id"] * 6 + 3,
+                        "handler_id": switch["id"]
+                        })
+                    interfaces[-1].update(interfaceConfig)
+                # create left
+                if x > 0:
+                    interfaces.append({
+                        "id": switch["id"] * 6 + 4,
+                        "handler_id": switch["id"]
+                        })
+                    interfaces[-1].update(interfaceConfig)
+                # create out
+                if z > 0:
+                    interfaces.append({
+                        "id": switch["id"] * 6 + 5,
+                        "handler_id": switch["id"]
+                        })
+                    interfaces[-1].update(interfaceConfig)
+
+                # create up and right links
+                links = []
+                # create up link
+                if y > 0:
+                    links.append({
+                        "id": switch["id"] * 3,
+                        "interfaces": [switch["id"] * 6 + 0, calculate_3d_id(x, y-1, z, n) * 6 + 3] # switch up, neighbour down
+                        })
+                    links[-1].update(linkConfig)
+                # create right link
+                if x < n - 1:
+                    links.append({
+                        "id": switch["id"] * 3 + 1,
+                        "interfaces": [switch["id"] * 6 + 1, calculate_3d_id(x+1, y, z, n) * 6 + 4] # switch right, neighbour left
+                        })
+                    links[-1].update(linkConfig)
+                # create in link
+                if z < n - 1:
+                    links.append({
+                        "id": switch["id"] * 3 + 2,
+                        "interfaces": [switch["id"] * 6 + 2, calculate_3d_id(x, y, z+1, n) * 6 + 5] # switch in, neighbour out
+                        })
+                    links[-1].update(linkConfig)
+
+                config["switches"].append(switch)
+                config["interfaces"] += interfaces
+                config["links"] += links
+
 def gen_nxn_network(n, config):
     # create network
     for y in range(n):
@@ -107,7 +183,7 @@ def gen_nxn_network(n, config):
                     "id": calculate_id(x, y, n),
                     "internal_speed": 0,
                     "network_size": n,
-                    "coordinates": [x+1, y+1],
+                    "coordinates": [x, y],
                     }
             switch.update(switchConfig)
 
@@ -150,22 +226,20 @@ def gen_nxn_network(n, config):
             if y > 0:
                 links.append({
                     "id": switch["id"] * 2,
-                    "interfaces": [switch["id"] * 4 + 0, (switch["id"] - n) * 4 + 2] # switch up, neighbour down
+                    "interfaces": [switch["id"] * 4 + 0, calculate_id(x, y-1, n) * 4 + 2] # switch up, neighbour down
                     })
                 links[-1].update(linkConfig)
             # create right link
             if x < n - 1:
                 links.append({
                     "id": switch["id"] * 2 + 1,
-                    "interfaces": [switch["id"] * 4 + 1, (switch["id"] + 1) * 4 + 3] # switch right, neighbour left
+                    "interfaces": [switch["id"] * 4 + 1, calculate_id(x+1, y, n) * 4 + 3] # switch right, neighbour left
                     })
                 links[-1].update(linkConfig)
 
             config["switches"].append(switch)
             config["interfaces"] += interfaces
             config["links"] += links
-
-# generate flows
 
 def createValidSwitches(config):
     # structure: {id: [current, max]}
@@ -409,7 +483,8 @@ def addRoutes(config, flowRoutes):
         flow = dict(list(flowConfig.items()) + list(flow.items()))
         config["flows"].append(flow)
 
-def create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs, numChanges=None):
+def create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs, network_type,
+                  numChanges=None):
 
     for run in range(runs):
         np.random.seed(seed + run)
@@ -425,7 +500,13 @@ def create_config(filepath, size, net_util, simulation_length, flow_gen_type, ru
         config["links"] = []
         config["flows"] = []
 
-        gen_nxn_network(size, config)
+        if network_type == NETWORK_2D:
+            gen_nxn_network(size, config)
+        elif network_type == NETWORK_3D:
+            gen_3d_network(size, config)
+        else:
+            print("network type not supported")
+            return
 
         global flowId
         flowId = 1
@@ -456,8 +537,10 @@ def create_config(filepath, size, net_util, simulation_length, flow_gen_type, ru
         with open(pathname, "w") as f:
             f.write(json.dumps(config, indent=4))
 
-def gen_path(dest_dir, size, experiment_config):
+def gen_path(dest_dir, size, network_type, experiment_config):
     filepath = os.path.join(dest_dir, f"{size}x{size}")
+    if network_type == NETWORK_3D:
+        filepath = os.path.join(dest_dir, f"{size}_3d")
 
     if experiment_config["type"] == "mbd":
         filepath = os.path.join(filepath, f"mbd")
@@ -637,6 +720,7 @@ def main():
     runs = 30
     simulation_length = 2000 # 1000
     num_flow_changes = 200 # 100
+    network_type = [NETWORK_2D, NETWORK_3D][0]
 
     flowConfigDefault["ttl"] = size * 3
 
@@ -683,9 +767,9 @@ def main():
         net_util = experiment_config["net_util"]
         flow_gen_type = experiment_config["traffic_type"]
 
-        filepath = gen_path(dest_dir, size, experiment_config)
+        filepath = gen_path(dest_dir, size, network_type, experiment_config)
         print("generating:", filepath)
-        create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs)
+        create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs, network_type)
 
 if __name__ == "__main__":
     main()
