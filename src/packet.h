@@ -108,7 +108,6 @@ class MBDPacket: public Packet {
         vector<int> switches;
 
         void updateSwitches(bool arrived);
-        double shortestPath(int source, int dest);
 };
 
 class NDDPacket: public Packet {

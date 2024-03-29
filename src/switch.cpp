@@ -506,6 +506,7 @@ pair<int, int> RandomDeflectionSwitch::getCoords(int netId, int networkSize) {
     return {(netId / n) % n, netId % n}; // x, y
 }
 
+// TODO remove and use costToDest
 pair<vector<int>, vector<int>> RandomDeflectionSwitch::generateRoutingLists(pair<int, int> destCoords) {
     pair<vector<int>, vector<int>> routes; // optimal, deflect
 
@@ -1165,29 +1166,29 @@ void ManhattanBanditDeflectionSwitch::sendActionUpdate(int prevSwitch, Packet *p
         throw runtime_error("sendActionUpdate: Previous switch: " + to_string(prevSwitch) + " does not exist or is not mbd switch");
     }
 
-    int minHops = manhattanDistance(coords, getCoords(p->getDest(), networkSize));
+    int minHops = int(this->costToDest(p->getDest()));
     neighbourSwitch->recieveActionUpdate(p->getId(), result, actionValue, minHops);
 }
 
 void ManhattanBanditDeflectionSwitch::recieveActionUpdate(int pId, actionResult result, double actionValue, int nextMinHops) {
     switch(result) {
         case actionIntentionalDrop:
-            rewardAction(pId, REWARD_INTENTIONAL_DROP); // TODO create define
+            this->rewardAction(pId, REWARD_INTENTIONAL_DROP); // TODO create define
             break;
         case actionDrop:
-            rewardAction(pId, REWARD_DROP); // TODO create define
+            this->rewardAction(pId, REWARD_DROP); // TODO create define
             break;
         case actionArrive:
-            rewardAction(pId, REWARD_ARRIVAL); // TODO create define
+            this->rewardAction(pId, REWARD_ARRIVAL); // TODO create define
             break;
         case actionForward:
             {
-                tuple<vector<double>, int, int> stateAction = peekAction(pId);
+                tuple<vector<double>, int, int> stateAction = this->peekAction(pId);
                 // from here to dest TODO might be good to check routing table
-                int minHops = manhattanDistance(coords, getCoords(get<2>(stateAction), networkSize));
+                double minHops = this->costToDest(get<2>(stateAction));
                 double reward = (minHops * actionValue) / (nextMinHops + actionValue);
                 //update pId with r;
-                rewardAction(pId, reward);
+                this->rewardAction(pId, reward);
             }
             break;
     }
@@ -1225,10 +1226,7 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
     }
 
     // if not enough hops left to get to destination drop
-    if (this->manhattanDistance(
-                getCoords(this->id, this->networkSize), getCoords(p->getDest(), this->networkSize))
-            > p->getTTL()) {
-
+    if (this->costToDest(p->getDest()) > p->getTTL()) {
         man.logEvent(SWITCH_STR, id, "MBDSwitch: routePacket",
                 "not enough hops to get to destination; packet: " + to_string(p->getId()));
 #ifdef ONE_HOP_REWARD
@@ -1251,6 +1249,7 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
 #endif /* ONE_HOP_REWARD */
         return NULL_ID;
     }
+
     int actionInterface = NULL_ID;
 
     // if only deflect or forward first take forward actions is avaiable
@@ -1318,21 +1317,23 @@ int ManhattanBanditDeflectionSwitch::takeAgentAction(int sourceInterfaceId, Pack
 
 void ManhattanBanditDeflectionSwitch::recordAction(MBDPacket *MBDP, vector<double> context, int action) {
     // TODO if exists add to queue else create queue
-    actionStore[MBDP->getId()].push(tuple<vector<double>, int, int>{context, action, MBDP->getDest()});
-
+#ifdef ONE_HOP_REWARD
+    this->actionStore[MBDP->getId()].push(tuple<vector<double>, int, int>{context, action, MBDP->getDest()});
+#else /* ONE_HOP_REWARD */
     MBDP->recordAction(id);
+#endif /* ONE_HOP_REWARD */
 }
 
 tuple<vector<double>, int, int> ManhattanBanditDeflectionSwitch::peekAction(int pId) {
     // if nothing return NULL values
-    if (actionStore[pId].empty()) {
+    if (this->actionStore[pId].empty()) {
         return {{}, -1, NULL_ID};
     }
 
     // make copy
-    vector<double> state = get<0>(actionStore[pId].top());
-    int action = get<1>(actionStore[pId].top());
-    int destId = get<2>(actionStore[pId].top());
+    vector<double> state = get<0>(this->actionStore[pId].top());
+    int action = get<1>(this->actionStore[pId].top());
+    int destId = get<2>(this->actionStore[pId].top());
 
     // return
     return {state, action, destId};
@@ -1342,14 +1343,14 @@ tuple<vector<double>, int, int> ManhattanBanditDeflectionSwitch::retrieveAction(
     tuple<vector<double>, int, int> actionTuple = peekAction(pId);
 
     // remove
-    actionStore[pId].pop();
+    this->actionStore[pId].pop();
     // return
     return actionTuple;
 }
 
 void ManhattanBanditDeflectionSwitch::rewardAction(int pId, double reward) {
     // get context action pair
-    tuple<vector<double>, int, int> stateAction = retrieveAction(pId);
+    tuple<vector<double>, int, int> stateAction = this->retrieveAction(pId);
     // if there is no action
     if (get<1>(stateAction) == -1) {
         return;
@@ -1487,7 +1488,7 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
 
     man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket", "packet: " + to_string(NDDp->getId()));
 
-    for (int iface: get<1>(this->routingTable.find(p->getDest())->second)) {
+    for (int iface: get<1>(this->routingTable[p->getDest()])) {
         Interface *interface = man.getInterface(iface);
         if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
             routingIfaces.push_back(iface);
@@ -1510,9 +1511,8 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
 
     // otherwise go through non optimal interfaces
     // determine the set of actions that are possible
-    set<int> deflectionInterfaces = get<2>(this->routingTable.find(p->getDest())->second);
     vector<int> availableActions, allActions;
-    for (int iface: deflectionInterfaces) {
+    for (int iface: get<2>(this->routingTable[p->getDest()])) {
         Interface *interface = man.getInterface(iface);
         if (interface->getOutBufferCurrentSize() + p->fullSize() <= interface->getOutBufferTotalSize()) {
             availableActions.push_back(this->interfaceToAction[iface]);
@@ -1536,7 +1536,7 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
                 "first deflection of packet: " + to_string(NDDp->getId()) + " deflectionId: " +
                 to_string(this->deflectionIdCounter + 1) + " action: " + to_string(this->lastAction) +
                 " num actions: " + to_string(availableActions.size()) +
-                " num deflection interfaces: " + to_string(deflectionInterfaces.size()));
+                " num deflection interfaces: " + to_string(allActions.size()));
 
         this->deflectionIdCounter++;
         if (!NDDp->deflect(this->deflectionIdCounter, this->id, 1)) {
@@ -1559,6 +1559,7 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
                 "deflecting undeflected packet while tracking another: " +
                 to_string(NDDp->getId()));
         int action = agent->selectAction(state, availableActions, false);
+        //TODO record deflection in packet
         // outgoing_interface = best previous action
         return this->actionInterfaces[action];
     }
@@ -1571,6 +1572,7 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
         return NULL_ID;
     }
 
+    // take deflection action
     man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket", "deflect previously deflected packet: " +
             to_string(NDDp->getId()) + " deflection id:" + to_string(NDDp->getDeflectionId()));
     int action = agent->selectAction(state, availableActions, false);
