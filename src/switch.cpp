@@ -1366,14 +1366,10 @@ NDDSwitch::NDDSwitch(json &switchConfig): RandomForwardSwitch(validateNDDSwitchC
     this->DHCMax = switchConfig["DHC_max"];
     this->DNMaxTime = switchConfig["DN_max_time"];
 
-    this->DNTimer = 0.0;
-
-    this->DfT = 0.0;
-    this->deflectionId = NULL_ID;
     this->deflectionIdCounter = 0;
-    this->lastAction = -1;
 
     this->onlyForward = switchConfig["only_forward"];
+    this->multipleUpdates = switchConfig["multiple_updates"];
 
     // create agent
     agent = new RandNDDAgent(switchConfig["NDDAgent"]);
@@ -1392,6 +1388,10 @@ json &NDDSwitch::validateNDDSwitchConfig(json &switchConfig) {
 
     if (!hasMemberOfType(switchConfig, "only_forward", jsonBool)) {
         message += "No bool with name 'only_forward'.\n";
+    }
+
+    if (!hasMemberOfType(switchConfig, "multiple_updates", jsonBool)) {
+        message += "No bool with name 'multiple_updates'.\n";
     }
 
     // NDD agent
@@ -1473,10 +1473,17 @@ vector<int> NDDSwitch::getState(Packet *p) {
     return state;
 }
 
-void NDDSwitch::createDNEvent() {
-    this->DNTimer = man.time + this->DNMaxTime;
-    EventI *e = new Event<NDDSwitch>(this->DNTimer, &NDDSwitch::DNTimerEvent, this);
-    man.pushEvent(e);
+void NDDSwitch::recordAction(int deflectionId, deflectionData data, second_t timeout) {
+    this->deflectionLookup.emplace(deflectionId, data);
+    this->deflectionTimeoutQueue.emplace((deflectionTimerElem){
+            .deflectionId = deflectionId,
+            .timeout = timeout
+            });
+
+    if (deflectionTimeoutQueue.size() == 1) {
+        EventI *e = new Event<NDDSwitch>(timeout, &NDDSwitch::DNTimerEvent, this);
+        man.pushEvent(e);
+    }
 }
 
 int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
@@ -1529,37 +1536,34 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
 
     vector<int> state = getState(p);
     //if packet.deflection_id == NULL_ID and no current deflecting packet
-    if (NDDp->getDeflectionId() == NULL_ID && this->deflectionId == NULL_ID) {
-        this->lastAction = agent->selectAction(state, availableActions, true); // true allows exploration
-        this->lastActionSet = allActions; // TODO this should be avaiable deflection actions
-        man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket",
-                "first deflection of packet: " + to_string(NDDp->getId()) + " deflectionId: " +
-                to_string(this->deflectionIdCounter + 1) + " action: " + to_string(this->lastAction) +
-                " num actions: " + to_string(availableActions.size()) +
-                " num deflection interfaces: " + to_string(allActions.size()));
+    if (NDDp->getDeflectionId() == NULL_ID && (this->multipleUpdates || this->deflectionLookup.size() == 0)) {
+        int action = agent->selectAction(state, availableActions, true); // true allows exploration
+        vector<int> actionSet = allActions; // TODO this should be avaiable deflection actions
 
         this->deflectionIdCounter++;
         if (!NDDp->deflect(this->deflectionIdCounter, this->id, 1)) {
             throw runtime_error("NDDSwitch:\nroutePacket: packet already deflected with no deflection id\n");
         }
-        // set unique deflection id, record deflecting switch, set the initial DHC
-        // create DN event
-        createDNEvent();
-        // record switch side variables
-        this->DfT = man.time;
-        this->lastState = state; // this safely copies over the vector
-        this->deflectionId = this->deflectionIdCounter;
+
+        deflectionData data = {
+            .state = state,
+            .action = action,
+            .actionSet = actionSet,
+            .DfT = man.time,
+        };
+        second_t timeout = man.time + this->DNMaxTime;
+        this->recordAction(deflectionIdCounter, data, timeout);
+
         //store action in best actions?
-        return this->actionInterfaces[this->lastAction];
+        return this->actionInterfaces[action];
     }
 
-    // undeflected packet and currently deflecting - it's DHC will be incremented later
-    if (NDDp->getDeflectionId() == NULL_ID && this->deflectionId != NULL_ID){
+    // undeflected packet and currently deflecting - this deflection is unrecorded
+    if (NDDp->getDeflectionId() == NULL_ID && (!this->multipleUpdates && this->deflectionLookup.size() != 0)){
         man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket",
                 "deflecting undeflected packet while tracking another: " +
                 to_string(NDDp->getId()));
         int action = agent->selectAction(state, availableActions, false);
-        //TODO record deflection in packet
         // outgoing_interface = best previous action
         return this->actionInterfaces[action];
     }
@@ -1587,52 +1591,79 @@ void NDDSwitch::dropPacketFeedback(Packet *p) {
         throw runtime_error("Switch:\nNDD switch passed a non NDD packet\n");
     }
 
-    if (NDDp->getDeflectionId() != NULL_ID) {
-        int deflectingSwitch = NDDp->getDeflectingSwitchId();
-        NDDFeedbackMessage feedback = {
-            .deflectionId = NDDp->getDeflectionId(),
-            .DHC = NDDp->getDHC(),
-        };
-
-        Switch *s = man.getSwitch(deflectingSwitch);
-        NDDSwitch *NDDs = dynamic_cast<NDDSwitch *>(s);
-        NDDs->feedbackArrived(feedback);
+    if (NDDp->getDeflectionId() == NULL_ID) {
+        throw runtime_error("NDDSwitch:\n dropPacketFeedback: deflectionId == NULL_ID packet id " +
+                to_string(NDDp->getId()) + "\n");
     }
+
+    int deflectingSwitch = NDDp->getDeflectingSwitchId();
+    NDDFeedbackMessage feedback = {
+        .deflectionId = NDDp->getDeflectionId(),
+        .DHC = NDDp->getDHC(),
+    };
+
+    Switch *s = man.getSwitch(deflectingSwitch);
+    NDDSwitch *NDDs = dynamic_cast<NDDSwitch *>(s);
+    NDDs->feedbackArrived(feedback);
 }
 
 void NDDSwitch::DNTimerEvent() {
-    // check if the original timer should still be going and feedback has not arrived
-    if (man.time == this->DNTimer and this->deflectionId != NULL_ID) {
+    // check top of queue
+    deflectionTimerElem topElem = this->deflectionTimeoutQueue.top();
+    this->deflectionTimeoutQueue.pop();
+
+    if (man.time != topElem.timeout) {
+        throw runtime_error("NDDSwitch:\n DNTimerEvent man.time " + to_string(man.time) +
+                " != top element timeout " + to_string(topElem.timeout) + "\n");
+    }
+
+    // if in lookup table perform update
+    if (this->deflectionLookup.find(topElem.deflectionId) != this->deflectionLookup.end()) {
+        deflectionData data = this->deflectionLookup[topElem.deflectionId];
+        this->deflectionLookup.erase(topElem.deflectionId);
+
         double reward = calculateReward(0.0, 0.0);
         man.logEvent(SWITCH_STR, id, "DNTimerEvent", "deflection notificaiton timer elapsed without feedback: " +
-                to_string(this->deflectionId) + " reward: " + to_string(reward));
+                to_string(topElem.deflectionId) + " reward: " + to_string(reward));
 
-        agent->update(this->lastState, this->lastAction, reward, this->lastActionSet);
+        agent->update(data.state, data.action, reward, data.actionSet);
+    }
 
-        this->DNTimer = 0.0;
-        this->deflectionId = NULL_ID;
-        this->DfT = 0.0;
+    // loop through pq until items - while not empty and the top element is not in the lookup table
+    topElem = this->deflectionTimeoutQueue.top();
+    while (!this->deflectionTimeoutQueue.empty() &&
+            this->deflectionLookup.find(topElem.deflectionId) == this->deflectionLookup.end()) {
+        // remove
+        this->deflectionTimeoutQueue.pop();
+        topElem = this->deflectionTimeoutQueue.top();
+    }
+
+    // create next event
+    if (this->deflectionTimeoutQueue.size() != 0) {
+        topElem = this->deflectionTimeoutQueue.top();
+        EventI *e = new Event<NDDSwitch>(topElem.timeout, &NDDSwitch::DNTimerEvent, this);
+        man.pushEvent(e);
     }
 }
 
 void NDDSwitch::feedbackArrived(NDDFeedbackMessage feedback) {
-    man.logEvent(SWITCH_STR, id, "dropPacketFeedback", "recieved feedback message for deflection: " +
-            to_string(feedback.deflectionId) + ", " + to_string(this->deflectionId) +
-            " DHC: " + to_string(feedback.DHC) + " TTT: " + to_string(man.time - this->DfT) +
-            " reward: " + to_string(calculateReward(man.time - this->DfT, feedback.DHC)));
-
-    // check if current feedback via deflection_id
-    if (feedback.deflectionId == this->deflectionId) {
-        double TTT = man.time - this->DfT;
-        double reward = calculateReward(TTT, feedback.DHC);
-        agent->update(this->lastState, this->lastAction, reward, this->lastActionSet);
-
-        man.logEvent(SWITCH_STR, id, "dropPacketFeedback", "agent updated action: " + to_string(this->lastAction) + " reward: " + to_string(reward));
-
-        this->DNTimer = 0.0;
-        this->deflectionId = NULL_ID;
-        this->DfT = 0.0;
+    // if id not in table skip
+    int deflectionId = feedback.deflectionId;
+    if (this->deflectionLookup.find(deflectionId) == this->deflectionLookup.end()) {
+        man.logEvent(SWITCH_STR, id, "dropPacketFeedback",
+                "recieved feedback message timed out for deflection: " + to_string(deflectionId));
+        return;
     }
+
+    deflectionData data = this->deflectionLookup[deflectionId];
+    this->deflectionLookup.erase(deflectionId);
+
+    double TTT = man.time - data.DfT;
+    double reward = calculateReward(TTT, feedback.DHC);
+    agent->update(data.state, data.action, reward, data.actionSet);
+
+    man.logEvent(SWITCH_STR, id, "dropPacketFeedback", "recieved feedback message for deflection: " +
+            to_string(deflectionId) + " reward: " + to_string(reward));
 }
 
 double NDDSwitch::calculateReward(double TTT, int DHC) {

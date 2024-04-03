@@ -261,12 +261,32 @@ class NDDSwitch: public RandomForwardSwitch {
             int DHC;
         };
 
+        struct deflectionData {
+            vector<int> state;
+            int action;
+            vector<int> actionSet;
+            second_t DfT;
+        };
+        struct deflectionTimerElem {
+            int deflectionId;
+            second_t timeout;
+        };
+        struct deflectionTimerComparator {
+            bool operator()(const deflectionTimerElem lhs, const deflectionTimerElem rhs) {
+                if (lhs.timeout == rhs.timeout) {
+                    return lhs.deflectionId > rhs.deflectionId;
+                }
+                return lhs.timeout > rhs.timeout;
+            }
+        };
+
         int routePacket(Packet *p, int sourceInterfaceId);
         void dropPacketFeedback(Packet *p);
         vector<int> getState(Packet *p);
-        void createDNEvent();
         void feedbackArrived(NDDFeedbackMessage feedback);
         double calculateReward(double TTT, int DHC);
+
+        void recordAction(int deflectionId, deflectionData data, second_t timeout);
 
         // constants
         int DHCMax;
@@ -278,15 +298,13 @@ class NDDSwitch: public RandomForwardSwitch {
 
         // variables
         bool onlyForward; // used for validating the only forwarding behaviour
+        bool multipleUpdates;
         // for waiting on feedback
         second_t DNTimer;
-        // for updating agent
-        second_t DfT;
-        int deflectionId;
         int deflectionIdCounter;
-        int lastAction;
-        vector<int> lastActionSet;
-        vector<int> lastState;
+
+        map<int, deflectionData> deflectionLookup;
+        priority_queue<deflectionTimerElem, vector<deflectionTimerElem>, deflectionTimerComparator> deflectionTimeoutQueue;
 
         // TODO refactor to be dest to state not interfaces
         map<int, int> destToState; // maps all the destination id's to their corresponding state id based on the output interfaces they use
