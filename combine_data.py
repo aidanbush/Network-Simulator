@@ -83,6 +83,7 @@ def switch_data(data_path, results_path, output_filename):
             "encounteredPackets",
             "forwardedPackets",
             "timedOutPackets",
+            "averageAvailableInterfaces",
             ]
 
     # combine into master dataframe

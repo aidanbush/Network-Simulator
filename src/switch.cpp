@@ -103,6 +103,11 @@ json &Switch::validateSwitchConfig(json &switchConfig) {
     return switchConfig;
 }
 
+void Switch::updateAverageAvailableInterfaces(int availableInterfaces, int maxInterfaces) {
+    this->averageAvailableInterfaces += 1 / double(this->actionablePackets) *
+        ((double(availableInterfaces) / maxInterfaces) - this->averageAvailableInterfaces);
+}
+
 void Switch::resetData() {
     //for all neighbours
     for (auto it : switchNeighbourIfaces) {
@@ -116,6 +121,7 @@ void Switch::resetData() {
     forwardedPackets = 0;
     encounteredPackets = 0;
     actionablePackets = 0;
+    this->averageAvailableInterfaces = 1;
 }
 
 void Switch::recordData() {
@@ -132,6 +138,7 @@ void Switch::recordData() {
     observer.logSwitchData(id, "forwardedPackets", forwardedPackets);
     observer.logSwitchData(id, "encounteredPackets", encounteredPackets);
     observer.logSwitchData(id, "actionablePackets", actionablePackets);
+    observer.logSwitchData(id, "averageAvailableInterfaces", averageAvailableInterfaces);
 
     resetData();
 
@@ -461,6 +468,8 @@ int RandomForwardSwitch::routePacket(Packet *p, int sourceInterfaceId) {
         }
     }
 
+    this->updateAverageAvailableInterfaces(forwardingIfaces.size(), routingIfaces.size());
+
     // if there are any
     if (!forwardingIfaces.empty()) {
         // randomly select one
@@ -569,6 +578,8 @@ int RandomDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceId) {
 
     // if not empty randomly send to one
     if (!optimalInterfaces.empty()) {
+        this->updateAverageAvailableInterfaces(optimalInterfaces.size(),
+                get<1>(this->routingTable[p->getDest()]).size());
         return optimalInterfaces[generator() % optimalInterfaces.size()];
     }
 
@@ -592,6 +603,8 @@ int RandomDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceId) {
         }
     }
 
+    this->updateAverageAvailableInterfaces(deflectInterfaces.size(),
+            get<2>(this->routingTable[p->getDest()]).size());
     // if not empty randomly send to one
     if (!deflectInterfaces.empty()) {
         RDP->recordDeflection();
@@ -1222,6 +1235,7 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
             sendActionUpdate(prevSwitch, p, actionDrop, 0);
         }
 #endif /* ONE_HOP_REWARD */
+        this->updateAverageAvailableInterfaces(0, 1); // 0% available
         return NULL_ID;
     }
 
@@ -1257,7 +1271,11 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
         this->actionLimit == this->actionLimitForwardFirst ) {
         // if forward set not empty set
         vector<int> forwardAvailableActions = this->availableForwardInterfaces(p);
+
         if (!forwardAvailableActions.empty()) {
+            this->updateAverageAvailableInterfaces(forwardAvailableActions.size(),
+                    get<1>(this->routingTable[p->getDest()]).size());
+
             if (this->actionLimit == this->actionLimitOnlyDeflect) {
                 // if actionLimitOnlyDeflect randomy select forward switch
                 vector<int> availableActions = {forwardAvailableActions[generator() % forwardAvailableActions.size()]};
@@ -1271,9 +1289,12 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
             }
         } else { // deflect
             actionInterface = this->takeAgentAction(sourceInterfaceId, p, nonBlockedActions);
+            this->updateAverageAvailableInterfaces(nonBlockedActions.size(),
+                    get<2>(this->routingTable[p->getDest()]).size());
         }
     } else {
         actionInterface = this->takeAgentAction(sourceInterfaceId, p, nonBlockedActions);
+        this->updateAverageAvailableInterfaces(nonBlockedActions.size(), this->actionInterfaces.size());
     }
 
     return actionInterface;
@@ -1507,12 +1528,15 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
         man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket", "optimal path - packet: " +
                 to_string(NDDp->getId()));
         //randomly select amongst the optimal interfaces
+        this->updateAverageAvailableInterfaces(routingIfaces.size(),
+                get<1>(this->routingTable[p->getDest()]).size());
         return routingIfaces[generator() % routingIfaces.size()];
     }
 
     if (this->onlyForward) {
         man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket", "only forwarding - dropping packet: " +
                 to_string(NDDp->getId()));
+        this->updateAverageAvailableInterfaces(0, 1); // 0% available
         return NULL_ID;
     }
 
@@ -1531,6 +1555,7 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
     if (availableActions.empty()) {
         man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket",
                 "dropping Packet: " + to_string(NDDp->getId()));
+        this->updateAverageAvailableInterfaces(0, 1);
         return NULL_ID;
     }
 
@@ -1555,6 +1580,8 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
         this->recordAction(deflectionIdCounter, data, timeout);
 
         //store action in best actions?
+        this->updateAverageAvailableInterfaces(availableActions.size(),
+                get<2>(this->routingTable[p->getDest()]).size());
         return this->actionInterfaces[action];
     }
 
@@ -1564,7 +1591,8 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
                 "deflecting undeflected packet while tracking another: " +
                 to_string(NDDp->getId()));
         int action = agent->selectAction(state, availableActions, false);
-        // outgoing_interface = best previous action
+        this->updateAverageAvailableInterfaces(availableActions.size(),
+                get<2>(this->routingTable[p->getDest()]).size());
         return this->actionInterfaces[action];
     }
 
@@ -1582,6 +1610,8 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
     int action = agent->selectAction(state, availableActions, false);
     // outgoing_interface = best previous action
     NDDp->incrementDHC();
+    this->updateAverageAvailableInterfaces(availableActions.size(),
+            get<2>(this->routingTable[p->getDest()]).size());
     return this->actionInterfaces[action];
 }
 

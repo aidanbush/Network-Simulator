@@ -62,6 +62,7 @@ class Switch: public PacketHandler {
         int forwardedPackets; // sent along a shortest path
         int encounteredPackets; // packets that arrive and are not consumed
         int actionablePackets; // packets that get to being able to take an aciton on
+        double averageAvailableInterfaces;
 
         void recordData();
         void resetData();
@@ -79,6 +80,8 @@ class Switch: public PacketHandler {
         void printRoutingTable();
 
         void setNeighbours();
+
+        void updateAverageAvailableInterfaces(int availableInterfaces, int maxInterfaces);
 
     private:
         static json &validateSwitchConfig(json &switchConfig);
