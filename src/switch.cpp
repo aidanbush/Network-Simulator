@@ -1258,12 +1258,12 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
         // if forward set not empty set
         vector<int> forwardAvailableActions = this->availableForwardInterfaces(p);
         if (!forwardAvailableActions.empty()) {
-            if (actionLimitOnlyDeflect) {
+            if (this->actionLimit == this->actionLimitOnlyDeflect) {
                 // if actionLimitOnlyDeflect randomy select forward switch
                 vector<int> availableActions = {forwardAvailableActions[generator() % forwardAvailableActions.size()]};
                 // force agent to take that action
                 actionInterface = this->takeAgentAction(sourceInterfaceId, p, availableActions);
-            } else if (actionLimitForwardFirst) {
+            } else if (this->actionLimit == this->actionLimitForwardFirst) {
                 // if actionForward agent takes an action from the forward set
                 actionInterface = this->takeAgentAction(sourceInterfaceId, p, forwardAvailableActions);
             } else {
