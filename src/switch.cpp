@@ -1252,18 +1252,6 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
         return NULL_ID;
     }
 
-    if (MBDP->deflectionsRemaining() <= 0) {
-        man.logEvent(SWITCH_STR, id, "MBDSwitch: routePacket",
-                "packet ran out of deflections; packet: " + to_string(p->getId()));
-#ifdef ONE_HOP_REWARD
-        if (sourceInterfaceId != NULL_ID) { // address when a packet was just created
-            int prevSwitch = interfaceToNeighbour[sourceInterfaceId];
-            sendActionUpdate(prevSwitch, p, actionDrop, 0);
-        }
-#endif /* ONE_HOP_REWARD */
-        return NULL_ID;
-    }
-
     int actionInterface = NULL_ID;
 
     // if only deflect or forward first take forward actions is avaiable
@@ -1297,6 +1285,23 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
         this->updateAverageAvailableInterfaces(nonBlockedActions.size(), this->actionInterfaces.size());
     }
 
+    // if deflection - ie in routing table non optimal set
+    if (get<2>(this->routingTable.find(p->getDest())->second).contains(actionInterface)) {
+        if (MBDP->deflectionsRemaining() <= 0) {
+            man.logEvent(SWITCH_STR, id, "MBDSwitch: routePacket",
+                    "packet ran out of deflections; packet: " + to_string(p->getId()));
+#ifdef ONE_HOP_REWARD
+            if (sourceInterfaceId != NULL_ID) { // address when a packet was just created
+                int prevSwitch = interfaceToNeighbour[sourceInterfaceId];
+                sendActionUpdate(prevSwitch, p, actionDrop, 0);
+            }
+#endif /* ONE_HOP_REWARD */
+            return NULL_ID;
+        }
+
+        MBDP->recordDeflection();
+    }
+
     return actionInterface;
 }
 
@@ -1311,11 +1316,6 @@ int ManhattanBanditDeflectionSwitch::takeAgentAction(int sourceInterfaceId, Pack
     int actionInterface = actionInterfaces[action.first];
 
     recordAction(MBDP, state, action.first);
-
-    // if deflection - ie in routing table non optimal set
-    if (get<2>(this->routingTable.find(p->getDest())->second).contains(actionInterface)) {
-        MBDP->recordDeflection();
-    }
 
     // update previous switch with the value from agent->selectAction
 #ifdef ONE_HOP_REWARD
