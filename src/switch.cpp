@@ -1285,7 +1285,20 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
         this->updateAverageAvailableInterfaces(nonBlockedActions.size(), this->actionInterfaces.size());
     }
 
-    // if deflection - ie in routing table non optimal set
+    return actionInterface;
+}
+
+int ManhattanBanditDeflectionSwitch::takeAgentAction(int sourceInterfaceId, Packet *p, vector<int> availableActions) {
+    MBDPacket *MBDP = dynamic_cast<MBDPacket *>(p);
+    if (MBDP == NULL) {
+        throw runtime_error("Switch:\nMBD switch passed a non MBD packet\n");
+    }
+
+    vector<double> state = getState(p);
+    pair<int, double> action = agent->selectAction(state, availableActions);
+    int actionInterface = actionInterfaces[action.first];
+
+    // if deflection record or drop if too many deflections
     if (get<2>(this->routingTable.find(p->getDest())->second).contains(actionInterface)) {
         if (MBDP->deflectionsRemaining() <= 0) {
             man.logEvent(SWITCH_STR, id, "MBDSwitch: routePacket",
@@ -1301,19 +1314,6 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
 
         MBDP->recordDeflection();
     }
-
-    return actionInterface;
-}
-
-int ManhattanBanditDeflectionSwitch::takeAgentAction(int sourceInterfaceId, Packet *p, vector<int> availableActions) {
-    MBDPacket *MBDP = dynamic_cast<MBDPacket *>(p);
-    if (MBDP == NULL) {
-        throw runtime_error("Switch:\nMBD switch passed a non MBD packet\n");
-    }
-
-    vector<double> state = getState(p);
-    pair<int, double> action = agent->selectAction(state, availableActions);
-    int actionInterface = actionInterfaces[action.first];
 
     recordAction(MBDP, state, action.first);
 
