@@ -112,16 +112,10 @@ class RandomDeflectionSwitch: public Switch {
 
     protected:
         int networkSize;
-        pair<int, int> coords; // x, y
 
         double deflectThresh;
 
         default_random_engine generator;
-
-        pair<int, int> getCoords(int id, int networkSize);
-        int manhattanDistance(pair<int, int> coord1, pair<int, int> coord2);
-
-        pair<vector<int>, vector<int>> generateRoutingLists(pair<int, int> destCoords);
 
         int routePacket(Packet *p, int sourceInterfaceId);
 
@@ -189,9 +183,6 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         map<int, int> hop1ShortStateMap; // destination to index of closest switches
         map<int, int> hop1_2ShortStateMap; // destination to index of closest switches
         map<int, int> hop2ShortStateMap; // destination to index of closest switches
-
-        bool inNeighbourSector(Packet *p);
-        bool inHomeSector(Packet *p);
 
         tuple<map<int, int>, int> shortestHopsStateMap(int lowHops, int highHops);
         void setFlowIdState(vector<double> &state, Packet *p);

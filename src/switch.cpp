@@ -487,7 +487,6 @@ RandomDeflectionSwitch::RandomDeflectionSwitch(json &switchConfig):
     // set threshold
     this->deflectThresh = switchConfig["deflect_thresh"];
 
-    // TODO set coordinates based on id and network size
     networkSize = switchConfig["network_size"];
 }
 
@@ -510,45 +509,8 @@ json &RandomDeflectionSwitch::validateRandomDeflectionSwitchConfig(json &switchC
     return switchConfig;
 }
 
-pair<int, int> RandomDeflectionSwitch::getCoords(int netId, int networkSize) {
-    int n = networkSize + 1;
-    return {(netId / n) % n, netId % n}; // x, y
-}
-
-// TODO remove and use costToDest
-pair<vector<int>, vector<int>> RandomDeflectionSwitch::generateRoutingLists(pair<int, int> destCoords) {
-    pair<vector<int>, vector<int>> routes; // optimal, deflect
-
-    if (destCoords == coords) {
-        return routes;
-    }
-
-    int minDist = manhattanDistance(destCoords, coords);
-
-    for (auto it : switchNeighbourIfaces) {
-        pair<int, int> neighbourCoord = getCoords(it.second/*neighbouring switch*/, networkSize);
-        int distance = manhattanDistance(destCoords, neighbourCoord);
-
-        if (distance > minDist) {
-            routes.second.push_back(it.first);
-        } else if (distance == minDist) {
-            routes.first.push_back(it.first);
-        } else { // new min distance
-            copy(routes.first.begin(), routes.first.end(), back_inserter(routes.second));
-            routes.first.clear();
-            routes.first.push_back(it.first);
-
-            minDist = distance;
-        }
-    }
-
-    return routes;
-}
-
 bool RandomDeflectionSwitch::initSwitch() {
     bool ret = Switch::initSwitch();
-
-    this->coords = getCoords(id, networkSize);
 
     generator.seed(man.random());
 
@@ -557,11 +519,6 @@ bool RandomDeflectionSwitch::initSwitch() {
 
 void RandomDeflectionSwitch::startSwitch() {
     Switch::startSwitch();
-}
-
-int RandomDeflectionSwitch::manhattanDistance(pair<int, int> coord1, pair<int, int> coord2) {
-    // |x - x| + |y - y|
-    return abs(coord1.first - coord2.first) + abs(coord1.second - coord2.second);
 }
 
 int RandomDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceId) {
@@ -1110,32 +1067,6 @@ void ManhattanBanditDeflectionSwitch::setDropProbState(vector<double> &state, Pa
         double neighbourDropProb = neighbourSwitch->getDropProb();
         state.push_back(neighbourDropProb);
     }
-}
-
-bool ManhattanBanditDeflectionSwitch::inNeighbourSector(Packet *p) {
-    int numSections = 3;
-    pair<int, int> dest = getCoords(p->getDest(), networkSize);
-
-    int xDiff = abs(int(double(dest.first) / networkSize * numSections)
-        - int(double(coords.first) / networkSize * numSections));
-
-    int yDiff = abs(int(double(dest.second) / networkSize * numSections)
-        - int(double(coords.second) / networkSize * numSections));
-
-    return (xDiff + yDiff) <= 1;
-}
-
-bool ManhattanBanditDeflectionSwitch::inHomeSector(Packet *p) {
-    int numSections = 3;
-    pair<int, int> dest = getCoords(p->getDest(), networkSize);
-
-    int destSector = int(double(dest.first) / networkSize * numSections)
-        + numSections * int(double(dest.second) / networkSize * numSections);
-
-    int homeSector = int(double(coords.first) / networkSize * numSections)
-        + numSections * int(double(coords.second) / networkSize * numSections);
-
-    return destSector == homeSector;
 }
 
 vector<double> ManhattanBanditDeflectionSwitch::getState(Packet *p) {
