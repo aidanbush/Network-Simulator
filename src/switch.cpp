@@ -625,7 +625,7 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
         {"1_hop_shortest", hop1ShortState},
         {"1-2_hop_shortest", hop1_2ShortState},
         {"2_hop_shortest", hop2ShortState},
-        {"3x3_section", sectionState3x3},
+        {"section", sectionState},
         {"deflect_probability", deflectProbState},
         {"drop_probability", dropProbState},
     };
@@ -642,6 +642,8 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
     this->dropAction = switchConfig["drop_action"];
     this->agentAlg = switchConfig["agent_alg"];
     this->actionLimit = actionLimitMap[switchConfig["action_limit"]];
+    this->section = switchConfig["section"];
+    this->numSections = switchConfig["num_sections"];
 
     this->deflectProbTau = 1; // in seconds TODO use config file to import
     this->deflectProb = 0;
@@ -740,6 +742,14 @@ json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchCo
 
     if (!hasMemberOfType(switchConfig, "action_limit", jsonString)) {
         message += "No string with name 'agent_alg'.\n";
+    }
+
+    if (!hasMemberOfType(switchConfig, "section", jsonInt)) {
+        message += "No string with name 'section'.\n";
+    }
+
+    if (!hasMemberOfType(switchConfig, "num_sections", jsonInt)) {
+        message += "No string with name 'num_sections'.\n";
     }
 
     if (!message.empty()) {
@@ -930,8 +940,8 @@ int ManhattanBanditDeflectionSwitch::getNumDims() {
             case hop2ShortState:
                 numDims += hop2ShortStateDims;
                 break;
-            case sectionState3x3:
-                numDims += 3*3;
+            case sectionState:
+                numDims += this->numSections;
                 break;
             case deflectProbState:
                 numDims += deflectProbStateDims;
@@ -1060,24 +1070,26 @@ void ManhattanBanditDeflectionSwitch::setHop2ShortState(vector<double> &state, P
     state[stateOffset + oneHotIndex] = 1;
 }
 
-void ManhattanBanditDeflectionSwitch::setSectionState3x3(vector<double> &state, Packet *p) {
+void ManhattanBanditDeflectionSwitch::setSectionState(vector<double> &state, Packet *p) {
     int stateOffset = state.size();
-    int numSections = 3;
 
-    for (int i = 0; i < numSections*numSections; i++) {
+    for (int i = 0; i < this->numSections; i++) {
         state.push_back(0);
     }
 
-    /*if (inHomeSector(p)) {
+    ManhattanBanditDeflectionSwitch *destSwitch =
+        dynamic_cast<ManhattanBanditDeflectionSwitch *>(man.getSwitch(p->getDest()));
+
+    // dynamic cast to MBDSwitch
+    int destSection = destSwitch->getSection();
+
+    /*
+    // if home section
+    if (inHomeSector(destSection == this->section)) {
         return;
     }*/
 
-    pair<int, int> dest = getCoords(p->getDest(), networkSize);
-
-    int section = int(double(dest.first-1) / networkSize * numSections)
-        + numSections * int(double(dest.second-1) / networkSize * numSections);
-
-    state[stateOffset + section] = 1;
+    state[stateOffset + destSection] = 1;
 }
 
 void ManhattanBanditDeflectionSwitch::setDeflectProbState(vector<double> &state, Packet *p) {
@@ -1151,8 +1163,8 @@ vector<double> ManhattanBanditDeflectionSwitch::getState(Packet *p) {
                 setHop2ShortState(state, p);
                 break;
 
-            case sectionState3x3:
-                setSectionState3x3(state, p);
+            case sectionState:
+                setSectionState(state, p);
                 break;
 
             case deflectProbState:

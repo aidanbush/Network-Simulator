@@ -142,6 +142,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
 
         double getDeflectProb() {return deflectProb; }
         double getDropProb() {return dropProb; }
+        int getSection() {return this->section; }
 
         void rewardAction(int pId, double reward);
 
@@ -152,7 +153,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
             hop1ShortState,
             hop1_2ShortState,
             hop2ShortState,
-            sectionState3x3,
+            sectionState,
             deflectProbState,
             dropProbState
         };
@@ -198,7 +199,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         void setHop1ShortState(vector<double> &state, Packet *p);
         void setHop1_2ShortState(vector<double> &state, Packet *p);
         void setHop2ShortState(vector<double> &state, Packet *p);
-        void setSectionState3x3(vector<double> &state, Packet *p);
+        void setSectionState(vector<double> &state, Packet *p);
         void setDeflectProbState(vector<double> &state, Packet *p);
         void setDropProbState(vector<double> &state, Packet *p);
 
@@ -235,6 +236,8 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         string agentAlg;
 
         bool dropAction;
+        int section;
+        int numSections;
         // agent variables
         double regularizer;
         double delta;
