@@ -95,7 +95,8 @@ def main():
     for config in experiment_configs:
         run_name = gen_experiment_name(size, config, network_type)
         run_path = helper.gen_path(config_dir, size, network_type, config)
-        command_line = f"bash run_test.sh -t 50000 -p {num_runs} -n {num_runs} {run_path} {run_name} {size}x{size}manhattan_flow_params.json"
+        timeout = 60*60*24*5 # 5 days
+        command_line = f"bash run_test.sh -t {timeout} -p {num_runs} -n {num_runs} {run_path} {run_name} {size}x{size}manhattan_flow_params.json"
         print(command_line)
         os.system(command_line)
 
