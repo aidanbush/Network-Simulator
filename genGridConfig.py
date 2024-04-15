@@ -88,6 +88,19 @@ def calculate_3d_id(x, y, z, n):
 def get_num_hops(source_id, dest_id, size, switches):
     return sum([abs(s - d) for s, d in zip(switches[source_id][2], switches[dest_id][2])])
 
+def get_2d_sector(x, y, size, sector_per_dim):
+    xs = int(x / size * sector_per_dim)
+    ys = int(y / size * sector_per_dim)
+
+    return xs + sector_per_dim * ys
+
+def get_3d_sector(x, y, z, size, sector_per_dim):
+    xs = int(x / size * sector_per_dim)
+    ys = int(y / size * sector_per_dim)
+    zs = int(z / size * sector_per_dim)
+
+    return xs + sector_per_dim * ys + sector_per_dim**2 * zs
+
 def gen_3d_network(n, config):
     for z in range(n):
         for y in range(n):
@@ -97,6 +110,8 @@ def gen_3d_network(n, config):
                         "internal_speed": 0,
                         "network_size": n,
                         "coordinates": [x, y, z],
+                        "section": get_3d_sector(x, y, z, n, 3),
+                        "num_sections": 3**3;
                         }
                 switch.update(switchConfig)
                 # create interfaces
@@ -174,7 +189,7 @@ def gen_3d_network(n, config):
                 config["interfaces"] += interfaces
                 config["links"] += links
 
-def gen_nxn_network(n, config):
+def gen_2d_network(n, config):
     # create network
     for y in range(n):
         for x in range(n):
@@ -184,6 +199,7 @@ def gen_nxn_network(n, config):
                     "internal_speed": 0,
                     "network_size": n,
                     "coordinates": [x, y],
+                    "sector": get_2d_sector(x, y),
                     }
             switch.update(switchConfig)
 
@@ -501,7 +517,7 @@ def create_config(filepath, size, net_util, simulation_length, flow_gen_type, ru
         config["flows"] = []
 
         if network_type == NETWORK_2D:
-            gen_nxn_network(size, config)
+            gen_2d_network(size, config)
         elif network_type == NETWORK_3D:
             gen_3d_network(size, config)
         else:
@@ -740,16 +756,16 @@ def main():
     mbd_static_deflect = [-1,2,4][0:3]
     mbd_action_limits = ["none", "only_deflect", "forward_first"][0:3]
     mbd_states = [["1-2_hop_shortest"],
-            ["1-2_hop_shortest", "3x3_section"],
+            ["1-2_hop_shortest", "section"],
             ["2_hop_shortest"],
             ["1_hop_shortest"],
-            ["1_hop_shortest", "3x3_section"],
+            ["1_hop_shortest", "section"],
             ["2_hop_shortest","1_hop_shortest"],
-            ["2_hop_shortest","1_hop_shortest","3x3_section"],
-            ["1_hop_shortest", "3x3_section", "deflect_probability"],
-            ["2_hop_shortest", "1_hop_shortest", "3x3_section", "deflect_probability"],
-            ["1_hop_shortest", "3x3_section", "drop_probability"],
-            ["2_hop_shortest", "1_hop_shortest", "3x3_section", "drop_probability"],
+            ["2_hop_shortest","1_hop_shortest","section"],
+            ["1_hop_shortest", "section", "deflect_probability"],
+            ["2_hop_shortest", "1_hop_shortest", "section", "deflect_probability"],
+            ["1_hop_shortest", "section", "drop_probability"],
+            ["2_hop_shortest", "1_hop_shortest", "section", "drop_probability"],
             ["dest_id"],
             ["dest_id", "deflect_probability"],
             ["dest_id", "drop_probability"], ["flow_id"]][4:5]#[1:12]#[1:14]#[3:8]

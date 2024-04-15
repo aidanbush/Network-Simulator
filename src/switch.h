@@ -112,16 +112,10 @@ class RandomDeflectionSwitch: public Switch {
 
     protected:
         int networkSize;
-        pair<int, int> coords; // x, y
 
         double deflectThresh;
 
         default_random_engine generator;
-
-        pair<int, int> getCoords(int id, int networkSize);
-        int manhattanDistance(pair<int, int> coord1, pair<int, int> coord2);
-
-        pair<vector<int>, vector<int>> generateRoutingLists(pair<int, int> destCoords);
 
         int routePacket(Packet *p, int sourceInterfaceId);
 
@@ -142,6 +136,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
 
         double getDeflectProb() {return deflectProb; }
         double getDropProb() {return dropProb; }
+        int getSection() {return this->section; }
 
         void rewardAction(int pId, double reward);
 
@@ -152,7 +147,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
             hop1ShortState,
             hop1_2ShortState,
             hop2ShortState,
-            sectionState3x3,
+            sectionState,
             deflectProbState,
             dropProbState
         };
@@ -189,16 +184,13 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         map<int, int> hop1_2ShortStateMap; // destination to index of closest switches
         map<int, int> hop2ShortStateMap; // destination to index of closest switches
 
-        bool inNeighbourSector(Packet *p);
-        bool inHomeSector(Packet *p);
-
         tuple<map<int, int>, int> shortestHopsStateMap(int lowHops, int highHops);
         void setFlowIdState(vector<double> &state, Packet *p);
         void setDestIdState(vector<double> &state, Packet *p);
         void setHop1ShortState(vector<double> &state, Packet *p);
         void setHop1_2ShortState(vector<double> &state, Packet *p);
         void setHop2ShortState(vector<double> &state, Packet *p);
-        void setSectionState3x3(vector<double> &state, Packet *p);
+        void setSectionState(vector<double> &state, Packet *p);
         void setDeflectProbState(vector<double> &state, Packet *p);
         void setDropProbState(vector<double> &state, Packet *p);
 
@@ -235,6 +227,8 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         string agentAlg;
 
         bool dropAction;
+        int section;
+        int numSections;
         // agent variables
         double regularizer;
         double delta;
