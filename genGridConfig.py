@@ -111,7 +111,7 @@ def gen_3d_network(n, config):
                         "network_size": n,
                         "coordinates": [x, y, z],
                         "section": get_3d_sector(x, y, z, n, 3),
-                        "num_sections": 3**3;
+                        "num_sections": 3**3,
                         }
                 switch.update(switchConfig)
                 # create interfaces
@@ -199,7 +199,7 @@ def gen_2d_network(n, config):
                     "internal_speed": 0,
                     "network_size": n,
                     "coordinates": [x, y],
-                    "sector": get_2d_sector(x, y),
+                    "sector": get_2d_sector(x, y, n, 3),
                     }
             switch.update(switchConfig)
 
