@@ -13,20 +13,22 @@ class NDDAgent {
     public:
         NDDAgent(json &NDDAgentConfig);
 
-        virtual void init(int numStates, int maxNumActions);
+        virtual void init(vector<int> stateRanges, int maxNumActions);
 
         virtual int selectAction(vector<int> state, vector<int> availableActions, bool explore);
         virtual void update(vector<int> state, int action, double reward, vector<int> actionSet);
 
     protected:
         default_random_engine generator;
+
+        vector<int> stateRanges;
 };
 
 class RandNDDAgent: public NDDAgent {
     public:
         RandNDDAgent(json &NDDAgentConfig);
 
-        void init(int numStates, int maxNumActions);
+        void init(vector<int> stateRanges, int maxNumActions);
 
         int selectAction(vector<int> state, vector<int> availableActions, bool explore);
         void update(vector<int> state, int action, double reward, vector<int> actionSet);
@@ -37,7 +39,7 @@ class RandNDDAgent: public NDDAgent {
 class TabQLearning: public NDDAgent {
     public:
         TabQLearning(json &NDDAgentConfig);
-        void init(int numStates, int maxNumActions);
+        void init(vector<int> stateRanges, int maxNumActions);
 
         int selectAction(vector<int> state, vector<int> availableActions, bool explore);
         void update(vector<int> state, int action, double reward, vector<int> actionSet);

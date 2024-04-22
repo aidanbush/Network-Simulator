@@ -1336,7 +1336,8 @@ NDDSwitch::NDDSwitch(json &switchConfig): RandomForwardSwitch(validateNDDSwitchC
     this->multipleUpdates = switchConfig["multiple_updates"];
 
     // create agent
-    agent = new RandNDDAgent(switchConfig["NDDAgent"]);
+    agent = createNDDAgent(switchConfig["NDDAgent"]);
+    //agent = new RandNDDAgent(switchConfig["NDDAgent"]);
 }
 
 json &NDDSwitch::validateNDDSwitchConfig(json &switchConfig) {
@@ -1387,16 +1388,14 @@ bool NDDSwitch::initSwitch() {
     map<set<int>, int> interfaceToStateInt;
     int currentStateInt = 0;
 
-    for (auto &[dest, routingTuple]: routingTable) {
-        // add to interface state int
+    for (auto &[dest, routingTuple] : routingTable) {
         set<int> optimalIfaces = get<1>(routingTuple);
-        // if not in
+
         if (interfaceToStateInt.find(optimalIfaces) == interfaceToStateInt.end()) {
-            // add
             interfaceToStateInt.emplace(optimalIfaces, currentStateInt);
             currentStateInt++;
         }
-        int stateInt = interfaceToStateInt.find(optimalIfaces)->second;
+        int stateInt = interfaceToStateInt[optimalIfaces];
         // add to dest to state
         this->destToState.emplace(dest, stateInt);
     }
@@ -1404,8 +1403,15 @@ bool NDDSwitch::initSwitch() {
     this->numDestStates = currentStateInt;
 
     int numActions = this->actionInterfaces.size();
-    int stateSize = this->switchNeighbourIfaces.size() + currentStateInt;
-    agent->init(stateSize, numActions);
+    vector<int> stateRanges;
+    // add interface binary states
+    for (int i = 0; i < this->switchNeighbourIfaces.size(); i++) {
+        stateRanges.push_back(2);
+    }
+    // add optimal interface state
+    stateRanges.push_back(currentStateInt);
+
+    agent->init(stateRanges, numActions);
 
     return true;
 }
@@ -1427,12 +1433,7 @@ vector<int> NDDSwitch::getState(Packet *p) {
         }
     }
 
-    for (int i = 0; i < this->numDestStates; i++) {
-        state.push_back(0);
-    }
-
-    // set destination
-    state[switchNeighbourIfaces.size() + this->destToState.find(p->getDest())->second] = 1;
+    state.push_back(this->destToState[p->getDest()]);
 
     return state;
 }
@@ -1502,7 +1503,7 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
         return NULL_ID;
     }
 
-    vector<int> state = getState(p);
+    vector<int> state = this->getState(p);
     //if packet.deflection_id == NULL_ID and no current deflecting packet
     if (NDDp->getDeflectionId() == NULL_ID && (this->multipleUpdates || this->deflectionLookup.size() == 0)) {
         int action = agent->selectAction(state, availableActions, true); // true allows exploration

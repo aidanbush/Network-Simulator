@@ -55,7 +55,7 @@ NDDAgent::NDDAgent(json &NDDAgentConfig) {
     generator.seed(man.random());
 }
 
-void NDDAgent::init(int numStates, int maxNumActions) {
+void NDDAgent::init(vector<int> stateRanges, int maxNumActions) {
 }
 
 int NDDAgent::selectAction(vector<int> state, vector<int> availableActions, bool explore) {
@@ -69,10 +69,10 @@ void NDDAgent::update(vector<int> state, int action, double reward, vector<int> 
 RandNDDAgent::RandNDDAgent(json &NDDAgentConfig): NDDAgent(NDDAgentConfig) {
 }
 
-void RandNDDAgent::init(int numStates, int maxNumActions) {
+void RandNDDAgent::init(vector<int> stateRanges, int maxNumActions) {
 }
 
-int RandNDDAgent::selectAction(vector<int> state, vector<int> availableActions, bool explore) {
+int RandNDDAgent::selectAction(vector<int> obs, vector<int> availableActions, bool explore) {
     return availableActions[generator() % availableActions.size()];
 }
 
@@ -112,7 +112,14 @@ json &TabQLearning::validateTabQLearningConfig(json &NDDAgentConfig) {
     return NDDAgentConfig;
 }
 
-void TabQLearning::init(int numStates, int maxNumActions) {
+void TabQLearning::init(vector<int> stateRanges, int maxNumActions) {
+    this->stateRanges = stateRanges;
+
+    int numStates = 1;//product of stateRanges
+    for (int r : stateRanges) {
+        numStates *= (r); // +1 to account for 0
+    }
+
     this->Q.resize(numStates);
 
     for (int i = 0; i < numStates; i++) {
@@ -121,24 +128,30 @@ void TabQLearning::init(int numStates, int maxNumActions) {
 }
 
 int TabQLearning::obsToState(vector<int> obs) {
-    int state = 0;
+    int state = obs[0];
+    int offset = this->stateRanges[0];
 
-    for (int i = 0; i < obs.size(); i++) {
-        state += obs[i] << i;
+    for (int i = 1; i < obs.size(); i++) {
+        state += obs[i] * offset;
+        offset *= stateRanges[i];
     }
 
     return state;
 }
 
-int TabQLearning::selectAction(vector<int> observation, vector<int> availableActions, bool explore) {
-    int state = obsToState(observation);
-
+int TabQLearning::selectAction(vector<int> obs, vector<int> availableActions, bool explore) {
     if (explore && (double)generator()/(generator.max() - generator.min()) < this->epsilon) {
         // TODO are only random actions taken
         return availableActions[generator() % availableActions.size()];
     }
 
+    int state = obsToState(obs);
+
     vector<int> bestActions = {availableActions[0]};
+    if (state > Q.size()) {
+        throw runtime_error("TabQLearning:\nstate > state size\n");
+    }
+
     double bestValue = Q[state][bestActions[0]];
     for (int i = 1; i < availableActions.size(); i++) {
         int action = availableActions[i];
