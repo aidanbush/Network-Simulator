@@ -79,17 +79,24 @@ def main():
             ["dest_id"],
             ["dest_id", "deflect_probability"],
             ["dest_id", "drop_probability"]][4:5]
-    ndd_algs = ["rand", "Q-learning"][0:1]
-    ndd_alphas = [0.05,0.01,0.005][0:1]
-    ndd_epsilons = [0.05,0.01,0.005][0:1]
-    ndd_gammas = [0.99][0:1]
+    ndd_algs = ["rand", "Q-learning"][1:2]
+    ndd_hyper_params =[
+            #alpha, epsilon, gamma
+            [0.5,0.05,0.99],
+            ]
+    # ranges alpha [0.1, 0.0001] -> 10-10000 steps - log
+    # ranges epsilon [0.05, 0.001] -> 20-200 steps - log
+    # ranges gamma [0.99,0.9] -> ?-? log
+    # single sample 1/(10**np.random.uniform(np.log10(1 / low), np.log10(1 / high)))
+    # [1/(10**np.random.uniform(np.log10(1 / low), np.log10(1 / high)))
+    #   for low, high in [[0.0001,0.1],[0.001,0.05],[0.9,0.99]]] # loop over ranges
     ndd_only_forward = [False, True][0:1]
     ndd_multiple_updates = [False, True][1:2]
     rand_deflect_static_deflects = [-1,2][0:2]
 
     experiment_configs = helper.gen_config_list(net_utils, prop_delays, traffic_types, agent_types,
             mbd_agent_algs, mbd_states, mbd_regularizers, mbd_deltas, mbd_discount_factors,
-            mbd_static_deflect, mbd_action_limits, ndd_algs, ndd_alphas, ndd_epsilons, ndd_gammas,
+            mbd_static_deflect, mbd_action_limits, ndd_algs, ndd_hyper_params,
             ndd_only_forward, ndd_multiple_updates, rand_deflect_static_deflects)
 
     for config in experiment_configs:
