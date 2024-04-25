@@ -200,7 +200,8 @@ def gen_2d_network(n, config):
                     "internal_speed": 0,
                     "network_size": n,
                     "coordinates": [x, y],
-                    "sector": get_2d_sector(x, y, n, 3),
+                    "section": get_2d_sector(x, y, n, 3),
+                    "num_sections": 3**2,
                     }
             switch.update(switchConfig)
 
