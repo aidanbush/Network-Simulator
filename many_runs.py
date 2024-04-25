@@ -58,24 +58,36 @@ def main():
     traffic_types = [helper.TRAFFIC_MICE_ELEPHANT, helper.TRAFFIC_CHANGING, helper.TRAFFIC_STATIC][0:1]
     net_utils = [0.05, 0.1, 0.15, 0.2][0:1]
     prop_delays = [0.01,0.1,0.5][0:1]
-    agent_types = ["mbd", "NDD", "rand_deflect", "rand_forward"][1:2]
-    mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
-    mbd_regularizers = [0.5,0.9,1.0,1.1,2.0][2:3]
-    mbd_deltas = [0.1,0.5,0.9,1.0][3:4]
-    mbd_discount_factors = [0.99, 0.999, 0.9999][3:4]
-    mbd_static_deflect = [-1,2,4][0:3]
-    mbd_action_limits = ["none", "only_deflect", "forward_first"][0:3]
+    agent_types = ["mbd", "NDD", "rand_deflect", "rand_forward"][0:1]
+    mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:3]
+    mbd_hyper_params = [
+            # regularizer, delta, discount factor
+            [1.0, 1.0, 0.999],
+            [1.0, 2.0, 0.999],
+            [1.0, 2.0, 0.999],
+            ]
+    # TODO add S in D-linUCB
+    # ranges delta [0.1, 2]
+    # ranges discount factor [0.9999,0.9] -> log
+    # single sample 1/(10**np.random.uniform(np.log10(1 / low), np.log10(1 / high)))
+    # [1/(10**np.random.uniform(np.log10(1 / low), np.log10(1 / high)))
+    #   for low, high in [[l,h],[l,h]]] # loop over ranges
+    #mbd_regularizers = [0.5,0.9,1.0,1.1,2.0][2:3]
+    #mbd_deltas = [0.1,0.5,0.9,1.0][3:4]
+    #mbd_discount_factors = [0.99, 0.999, 0.9999][3:4]
+    mbd_static_deflect = [-1,2,4][0:1]
+    mbd_action_limits = ["none", "only_deflect", "forward_first"][0:1]
     mbd_states = [["1-2_hop_shortest"],
-            ["1-2_hop_shortest", "3x3_section"],
+            ["1-2_hop_shortest", "section"],
             ["2_hop_shortest"],
             ["1_hop_shortest"],
-            ["1_hop_shortest", "3x3_section"],
+            ["1_hop_shortest", "section"],
             ["2_hop_shortest","1_hop_shortest"],
-            ["2_hop_shortest","1_hop_shortest","3x3_section"],
-            ["1_hop_shortest", "3x3_section", "deflect_probability"],
-            ["2_hop_shortest", "1_hop_shortest", "3x3_section", "deflect_probability"],
-            ["1_hop_shortest", "3x3_section", "drop_probability"],
-            ["2_hop_shortest", "1_hop_shortest", "3x3_section", "drop_probability"],
+            ["2_hop_shortest","1_hop_shortest","section"],
+            ["1_hop_shortest", "section", "deflect_probability"],
+            ["2_hop_shortest", "1_hop_shortest", "section", "deflect_probability"],
+            ["1_hop_shortest", "section", "drop_probability"],
+            ["2_hop_shortest", "1_hop_shortest", "section", "drop_probability"],
             ["dest_id"],
             ["dest_id", "deflect_probability"],
             ["dest_id", "drop_probability"]][4:5]
@@ -95,7 +107,7 @@ def main():
     rand_deflect_static_deflects = [-1,2][0:2]
 
     experiment_configs = helper.gen_config_list(net_utils, prop_delays, traffic_types, agent_types,
-            mbd_agent_algs, mbd_states, mbd_regularizers, mbd_deltas, mbd_discount_factors,
+            mbd_agent_algs, mbd_states, mbd_hyper_params,
             mbd_static_deflect, mbd_action_limits, ndd_algs, ndd_hyper_params,
             ndd_only_forward, ndd_multiple_updates, rand_deflect_static_deflects)
 
