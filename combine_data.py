@@ -84,6 +84,15 @@ def switch_data(data_path, results_path, output_filename):
             "forwardedPackets",
             "timedOutPackets",
             "averageAvailableInterfaces",
+
+            # learning specific metrics
+            "allActionsEntropy",
+            "deflectionEntropy",
+            "numAvailableActions",
+            "entropyActionsTaken",
+            "learningActionsTaken",
+            "averageReward",
+            "actionsRewarded",
             ]
 
     # combine into master dataframe
@@ -92,7 +101,10 @@ def switch_data(data_path, results_path, output_filename):
         print(f"extracting switch {metric} data")
         data_pattern = f"^run_(\d+)_{metric}.csv"
         filename_tuples = get_filenames(data_path, data_pattern)
-        # if not filenames report and continue
+        # if no filenames report and continue
+        if len(filename_tuples) == 0:
+            print(f" - no data for switch {metric} found")
+            continue
         metric_df = extract_mean_std_per_column(filename_tuples, metric_name=metric)
         if df is None:
             df = metric_df

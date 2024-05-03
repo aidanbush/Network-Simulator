@@ -64,8 +64,13 @@ class Switch: public PacketHandler {
         int actionablePackets; // packets that get to being able to take an aciton on
         double averageAvailableInterfaces;
 
-        void recordData();
-        void resetData();
+        int sampleIndex; // current sample index starts at 0
+
+        double calculateStateEntropy(map<int, double> actionProbs);
+        double calculateEntropy(map<vector<double>, map<int, int>> counts);
+
+        virtual void recordData();
+        virtual void resetData();
 
         virtual int routePacket(Packet *p, int sourceInterfaceId);
 
@@ -203,6 +208,17 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         void updateDeflectionProbability(bool deflect);
         void updateDropProbability(bool deflect);
 
+        void recordData();
+        void resetData();
+
+        int entropyOffset;
+        double rewardSum;
+        int actionsRewarded;
+        int learningActionsTaken;
+        int entropyActionsTaken;
+        map<vector<double>, map<int, int>> allActionsEntropyCounts; // context -> action -> count
+        map<vector<double>, map<int, int>> deflectionEntropyCounts; // context -> (shortest count, deflection count)
+
         int routePacket(Packet *p, int sourceInterfaceId);
 
         void setupStates();
@@ -226,6 +242,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         LinUCB *agent;
         string agentAlg;
 
+        /* agent parameters */
         bool dropAction;
         int section;
         int numSections;
@@ -264,10 +281,12 @@ class NDDSwitch: public RandomForwardSwitch {
             vector<int> actionSet;
             second_t DfT;
         };
+
         struct deflectionTimerElem {
             int deflectionId;
             second_t timeout;
         };
+
         struct deflectionTimerComparator {
             bool operator()(const deflectionTimerElem lhs, const deflectionTimerElem rhs) {
                 if (lhs.timeout == rhs.timeout) {
@@ -276,6 +295,13 @@ class NDDSwitch: public RandomForwardSwitch {
                 return lhs.timeout > rhs.timeout;
             }
         };
+
+        double rewardSum;
+        int actionsRewarded;
+        int learningActionsTaken;
+
+        void recordData();
+        void resetData();
 
         int routePacket(Packet *p, int sourceInterfaceId);
         void dropPacketFeedback(Packet *p);

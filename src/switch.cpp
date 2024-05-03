@@ -84,7 +84,9 @@ Switch *createSwitch(json &switchNetConfig) {
     return netSwitch;
 }
 
-Switch::Switch(json &switchConfig): PacketHandler(validateSwitchConfig(switchConfig)) {}
+Switch::Switch(json &switchConfig): PacketHandler(validateSwitchConfig(switchConfig)) {
+    this->sampleIndex = 0;
+}
 
 json &Switch::validateSwitchConfig(json &switchConfig) {
     string message = "";
@@ -124,6 +126,52 @@ void Switch::resetData() {
     this->averageAvailableInterfaces = 1;
 }
 
+double Switch::calculateStateEntropy(map<int, double> actionProbs) {
+    double entropy = 0.0;
+    for (auto const& [_, prob] : actionProbs) {
+        entropy -= prob * log2(prob);
+    }
+    return entropy;
+}
+
+double Switch::calculateEntropy(map<vector<double>, map<int, int>> counts) {
+    if (counts.size() == 0) {
+        return -1.0;
+    }
+    map<vector<double>, map<int, double>> actionProbs;
+    map<vector<double>, int> stateCounts;
+    int totalCount = 0;
+
+    // precompute \pi(a|x) and C(x) and C(X) for d(x)
+    for (auto const& [state, values] : counts) {
+        // calculate C(x) and C(X)
+        stateCounts[state] = 0;
+        for (auto const& [_, actionCounts] : values) {
+            stateCounts[state] += actionCounts;
+        }
+        totalCount += stateCounts[state];
+
+        // calculate \pi(a|x)
+        for (auto const& [action, actionCount] : values) {
+            if (actionCount <= 0) {
+                throw runtime_error("actionCount is 0 for some action, should be above 0");
+            }
+            actionProbs[state][action] = double(actionCount) / stateCounts[state];
+        }
+    }
+
+    // calculate the weighted entropy
+    double entropy = 0;
+    for (auto const& [state, actionProbs] : actionProbs) {
+        double stateProb = double(stateCounts[state]) / totalCount;
+        double stateEntropy = this->calculateStateEntropy(actionProbs);
+
+        entropy += stateProb * stateEntropy;
+    }
+
+    return entropy;
+}
+
 void Switch::recordData() {
     for (auto it : switchNeighbourIfaces) {
         Interface *iface = man.getInterface(it.first);
@@ -141,6 +189,8 @@ void Switch::recordData() {
     observer.logSwitchData(id, "averageAvailableInterfaces", averageAvailableInterfaces);
 
     resetData();
+
+    this->sampleIndex++;
 
     second_t nextRecord = man.time + man.miTime;
     EventI *e = new Event<Switch>(nextRecord, &Switch::recordData, this);
@@ -607,6 +657,7 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
     this->dropProbTau = 1; // in seconds TODO use config file to import
     this->dropProb = 0;
     this->prevPacketArriveTime = man.time;
+
     // load in state
     for (json::iterator it = switchConfig["states"].begin(); it != switchConfig["states"].end(); ++it) {
         // map to type
@@ -621,6 +672,12 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
     if (stateTypes.empty()) {
         throw runtime_error("no states provided\n");
     }
+
+    this->entropyOffset = switchConfig["entropy_offset"];
+    this->rewardSum = 0.0;
+    this->actionsRewarded = 0;
+    this->learningActionsTaken = 0;
+    this->entropyActionsTaken = 0;
 }
 
 void ManhattanBanditDeflectionSwitch::forwardPacket(Packet *p) {
@@ -709,6 +766,10 @@ json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchCo
         message += "No string with name 'num_sections'.\n";
     }
 
+    if (!hasMemberOfType(switchConfig, "entropy_offset", jsonInt)) {
+        message += "No string with name 'entropy_offset'.\n";
+    }
+
     if (!message.empty()) {
         message = "ManhattanBanditDeflectionSwitch:\n" + message + switchConfig.dump(4);
         throw runtime_error(message);
@@ -755,7 +816,47 @@ void ManhattanBanditDeflectionSwitch::startSwitch() {
     int seed = man.random();/* get from manager random */
     // initialize agent
 
-    agent = new LinUCB(observeDims, numActions, this->regularizer, this->delta, this->discountFactor, this->agentAlg, seed);
+    agent = new LinUCB(observeDims, numActions, this->regularizer, this->delta,
+            this->discountFactor, this->agentAlg, seed);
+}
+
+void ManhattanBanditDeflectionSwitch::resetData() {
+    if (sampleIndex % entropyOffset == entropyOffset - 1) {
+        this->allActionsEntropyCounts.clear();
+        this->deflectionEntropyCounts.clear();
+
+        this->entropyActionsTaken = 0;
+    }
+
+    this->learningActionsTaken = 0;
+
+    this->rewardSum = 0.0;
+    this->actionsRewarded = 0;
+}
+
+void ManhattanBanditDeflectionSwitch::recordData() {
+    // if entropyOffset'th sample - sampleIndex starts at 0
+    double allEntropy = NAN;
+    double deflectionEntropy = NAN;
+    double entropyActions = NAN;
+
+    if (this->sampleIndex % this->entropyOffset == this->entropyOffset - 1) {
+        allEntropy = this->calculateEntropy(allActionsEntropyCounts);
+        deflectionEntropy = this->calculateEntropy(deflectionEntropyCounts);
+        entropyActions = double(this->entropyActionsTaken);
+    }
+
+    observer.logSwitchData(id, "allActionsEntropy", allEntropy);
+    observer.logSwitchData(id, "deflectionEntropy", deflectionEntropy);
+    observer.logSwitchData(id, "numAvailableActions", switchNeighbourIfaces.size());
+    observer.logSwitchData(id, "entropyActionsTaken", entropyActionsTaken);
+
+    observer.logSwitchData(id, "learningActionsTaken", this->learningActionsTaken);
+
+    observer.logSwitchData(id, "averageReward", this->rewardSum / this->actionsRewarded);
+    observer.logSwitchData(id, "actionsRewarded", this->actionsRewarded);
+
+    Switch::recordData();
 }
 
 map<int, set<int>> ManhattanBanditDeflectionSwitch::createShortestLookupTable(vector<int> switchIds) {
@@ -1276,6 +1377,18 @@ int ManhattanBanditDeflectionSwitch::takeAgentAction(int sourceInterfaceId, Pack
     }
 #endif /* ONE_HOP_REWARD */
 
+    // record actions in entropy maps
+    this->allActionsEntropyCounts[state][action.first]++;
+
+    if (get<1>(this->routingTable.find(p->getDest())->second).contains(actionInterface)) {
+        this->deflectionEntropyCounts[state][0]++;
+    } else {
+        this->deflectionEntropyCounts[state][1]++;
+    }
+
+    this->entropyActionsTaken++;
+    this->learningActionsTaken++;
+
     return actionInterface;
 }
 
@@ -1320,6 +1433,9 @@ void ManhattanBanditDeflectionSwitch::rewardAction(int pId, double reward) {
         return;
     }
 
+    this->rewardSum += reward;
+    this->actionsRewarded++;
+
     // apply update
     agent->updateAgent(get<0>(stateAction), get<1>(stateAction), reward);
 }
@@ -1337,7 +1453,10 @@ NDDSwitch::NDDSwitch(json &switchConfig): RandomForwardSwitch(validateNDDSwitchC
 
     // create agent
     agent = createNDDAgent(switchConfig["NDDAgent"]);
-    //agent = new RandNDDAgent(switchConfig["NDDAgent"]);
+
+    this->rewardSum = 0.0;
+    this->actionsRewarded = 0;
+    this->learningActionsTaken = 0;
 }
 
 json &NDDSwitch::validateNDDSwitchConfig(json &switchConfig) {
@@ -1420,6 +1539,20 @@ void NDDSwitch::startSwitch() {
     RandomForwardSwitch::startSwitch();
 }
 
+void NDDSwitch::resetData() {
+    this->learningActionsTaken = 0;
+    this->rewardSum = 0.0;
+    this->actionsRewarded = 0;
+}
+
+void NDDSwitch::recordData() {
+    observer.logSwitchData(id, "learningActionsTaken", this->learningActionsTaken);
+    observer.logSwitchData(id, "averageReward", this->rewardSum / this->actionsRewarded);
+    observer.logSwitchData(id, "actionsRewarded", this->actionsRewarded);
+
+    Switch::recordData();
+}
+
 vector<int> NDDSwitch::getState(Packet *p) {
     vector<int> state = {};
     // set avaiable interfaces, 1 == available
@@ -1444,6 +1577,8 @@ void NDDSwitch::recordAction(int deflectionId, deflectionData data, second_t tim
             .deflectionId = deflectionId,
             .timeout = timeout
             });
+
+    this->learningActionsTaken++;
 
     if (deflectionTimeoutQueue.size() == 1) {
         EventI *e = new Event<NDDSwitch>(timeout, &NDDSwitch::DNTimerEvent, this);
@@ -1597,10 +1732,14 @@ void NDDSwitch::DNTimerEvent() {
         this->deflectionLookup.erase(topElem.deflectionId);
 
         double reward = calculateReward(0.0, 0.0);
-        man.logEvent(SWITCH_STR, id, "DNTimerEvent", "deflection notificaiton timer elapsed without feedback: " +
-                to_string(topElem.deflectionId) + " reward: " + to_string(reward));
+
+        this->rewardSum += reward;
+        this->actionsRewarded++;
 
         agent->update(data.state, data.action, reward, data.actionSet);
+
+        man.logEvent(SWITCH_STR, id, "DNTimerEvent", "deflection notificaiton timer elapsed without feedback: " +
+                to_string(topElem.deflectionId) + " reward: " + to_string(reward));
     }
 
     // loop through pq until items - while not empty and the top element is not in the lookup table
@@ -1634,6 +1773,10 @@ void NDDSwitch::feedbackArrived(NDDFeedbackMessage feedback) {
 
     double TTT = man.time - data.DfT;
     double reward = calculateReward(TTT, feedback.DHC);
+
+    this->rewardSum += reward;
+    this->actionsRewarded++;
+
     agent->update(data.state, data.action, reward, data.actionSet);
 
     man.logEvent(SWITCH_STR, id, "dropPacketFeedback", "recieved feedback message for deflection: " +
