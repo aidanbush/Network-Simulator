@@ -16,6 +16,7 @@ class Packet;
 class Generator {
     public:
         Generator(json &generatorConfig);
+        virtual ~Generator() = default;
 
         bool setFlowId(int id);
 

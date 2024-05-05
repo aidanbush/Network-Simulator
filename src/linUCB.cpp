@@ -98,7 +98,7 @@ pair<int, double> LinUCB::selectAction(vector<double> observation, vector<int> a
     double actionValue = ucb[actions[0]].item().to<double>();
     vector<double> expectedRewards = {ucbReward[actions[0]].item().to<double>()};
 
-    for (int i = 1; i < available_actions.size(); i++) {
+    for (size_t i = 1; i < available_actions.size(); i++) {
         int action = available_actions[i];
         double tmpActionValue = ucb[action].item().to<double>();
         if (tmpActionValue > actionValue) {

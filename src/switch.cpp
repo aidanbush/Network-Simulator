@@ -426,8 +426,6 @@ bool Switch::setupRoutingTable() {
             return false;
         }
 
-        PacketHandler *handler = man.getHandler(handlerId);
-
         vector<int> allInterfacesVec = this->getInterfaces();
         set<int> allInterfacesSet = set<int>(allInterfacesVec.begin(), allInterfacesVec.end());
         // todo this should be the current switches interfaces not the destination!!!
@@ -807,7 +805,7 @@ void ManhattanBanditDeflectionSwitch::startSwitch() {
                 to_string(it.second));
     }
 
-    for (int i = 0; i < this->actionInterfaces.size(); i++) {
+    for (size_t i = 0; i < this->actionInterfaces.size(); i++) {
         this->interfaceToAction.emplace(this->actionInterfaces[i], i);
     }
 
@@ -864,7 +862,7 @@ void ManhattanBanditDeflectionSwitch::recordData() {
     observer.logSwitchData(id, "allActionsEntropy", allEntropy);
     observer.logSwitchData(id, "deflectionEntropy", deflectionEntropy);
     observer.logSwitchData(id, "numAvailableActions", switchNeighbourIfaces.size());
-    observer.logSwitchData(id, "entropyActionsTaken", entropyActionsTaken);
+    observer.logSwitchData(id, "entropyActionsTaken", entropyActions);
 
     observer.logSwitchData(id, "learningActionsTaken", this->learningActionsTaken);
 
@@ -891,7 +889,7 @@ map<int, set<int>> ManhattanBanditDeflectionSwitch::createShortestLookupTable(ve
         double minCost = s->costToDest(dest);
 
         // for all closest switches
-        for (int i = 1; i < switchIds.size(); i++) {
+        for (size_t i = 1; i < switchIds.size(); i++) {
             Switch *s = man.getSwitch(switchIds[i]);
             double cost = s->costToDest(dest);
 
@@ -1060,7 +1058,7 @@ vector<int> ManhattanBanditDeflectionSwitch::availableDeflectInterfaces(Packet *
 vector<int> ManhattanBanditDeflectionSwitch::availableInterfaces(Packet *p) {
     vector<int> available;
 
-    for (int i = 0; i < this->actionInterfaces.size(); i++) {
+    for (size_t i = 0; i < this->actionInterfaces.size(); i++) {
         int ifaceId = this->actionInterfaces[i];
         // account for drop action
         if (ifaceId == NULL_ID) {
@@ -1507,7 +1505,7 @@ bool NDDSwitch::initSwitch() {
         this->actionInterfaces.push_back(it.second);
     }
 
-    for (int i = 0; i < this->actionInterfaces.size(); i++) {
+    for (size_t i = 0; i < this->actionInterfaces.size(); i++) {
         this->interfaceToAction.emplace(this->actionInterfaces[i], i);
     }
 
@@ -1532,7 +1530,7 @@ bool NDDSwitch::initSwitch() {
     int numActions = this->actionInterfaces.size();
     vector<int> stateRanges;
     // add interface binary states
-    for (int i = 0; i < this->switchNeighbourIfaces.size(); i++) {
+    for (size_t i = 0; i < this->switchNeighbourIfaces.size(); i++) {
         stateRanges.push_back(2);
     }
     // add optimal interface state

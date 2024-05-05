@@ -153,7 +153,7 @@ int TabQLearning::selectAction(vector<int> obs, vector<int> availableActions, bo
     }
 
     double bestValue = Q[state][bestActions[0]];
-    for (int i = 1; i < availableActions.size(); i++) {
+    for (size_t i = 1; i < availableActions.size(); i++) {
         int action = availableActions[i];
         double value = Q[state][action];
 
