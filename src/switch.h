@@ -62,7 +62,8 @@ class Switch: public PacketHandler {
         int forwardedPackets; // sent along a shortest path
         int encounteredPackets; // packets that arrive and are not consumed
         int actionablePackets; // packets that get to being able to take an aciton on
-        double averageAvailableInterfaces;
+        int availableForwardIfaceCount;
+        int availableIfaceCount;
 
         int sampleIndex; // current sample index starts at 0
 
