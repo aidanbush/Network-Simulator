@@ -95,7 +95,6 @@ class Flow: public NetworkObject {
         int bytesSent;
         int bytesArrived;
         double throughput; // bytes/s
-        double sentRate;
         double averageHops;
         int outOfOrderCount;
         second_t averageRTT;

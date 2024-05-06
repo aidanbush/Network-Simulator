@@ -152,7 +152,6 @@ Flow::Flow(json &flowConfig):
     this->averageHops = 0;
     this->outOfOrderCount = 0;
     this->throughput = 0;
-    this->sentRate = this->rate;
     this->curSourcePId = 0;
     this->newestArrivedId = this->curSourcePId;
     this->curSinkPId = 0;
@@ -582,7 +581,7 @@ void BasicFlow::recordData() {
     }
 
     throughput = bytesArrived * BITS_PER_BYTE / man.miTime;
-    sentRate = bytesSent * BITS_PER_BYTE / man.miTime;
+    double sentRate = bytesSent * BITS_PER_BYTE / man.miTime;
     double hop_ratio = averageHops / double(minHops);
     double outOfOrderRatio = outOfOrderCount / double(packetsArrived);
 

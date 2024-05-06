@@ -169,12 +169,16 @@ void Switch::resetData() {
 }
 
 void Switch::recordData() {
+    double averageOutgoingLinkUsage = 0;
+
     for (auto it : switchNeighbourIfaces) {
         Interface *iface = man.getInterface(it.first);
         double usage = iface->getLinkUsage();
-        // TODO record with destination switch id
+        averageOutgoingLinkUsage += usage;
         observer.logLinkData(id, it.second, "LinkUsage", usage);
     }
+
+    averageOutgoingLinkUsage /= switchNeighbourIfaces.size();
 
     double availableIfaceRatio = 1;
     double availableForwardIfaceRatio = 1;
@@ -183,7 +187,6 @@ void Switch::recordData() {
         availableForwardIfaceRatio = double(this->availableForwardIfaceCount) / actionablePackets;
     }
 
-    //observer.logSwitchData(id, "value name", value);
     observer.logSwitchData(id, "droppedPackets", droppedPackets);
     observer.logSwitchData(id, "timedOutPackets", timedOutPackets);
     observer.logSwitchData(id, "deflectedPackets", deflectedPackets);
@@ -192,6 +195,7 @@ void Switch::recordData() {
     observer.logSwitchData(id, "actionablePackets", actionablePackets);
     observer.logSwitchData(id, "averageAvailableInterfaces", availableIfaceRatio);
     observer.logSwitchData(id, "averageForwardInterfaces", availableForwardIfaceRatio);
+    observer.logSwitchData(id, "averageOutgoingLinkUsage", averageOutgoingLinkUsage);
 
     resetData();
 
@@ -613,6 +617,7 @@ int RandomDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceId) {
     if (RDP->deflectionsRemaining() <= 0) {
         man.logEvent(SWITCH_STR, id, "RandomDeflectionSwitch: routePacket",
                 "out of deflections dropping packet: " + to_string(RDP->getId()));
+        p->setTimedOut(); // form of timeout
         return NULL_ID;
     }
 
@@ -1282,7 +1287,6 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
     }
 
     vector<int> nonBlockedActions = availableInterfaces(p);
-    // TODO log actions
 
     // force a drop if all ports are blocked
     if ((!dropAction && nonBlockedActions.empty()) || (dropAction && nonBlockedActions.size() == 1)) {
@@ -1305,6 +1309,7 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
             sendActionUpdate(prevSwitch, p, actionDrop, 0);
         }
 #endif /* ONE_HOP_REWARD */
+        p->setTimedOut();
         return NULL_ID;
     }
 
@@ -1359,6 +1364,7 @@ int ManhattanBanditDeflectionSwitch::takeAgentAction(int sourceInterfaceId, Pack
                 sendActionUpdate(prevSwitch, p, actionDrop, 0);
             }
 #endif /* ONE_HOP_REWARD */
+            p->setTimedOut(); // form of timeout
             return NULL_ID;
         }
 
@@ -1616,6 +1622,7 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
         return routingIfaces[generator() % routingIfaces.size()];
     }
 
+    // if only forwarding drop packet as there is congestion
     if (this->onlyForward) {
         man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket", "only forwarding - dropping packet: " +
                 to_string(NDDp->getId()));
@@ -1678,6 +1685,7 @@ int NDDSwitch::routePacket(Packet *p, int sourceInterfaceId) {
         man.logEvent(SWITCH_STR, id, "NDDSwitch: routePacket", "drop DHC packet: " +
                 to_string(NDDp->getId()));
         this->dropPacketFeedback(p);
+        p->setTimedOut(); // too many deflections therefor timed out
         return NULL_ID;
     }
 

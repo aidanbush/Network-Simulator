@@ -36,6 +36,7 @@ class Packet: public NetworkObject {
         int fullSizeBits() {return (headerSize + bodySize) * BITS_PER_BYTE; }
         int hopCount() {return initialTTL - ttl;}
         void decTTL() {ttl--; }
+        void setTimedOut() { this->ttl = 0; } // used if prematurely timed out
         bool outOfTime() { return ttl <= 0; }
 
         virtual void arrive();
