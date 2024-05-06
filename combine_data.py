@@ -27,14 +27,22 @@ def extract_mean_std_per_column(filename_tuples, metric_name=None):
     means_df = df.groupby('Time').mean()
     std_df = df.groupby('Time').std()
 
-    if metric_name != None:
-        means_df = means_df.add_suffix(" " + metric_name)
-        std_df = std_df.add_suffix(" " + metric_name)
+    # quantiles
+    top_5_df = df.groupby('Time').quantile(0.95)
+    bottom_5_df = df.groupby('Time').quantile(0.05)
+    top_10_df = df.groupby('Time').quantile(0.90)
+    bottom_10_df = df.groupby('Time').quantile(0.10)
 
-    means_df = means_df.add_suffix(" mean")
-    std_df = std_df.add_suffix(" stdev")
+    # add metric name infix and type suffix
+    means_df = means_df.add_suffix(f" {metric_name} mean")
+    std_df = std_df.add_suffix(f" {metric_name} stdev")
 
-    df = pd.merge(means_df, std_df, right_index=True, left_index=True)
+    top_5_df = top_5_df.add_suffix(f" {metric_name} top 5%")
+    top_10_df = top_10_df.add_suffix(f" {metric_name} top 10%")
+    bottom_5_df = bottom_5_df.add_suffix(f" {metric_name} bottom 5%")
+    bottom_10_df = bottom_10_df.add_suffix(f" {metric_name} bottom 10%")
+
+    df = pd.concat([mean_df, std_df, top_5_df, bottom_5_df, top_10_df, bottom_10_df], axis=1)
 
     return df
 
@@ -43,7 +51,7 @@ def extract_mean_std_per_column(filename_tuples, metric_name=None):
 def extract_single_mean_std(filename_tuples, metric_name):
     df = None
 
-    # get all link sets
+    # get all path sets
     for filename, groups in filename_tuples:
         new_df = pd.read_csv(filename)
         new_df = new_df.set_index(["Time"]).add_suffix(f"_{groups[0]}").reset_index()
@@ -59,7 +67,6 @@ def extract_single_mean_std(filename_tuples, metric_name):
 
     # combine all three dataframes
     return pd.concat([times_df, mean_df, std_df], axis=1)
-
 
 def link_data(data_path, results_path, output_filename):
     print("extracting link data")
