@@ -24,7 +24,8 @@ def gen_experiment_name(size, config, network_type):
         if mbd_type == "D-LinUCB":
             agent += "_df_" + str(config["discount_factor"])
         agent += "_r_" + str(config["regularizer"]) + "_d_" + str(config["delta"]) \
-                + "_sd_" + str(config["static_deflections"])
+                + "_sd_" + str(config["static_deflections"]) \
+                + "_ei_" + str(config["entropy_interval"])
         if config["action_limit"] != "none":
             agent += "_" + config["action_limit"]
     elif agent == "NDD":
@@ -59,12 +60,12 @@ def main():
     net_utils = [0.05, 0.1, 0.15, 0.2][0:1]
     prop_delays = [0.01,0.1,0.5][0:1]
     agent_types = ["mbd", "NDD", "rand_deflect", "rand_forward"][0:1]
-    mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:3]
+    mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
     mbd_hyper_params = [
             # regularizer, delta, discount factor
             [1.0, 1.0, 0.999],
-            [1.0, 2.0, 0.999],
-            [1.0, 2.0, 0.999],
+            #[1.0, 2.0, 0.999],
+            #[1.0, 2.0, 0.999],
             ]
     # TODO add S in D-linUCB
     # ranges delta [0.1, 2]
@@ -91,6 +92,7 @@ def main():
             ["dest_id"],
             ["dest_id", "deflect_probability"],
             ["dest_id", "drop_probability"]][4:5]
+    mbd_entropy_interval = [5][0:1]
     ndd_algs = ["rand", "Q-learning"][1:2]
     ndd_hyper_params =[
             #alpha, epsilon, gamma
@@ -106,10 +108,11 @@ def main():
     ndd_multiple_updates = [False, True][1:2]
     rand_deflect_static_deflects = [-1,2][0:2]
 
-    experiment_configs = helper.gen_config_list(net_utils, prop_delays, traffic_types, agent_types,
-            mbd_agent_algs, mbd_states, mbd_hyper_params,
-            mbd_static_deflect, mbd_action_limits, ndd_algs, ndd_hyper_params,
-            ndd_only_forward, ndd_multiple_updates, rand_deflect_static_deflects)
+    experiment_configs = helper.gen_config_list(net_utils, prop_delays,
+            traffic_types, agent_types, mbd_agent_algs, mbd_states,
+            mbd_hyper_params, mbd_static_deflect, mbd_action_limits,
+            mbd_entropy_interval, ndd_algs, ndd_hyper_params, ndd_only_forward,
+            ndd_multiple_updates, rand_deflect_static_deflects)
 
     for config in experiment_configs:
         run_name = gen_experiment_name(size, config, network_type)
@@ -117,7 +120,7 @@ def main():
         timeout = 60*60*24*5 # 5 days
         command_line = f"bash run_test.sh -t {timeout} -p {num_runs} -n {num_runs} {run_path} {run_name} {size}x{size}manhattan_flow_params.json"
         print(command_line)
-        os.system(command_line)
+        #os.system(command_line)
 
 if __name__ == "__main__":
     main()

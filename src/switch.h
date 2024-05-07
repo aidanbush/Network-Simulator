@@ -212,7 +212,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         void recordData();
         void resetData();
 
-        int entropyOffset;
+        int entropyInterval;
         double rewardSum;
         int actionsRewarded;
         int learningActionsTaken;

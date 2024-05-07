@@ -691,7 +691,7 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
         throw runtime_error("no states provided\n");
     }
 
-    this->entropyOffset = switchConfig["entropy_offset"];
+    this->entropyInterval = switchConfig["entropy_interval"];
     this->rewardSum = 0.0;
     this->actionsRewarded = 0;
     this->learningActionsTaken = 0;
@@ -784,8 +784,8 @@ json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchCo
         message += "No string with name 'num_sections'.\n";
     }
 
-    if (!hasMemberOfType(switchConfig, "entropy_offset", jsonInt)) {
-        message += "No string with name 'entropy_offset'.\n";
+    if (!hasMemberOfType(switchConfig, "entropy_interval", jsonInt)) {
+        message += "No string with name 'entropy_interval'.\n";
     }
 
     if (!message.empty()) {
@@ -839,7 +839,7 @@ void ManhattanBanditDeflectionSwitch::startSwitch() {
 }
 
 void ManhattanBanditDeflectionSwitch::resetData() {
-    if (sampleIndex % entropyOffset == entropyOffset - 1) {
+    if (sampleIndex % this->entropyInterval == this->entropyInterval - 1) {
         this->allActionsEntropyCounts.clear();
         this->deflectionEntropyCounts.clear();
 
@@ -853,12 +853,12 @@ void ManhattanBanditDeflectionSwitch::resetData() {
 }
 
 void ManhattanBanditDeflectionSwitch::recordData() {
-    // if entropyOffset'th sample - sampleIndex starts at 0
+    // if entropyInterval'th sample - sampleIndex starts at 0
     double allEntropy = NAN;
     double deflectionEntropy = NAN;
     double entropyActions = NAN;
 
-    if (this->sampleIndex % this->entropyOffset == this->entropyOffset - 1) {
+    if (this->sampleIndex % this->entropyInterval == this->entropyInterval - 1) {
         allEntropy = this->calculateEntropy(allActionsEntropyCounts);
         deflectionEntropy = this->calculateEntropy(deflectionEntropyCounts);
         entropyActions = double(this->entropyActionsTaken);

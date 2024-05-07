@@ -580,11 +580,13 @@ def gen_path(dest_dir, size, network_type, experiment_config):
         mbd_regularizer = experiment_config["regularizer"]
         mbd_delta = experiment_config["delta"]
         mbd_static_deflect = experiment_config["static_deflections"]
+        mbd_entropy_interval = experiment_config["entropy_interval"]
         if experiment_config["action_limit"] != "none":
             filepath = os.path.join(filepath, experiment_config["action_limit"])
 
         filepath = os.path.join(filepath, f"s_{states}",
-                f"r_{mbd_regularizer}-d_{mbd_delta}-sd_{mbd_static_deflect}")
+                f"r_{mbd_regularizer}-d_{mbd_delta}-sd_{mbd_static_deflect}",
+                f"ei_{mbd_entropy_interval}")
     # NDD
     elif experiment_config["type"] == "NDD":
         filepath = os.path.join(filepath, f"NDD")
@@ -652,6 +654,7 @@ def setup_configs(size, experiment_config):
     if experiment_config["type"] == "mbd":
         switchConfig["drop_action"] = False
         switchConfig["action_limit"] = experiment_config["action_limit"]
+        switchConfig["entropy_interval"] = experiment_config["entropy_interval"]
 
         switchConfig["agent_alg"] = experiment_config["mbd_alg"]
         switchConfig["states"] = experiment_config["states"]
@@ -684,7 +687,7 @@ def setup_configs(size, experiment_config):
         flowConfig["static_deflections"] = experiment_config["static_deflections"]
 
 def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent_algs, mbd_states,
-        mbd_hyper_params, mbd_static_deflect, mbd_action_limits, ndd_alg,
+        mbd_hyper_params, mbd_static_deflect, mbd_action_limits, mbd_entropy_interval, ndd_alg,
         ndd_hyper_params, ndd_only_forward, ndd_multiple_updates, rand_deflect_static_deflects):
 
     agent_dicts = []
@@ -708,8 +711,9 @@ def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent
     if "mbd" in agent_types:
         mbd_algs = []
         mbd_dict = [{"type": "mbd", "flow_type": "mbd", "drop_action": False,
-            "static_deflections": sd, "states": s, "action_limit": al}
-                for sd in mbd_static_deflect for s in mbd_states for al in mbd_action_limits]
+                "static_deflections": sd, "states": s, "action_limit": al, "entropy_interval": ei}
+                for sd in mbd_static_deflect for s in mbd_states for al in mbd_action_limits
+                for ei in mbd_entropy_interval]
 
         if "D-LinUCB" in mbd_agent_algs:
             print(mbd_hyper_params)
@@ -760,12 +764,12 @@ def main():
     net_utils = [0.05, 0.1, 0.15, 0.2][0:1] # [0.1,0.2,0.3,0.4]
     prop_delays = [0.01,0.1,0.5][0:1]
     agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][0:1]
-    mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:3]
+    mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
     mbd_hyper_params = [
             # regularizer, delta, discount factor
             [1.0, 1.0, 0.999],
-            [1.0, 2.0, 0.999],
-            [1.0, 2.0, 0.999],
+            #[1.0, 2.0, 0.999],
+            #[1.0, 2.0, 0.999],
             ]
     # TODO add S in D-linUCB
     # ranges delta [0.1, 2]
@@ -792,6 +796,7 @@ def main():
             ["dest_id"],
             ["dest_id", "deflect_probability"],
             ["dest_id", "drop_probability"], ["flow_id"]][4:5]#[1:12]#[1:14]#[3:8]
+    mbd_entropy_interval = [5][0:1]
     ndd_algs = ["rand", "Q-learning"][1:2]
     ndd_hyper_params =[
             #alpha, epsilon, gamma
@@ -807,10 +812,11 @@ def main():
     ndd_multiple_updates = [False, True][1:2]
     rand_deflect_static_deflects = [-1,2][0:1]
 
-    experiment_configs = gen_config_list(net_utils, prop_delays, traffic_types, agent_types,
-            mbd_agent_algs, mbd_states, mbd_hyper_params,
-            mbd_static_deflect, mbd_action_limits, ndd_algs, ndd_hyper_params,
-            ndd_only_forward, ndd_multiple_updates, rand_deflect_static_deflects)
+    experiment_configs = gen_config_list(net_utils, prop_delays, traffic_types,
+            agent_types, mbd_agent_algs, mbd_states, mbd_hyper_params,
+            mbd_static_deflect, mbd_action_limits, mbd_entropy_interval,
+            ndd_algs, ndd_hyper_params, ndd_only_forward, ndd_multiple_updates,
+            rand_deflect_static_deflects)
 
     for experiment_config in experiment_configs:
         setup_configs(size, experiment_config)
