@@ -193,8 +193,8 @@ void Switch::recordData() {
     observer.logSwitchData(id, "forwardedPackets", forwardedPackets);
     observer.logSwitchData(id, "encounteredPackets", encounteredPackets);
     observer.logSwitchData(id, "actionablePackets", actionablePackets);
-    observer.logSwitchData(id, "averageAvailableInterfaces", availableIfaceRatio);
-    observer.logSwitchData(id, "averageForwardInterfaces", availableForwardIfaceRatio);
+    observer.logSwitchData(id, "averageAvailableInterfacesRatio", availableIfaceRatio);
+    observer.logSwitchData(id, "averageForwardInterfacesRatio", availableForwardIfaceRatio);
     observer.logSwitchData(id, "averageOutgoingLinkUsage", averageOutgoingLinkUsage);
 
     resetData();

@@ -42,9 +42,7 @@ def extract_mean_std_per_column(filename_tuples, metric_name=None):
     bottom_5_df = bottom_5_df.add_suffix(f" {metric_name} bottom 5%")
     bottom_10_df = bottom_10_df.add_suffix(f" {metric_name} bottom 10%")
 
-    df = pd.concat([mean_df, std_df, top_5_df, bottom_5_df, top_10_df, bottom_10_df], axis=1)
-
-    return df
+    return pd.concat([times_df, mean_df, std_df, top_5_df, bottom_5_df, top_10_df, bottom_10_df], axis=1)
 
 # extract a single mean and std for all metrics accross multiple runs
 # used with flows where the individual flow means don't matter
@@ -65,8 +63,53 @@ def extract_single_mean_std(filename_tuples, metric_name):
     mean_df = df.apply(lambda row: row[1:].mean(skipna=True), axis=1).rename(f"{metric_name} mean")
     std_df = df.apply(lambda row: row[1:].std(skipna=True), axis=1).rename(f"{metric_name} stdev")
 
-    # combine all three dataframes
-    return pd.concat([times_df, mean_df, std_df], axis=1)
+    # quantiles
+    top_5_df = df.apply(lambda row: row[1:].quantile(0.95), axis=1).rename(f"{metric_name} top 5%")
+    bottom_5_df = df.apply(lambda row: row[1:].quantile(0.05), axis=1).rename(f"{metric_name} bottom 5%")
+    top_10_df = df.apply(lambda row: row[1:].quantile(0.90), axis=1).rename(f"{metric_name} top 10%")
+    bottom_10_df = df.apply(lambda row: row[1:].quantile(0.10), axis=1).rename(f"{metric_name} bottom 10%")
+
+    # combine all dataframes
+    return pd.concat([times_df, mean_df, std_df, top_5_df, bottom_5_df, top_10_df, bottom_10_df], axis=1)
+
+def extract_sum_single_mean_std(filename_tuples, metric_name):
+    df = None
+
+    # the first element of the tuple is the run number
+    df_run_map = {}
+
+    # loop over path, merging into dataframe mapped to by run number
+    for filename, groups in filename_tuples:
+        new_df = pd.read_csv(filename)
+        run = groups[0]
+        new_df = new_df.set_index(["Time"]).add_suffix(f"_{groups[0]}").reset_index()
+        if run not in df_run_map:
+            df_run_map[run] = new_df
+        else:
+            df_run_map[run] = df_run_map[run].merge(new_df, on="Time")
+
+    # loop over runs and calculate sums
+    for run, run_df in df_run_map.items():
+        # group by
+        sum_df = run_df.groupby("Time").sum()
+        if df = None:
+            df = sum_df
+        else:
+            df = df.merge(sum_df, on="Time")
+
+    times_df = df.iloc[:,0]
+    # calculate means and stdev
+    mean_df = df.apply(lambda row: row[1:].mean(skipna=True), axis=1).rename(f"{metric_name} mean")
+    std_df = df.apply(lambda row: row[1:].std(skipna=True), axis=1).rename(f"{metric_name} stdev")
+
+    # quantiles
+    top_5_df = df.apply(lambda row: row[1:].quantile(0.95), axis=1).rename(f"{metric_name} top 5%")
+    bottom_5_df = df.apply(lambda row: row[1:].quantile(0.05), axis=1).rename(f"{metric_name} bottom 5%")
+    top_10_df = df.apply(lambda row: row[1:].quantile(0.90), axis=1).rename(f"{metric_name} top 10%")
+    bottom_10_df = df.apply(lambda row: row[1:].quantile(0.10), axis=1).rename(f"{metric_name} bottom 10%")
+
+    # combine all dataframes
+    return pd.concat([times_df, mean_df, std_df, top_5_df, bottom_5_df, top_10_df, bottom_10_df], axis=1)
 
 def link_data(data_path, results_path, output_filename):
     print("extracting link data")
@@ -90,7 +133,9 @@ def switch_data(data_path, results_path, output_filename):
             "encounteredPackets",
             "forwardedPackets",
             "timedOutPackets",
-            "averageAvailableInterfaces",
+            "averageAvailableInterfacesRatio",
+            "averageForwardInterfacesRatio",
+            "averageOutgoingLinkUsage",
 
             # learning specific metrics
             "allActionsEntropy",
@@ -112,7 +157,14 @@ def switch_data(data_path, results_path, output_filename):
         if len(filename_tuples) == 0:
             print(f" - no data for switch {metric} found")
             continue
+        # calculate per switch
         metric_df = extract_mean_std_per_column(filename_tuples, metric_name=metric)
+        if df is None:
+            df = metric_df
+        elif metric_df is not None:
+            df = df.merge(metric_df, on="Time")
+        # calculate over the network
+        metric_df = extract_single_mean_std(filename_tuples, metric)
         if df is None:
             df = metric_df
         elif metric_df is not None:
@@ -201,21 +253,35 @@ def flow_data(data_path, results_dir, output_filename):
             "AcksArrived",
             "AverageHops",
             "AverageRTT",
-            "CongestedPackets",
-            "DroppedPackets",
-            "ErroredPackets",
             "HopRatio",
             "MinRTT",
             "OutOfOrderRatio",
-            "PacketsArrived",
-            "SentPackets",
             "SentRate",
             "Throughput",
+            ]
+    count_metrics = [
+            "CongestedPackets",
+            "DroppedPackets",
+            "ErroredPackets",
+            "PacketsArrived",
+            "SentPackets",
             "TimedOutPackets",
             ]
 
+    #extract_sum_single_mean_std(filename_tuples, metric_name)
+
     df = None
     for metric in metrics:
+        print(f"extracting flow {metric} data")
+        data_pattern = f"^run_(\d+)_{metric}.csv"
+        filename_tuples = get_filenames(data_path, data_pattern)
+        metric_df = extract_single_mean_std(filename_tuples, metric)
+        if df is None:
+            df = metric_df
+        elif metric_df is not None:
+            df = df.merge(metric_df, on="Time")
+
+    for metric in count_metrics:
         print(f"extracting flow {metric} data")
         data_pattern = f"^run_(\d+)_{metric}.csv"
         filename_tuples = get_filenames(data_path, data_pattern)
