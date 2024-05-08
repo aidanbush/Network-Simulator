@@ -115,7 +115,7 @@ double Switch::calculateStateEntropy(map<int, double> actionProbs) {
 
 double Switch::calculateEntropy(map<vector<double>, map<int, int>> counts) {
     if (counts.size() == 0) {
-        return -1.0;
+        return NAN;
     }
     map<vector<double>, map<int, double>> actionProbs;
     map<vector<double>, int> stateCounts;
@@ -197,7 +197,7 @@ void Switch::recordData() {
     observer.logSwitchData(id, "averageForwardInterfacesRatio", availableForwardIfaceRatio);
     observer.logSwitchData(id, "averageOutgoingLinkUsage", averageOutgoingLinkUsage);
 
-    resetData();
+    this->resetData();
 
     this->sampleIndex++;
 
@@ -493,7 +493,7 @@ bool Switch::initSwitch() {
 }
 
 void Switch::startSwitch() {
-    resetData();
+    this->resetData();
 }
 
 bool Switch::validate() {
@@ -850,6 +850,8 @@ void ManhattanBanditDeflectionSwitch::resetData() {
 
     this->rewardSum = 0.0;
     this->actionsRewarded = 0;
+
+    Switch::resetData();
 }
 
 void ManhattanBanditDeflectionSwitch::recordData() {
@@ -857,6 +859,10 @@ void ManhattanBanditDeflectionSwitch::recordData() {
     double allEntropy = NAN;
     double deflectionEntropy = NAN;
     double entropyActions = NAN;
+    double averageReward = NAN;
+    if (actionsRewarded > 0) {
+        averageReward = this->rewardSum / this->actionsRewarded;
+    }
 
     if (this->sampleIndex % this->entropyInterval == this->entropyInterval - 1) {
         allEntropy = this->calculateEntropy(allActionsEntropyCounts);
@@ -871,8 +877,10 @@ void ManhattanBanditDeflectionSwitch::recordData() {
 
     observer.logSwitchData(id, "learningActionsTaken", this->learningActionsTaken);
 
-    observer.logSwitchData(id, "averageReward", this->rewardSum / this->actionsRewarded);
+    observer.logSwitchData(id, "averageReward", averageReward);
     observer.logSwitchData(id, "actionsRewarded", this->actionsRewarded);
+
+    this->resetData()
 
     Switch::recordData();
 }
