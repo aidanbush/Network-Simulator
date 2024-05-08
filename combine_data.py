@@ -15,6 +15,8 @@ def get_filenames(data_dir, pattern_str):
 # extract mean and std for each metric accross multiple runs
 def extract_mean_std_per_column(filename_tuples, metric_name=None):
     df_list = []
+    
+    print("Reading Data(extract_mean_std_per_column)")
 
     # get all link sets
     for filename, _ in filename_tuples:
@@ -23,8 +25,10 @@ def extract_mean_std_per_column(filename_tuples, metric_name=None):
 
     df = pd.concat(df_list, ignore_index=True)
 
+    print("Calculating statistical metrics")
+
     # calculate means and stdev
-    means_df = df.groupby('Time').mean()
+    mean_df = df.groupby('Time').mean()
     std_df = df.groupby('Time').std()
 
     # quantiles
@@ -34,7 +38,7 @@ def extract_mean_std_per_column(filename_tuples, metric_name=None):
     bottom_10_df = df.groupby('Time').quantile(0.10)
 
     # add metric name infix and type suffix
-    means_df = means_df.add_suffix(f" {metric_name} mean")
+    mean_df = mean_df.add_suffix(f" {metric_name} mean")
     std_df = std_df.add_suffix(f" {metric_name} stdev")
 
     top_5_df = top_5_df.add_suffix(f" {metric_name} top 5%")
@@ -42,12 +46,14 @@ def extract_mean_std_per_column(filename_tuples, metric_name=None):
     bottom_5_df = bottom_5_df.add_suffix(f" {metric_name} bottom 5%")
     bottom_10_df = bottom_10_df.add_suffix(f" {metric_name} bottom 10%")
 
-    return pd.concat([times_df, mean_df, std_df, top_5_df, bottom_5_df, top_10_df, bottom_10_df], axis=1)
+    return pd.concat([mean_df, std_df, top_5_df, bottom_5_df, top_10_df, bottom_10_df], axis=1).reset_index()
 
 # extract a single mean and std for all metrics accross multiple runs
 # used with flows where the individual flow means don't matter
 def extract_single_mean_std(filename_tuples, metric_name):
     df = None
+
+    print("Reading Data (extract_single_mean_std)")
 
     # get all path sets
     for filename, groups in filename_tuples:
@@ -57,6 +63,8 @@ def extract_single_mean_std(filename_tuples, metric_name):
             df = new_df
         else:
             df = df.merge(new_df, on="Time")
+
+    print("Calculating statistical metrics")
 
     times_df = df.iloc[:,0]
     # calculate means and stdev
@@ -78,6 +86,8 @@ def extract_sum_single_mean_std(filename_tuples, metric_name):
     # the first element of the tuple is the run number
     df_run_map = {}
 
+    print("Reading Data")
+
     # loop over path, merging into dataframe mapped to by run number
     for filename, groups in filename_tuples:
         new_df = pd.read_csv(filename)
@@ -88,14 +98,18 @@ def extract_sum_single_mean_std(filename_tuples, metric_name):
         else:
             df_run_map[run] = df_run_map[run].merge(new_df, on="Time")
 
+    print("Summing Data")
+
     # loop over runs and calculate sums
     for run, run_df in df_run_map.items():
         # group by
         sum_df = run_df.groupby("Time").sum()
-        if df = None:
+        if df == None:
             df = sum_df
         else:
             df = df.merge(sum_df, on="Time")
+
+    print("Calculating statistical metrics")
 
     times_df = df.iloc[:,0]
     # calculate means and stdev
@@ -157,18 +171,24 @@ def switch_data(data_path, results_path, output_filename):
         if len(filename_tuples) == 0:
             print(f" - no data for switch {metric} found")
             continue
+
         # calculate per switch
+        print("calculate per switch")
         metric_df = extract_mean_std_per_column(filename_tuples, metric_name=metric)
         if df is None:
             df = metric_df
         elif metric_df is not None:
             df = df.merge(metric_df, on="Time")
+        metric_df = None
+
         # calculate over the network
+        print("calculate over the network")
         metric_df = extract_single_mean_std(filename_tuples, metric)
         if df is None:
             df = metric_df
         elif metric_df is not None:
             df = df.merge(metric_df, on="Time")
+        metric_df = None
 
     # write
     filepath = os.path.join(results_path, output_filename)
@@ -282,7 +302,7 @@ def flow_data(data_path, results_dir, output_filename):
             df = df.merge(metric_df, on="Time")
 
     for metric in count_metrics:
-        print(f"extracting flow {metric} data")
+        print(f"extracting flow {metric} data (sum)")
         data_pattern = f"^run_(\d+)_{metric}.csv"
         filename_tuples = get_filenames(data_path, data_pattern)
         metric_df = extract_single_mean_std(filename_tuples, metric)
