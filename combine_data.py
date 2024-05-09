@@ -243,26 +243,31 @@ def calculate_rate(data_path, denominator_pattern, numerator_pattern, metric_nam
     mean_df = df.apply(lambda row: row[1:].mean(skipna=True), axis=1).rename(f"{metric_name} mean")
     std_df = df.apply(lambda row: row[1:].std(skipna=True), axis=1).rename(f"{metric_name} stdev")
 
+    # quantiles
+    top_5_df = df.apply(lambda row: row[1:].quantile(0.95), axis=1).rename(f"{metric_name} top 5%")
+    bottom_5_df = df.apply(lambda row: row[1:].quantile(0.05), axis=1).rename(f"{metric_name} bottom 5%")
+    top_10_df = df.apply(lambda row: row[1:].quantile(0.90), axis=1).rename(f"{metric_name} top 10%")
+    bottom_10_df = df.apply(lambda row: row[1:].quantile(0.10), axis=1).rename(f"{metric_name} bottom 10%")
+
     # combine all three dataframes
-    return pd.concat([times_df, mean_df, std_df], axis=1)
+    return pd.concat([times_df, mean_df, std_df, top_5_df, bottom_5_df, top_10_df, bottom_10_df], axis=1)
 
-
-def calculate_custom_flow_metrics(data_path):
+def calculate_custom_flow_metrics(data_path, prefix):
     df = None
     # drop rate = dropped packets / sent packets
-    drop_pattern = f"^run_(\d+)_DroppedPackets.csv"
-    sent_pattern = f"^run_(\d+)_SentPackets.csv"
-    drop_rate_df = calculate_rate(data_path, drop_pattern, sent_pattern, "DropRate")
+    drop_pattern = f"^run_(\d+)_{prefix}DroppedPackets.csv"
+    sent_pattern = f"^run_(\d+)_{prefix}SentPackets.csv"
+    drop_rate_df = calculate_rate(data_path, drop_pattern, sent_pattern, "{prefix}DropRate")
     df = drop_rate_df
 
     # timeout drop rate = timedout packets / sent packets
-    timeout_pattern = f"^run_(\d+)_TimedOutPackets.csv"
-    timeout_drop_rate_df = calculate_rate(data_path, timeout_pattern, sent_pattern, "TimeoutDropRate")
+    timeout_pattern = f"^run_(\d+)_{prefix}TimedOutPackets.csv"
+    timeout_drop_rate_df = calculate_rate(data_path, timeout_pattern, sent_pattern, "{prefix}TimeoutDropRate")
     df = df.merge(timeout_drop_rate_df, on="Time")
 
     # congested drop rate = congested packets / sent packets
-    congested_pattern = f"^run_(\d+)_CongestedPackets.csv"
-    congested_drop_rate_df = calculate_rate(data_path, congested_pattern, sent_pattern, "CongestedDropRate")
+    congested_pattern = f"^run_(\d+)_{prefix}CongestedPackets.csv"
+    congested_drop_rate_df = calculate_rate(data_path, congested_pattern, sent_pattern, "{prefix}CongestedDropRate")
     df = df.merge(congested_drop_rate_df, on="Time")
 
     return df
@@ -288,6 +293,9 @@ def flow_data(data_path, results_dir, output_filename):
             "TimedOutPackets",
             ]
 
+    metrics = [pre + m for pre ["", "elephant_"] for m in metrics]
+    count_metrics = [pre + m for pre ["", "elephant_"] for m in count_metrics]
+
     #extract_sum_single_mean_std(filename_tuples, metric_name)
 
     df = None
@@ -312,7 +320,9 @@ def flow_data(data_path, results_dir, output_filename):
             df = df.merge(metric_df, on="Time")
 
     # calculate custom_metrics
-    custom_df = calculate_custom_flow_metrics(data_path)
+    custom_df = calculate_custom_flow_metrics(data_path, "")
+    custom_elephant_df = calculate_custom_flow_metrics(data_path, "elephant_")
+    custom_df = custom_df.merge(custom_elephant_df)
 
     df = df.merge(custom_df)
 
