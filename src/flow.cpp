@@ -133,8 +133,9 @@ Flow::Flow(json &flowConfig):
 
     // create generator
     this->generator = createGenerator(flowConfig["generator"]);
-
     this->generator->setFlowId(flowConfig["id"]);
+
+    this->elephantFlow["elephant_flow"];
 
     this->sourceId = flowConfig["source_id"];
     this->destId = flowConfig["dest"];
@@ -151,7 +152,6 @@ Flow::Flow(json &flowConfig):
     this->averageRTT = 0;
     this->averageHops = 0;
     this->outOfOrderCount = 0;
-    this->throughput = 0;
     this->curSourcePId = 0;
     this->newestArrivedId = this->curSourcePId;
     this->curSinkPId = 0;
@@ -186,6 +186,10 @@ void Flow::validateFlowConfig(json &flowConfig) {
 
     if (!hasMemberOfType(flowConfig, "end_time", jsonDouble)) {
         message += "No double with name 'end_time'\n";
+    }
+
+    if (!hasMemberOfType(flowConfig, "elephant_flow", jsonBool)) {
+        message += "No bool with name 'elephant_flow'";
     }
 
     // generator
@@ -573,34 +577,41 @@ void BasicFlow::resetData() {
     acksArrived = 0;
 }
 
-void BasicFlow::recordData() {
-    // if nothing was sent and not running report nan
+void BasicFlow::recordPrefixedData(string prefix) {
     bool reportNan = false;
-    if (!running && bytesSent == 0) {
+    if (!this->running && this->bytesSent == 0) {
         reportNan = true;
     }
 
-    throughput = bytesArrived * BITS_PER_BYTE / man.miTime;
-    double sentRate = bytesSent * BITS_PER_BYTE / man.miTime;
-    double hop_ratio = averageHops / double(minHops);
-    double outOfOrderRatio = outOfOrderCount / double(packetsArrived);
+    double throughput = double(this->bytesArrived) * BITS_PER_BYTE / man.miTime;
+    double sentRate = this->bytesSent * BITS_PER_BYTE / man.miTime;
+    double hop_ratio = this->averageHops / double(this->minHops);
+    double outOfOrderRatio = this->outOfOrderCount / double(this->packetsArrived);
 
-    observer.logFlowData(id, "AverageHops", averageHops, reportNan);
-    observer.logFlowData(id, "HopRatio", hop_ratio, reportNan);
-    observer.logFlowData(id, "Throughput", throughput, reportNan);
-    observer.logFlowData(id, "AverageRTT", averageRTT, reportNan);
-    observer.logFlowData(id, "MinRTT", minRTT, reportNan);
-    observer.logFlowData(id, "SentRate", sentRate, reportNan);
-    observer.logFlowData(id, "PacketsArrived", packetsArrived, reportNan);
-    observer.logFlowData(id, "AcksArrived", acksArrived, reportNan);
-    observer.logFlowData(id, "OutOfOrderRatio", outOfOrderRatio, reportNan);
+    observer.logFlowData(id, prefix + "AverageHops", this->averageHops, reportNan);
+    observer.logFlowData(id, prefix + "HopRatio", hop_ratio, reportNan);
+    observer.logFlowData(id, prefix + "Throughput", throughput, reportNan);
+    observer.logFlowData(id, prefix + "AverageRTT", this->averageRTT, reportNan);
+    observer.logFlowData(id, prefix + "MinRTT", this->minRTT, reportNan);
+    observer.logFlowData(id, prefix + "SentRate", sentRate, reportNan);
+    observer.logFlowData(id, prefix + "AcksArrived", this->acksArrived, reportNan);
+    observer.logFlowData(id, prefix + "OutOfOrderRatio", outOfOrderRatio, reportNan);
 
     // packet counts
-    observer.logFlowData(id, "SentPackets", packetsSent, reportNan);
-    observer.logFlowData(id, "TimedOutPackets", packetsTimedOut, reportNan);
-    observer.logFlowData(id, "CongestedPackets", packetsDropped - packetsTimedOut, reportNan);
-    observer.logFlowData(id, "DroppedPackets", packetsDropped, reportNan);
-    observer.logFlowData(id, "ErroredPackets", packetsErrored, reportNan);
+    observer.logFlowData(id, prefix + "PacketsArrived", this->packetsArrived, reportNan);
+    observer.logFlowData(id, prefix + "SentPackets", this->packetsSent, reportNan);
+    observer.logFlowData(id, prefix + "TimedOutPackets", this->packetsTimedOut, reportNan);
+    observer.logFlowData(id, prefix + "CongestedPackets", this->packetsDropped - this->packetsTimedOut, reportNan);
+    observer.logFlowData(id, prefix + "DroppedPackets", this->packetsDropped, reportNan);
+    observer.logFlowData(id, prefix + "ErroredPackets", this->packetsErrored, reportNan);
+}
+
+void BasicFlow::recordData() {
+    this->recordPrefixedData("");
+    // if elephant flow record duplicate of data
+    if (elephantFlow) {
+        this->recordPrefixedData("elephant_");
+    }
 
     resetData();
 

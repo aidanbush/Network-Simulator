@@ -267,7 +267,7 @@ def createValidSwitches(config):
 
     return {switchId: [0, switch_max_rate[switchId], coordinate] for switchId, coordinate in switchIds}
 
-def add_random_flow(config, size, switches, open_switches, fullSwitches, start_time, end_time):
+def add_random_flow(config, size, switches, open_switches, fullSwitches, start_time, end_time, elephant=False):
     global flowId
 
     flowRate = flowConfig["generator"]["mean_rate"]
@@ -285,7 +285,8 @@ def add_random_flow(config, size, switches, open_switches, fullSwitches, start_t
             "source_id": sourceId,
             "dest": destId,
             "start_time": start_time,
-            "end_time": end_time
+            "end_time": end_time,
+            "elephant_flow": elephant
             }
     flow = dict(list(flowConfig.items()) + list(flow.items()))
     config["flows"].append(flow)
@@ -328,7 +329,7 @@ def gen_flows(config, util_thresh, net_size, sim_end_time):
 
     # generate two elephant flows
     for _ in range(num_elephants):
-        flow_band, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, 0, sim_end_time)
+        flow_band, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, 0, sim_end_time, elephant=True)
         cur_util += flow_band / net_band
 
 

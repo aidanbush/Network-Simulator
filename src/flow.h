@@ -48,6 +48,8 @@ class Flow: public NetworkObject {
 
         bool running;
 
+        bool elephantFlow;
+
         Packet *sendingPacket;
 
         Flow(json &flowConfig);
@@ -94,7 +96,6 @@ class Flow: public NetworkObject {
         int packetsErrored;
         int bytesSent;
         int bytesArrived;
-        double throughput; // bytes/s
         double averageHops;
         int outOfOrderCount;
         second_t averageRTT;
@@ -135,6 +136,7 @@ class BasicFlow: public Flow {
         static json &validateBasicFlowConfig(json &flowConfig);
 
         void recordData();
+        void recordPrefixedData(string prefix);
         void resetData();
 
         Packet *createAckPacket(Packet *p);
