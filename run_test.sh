@@ -81,6 +81,16 @@ done
 
 wait
 
+# zip into resultsDir
+# cd to tempResultsDir -> zip file -> jump back -> copy over
+(
+    cd ${tempResultsDir}
+    zip raw_data.zip *
+    cd -
+    mkdir -p ${resultsDir}/raw_data
+    mv ${tempResultsDir}/raw_data.zip ${resultsDir}/raw_data/
+)
+
 # combine data
 echo python3 combine_data.py $tempResultsDir ${resultsDir} results.csv links.csv switches.csv
 time python3 combine_data.py $tempResultsDir ${resultsDir} results.csv links.csv switches.csv &> ${resultsDir}/combine_data_output
