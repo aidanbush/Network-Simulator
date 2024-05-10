@@ -135,7 +135,7 @@ Flow::Flow(json &flowConfig):
     this->generator = createGenerator(flowConfig["generator"]);
     this->generator->setFlowId(flowConfig["id"]);
 
-    this->elephantFlow["elephant_flow"];
+    this->elephantFlow = flowConfig["elephant_flow"];
 
     this->sourceId = flowConfig["source_id"];
     this->destId = flowConfig["dest"];
