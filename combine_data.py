@@ -14,6 +14,10 @@ def get_filenames(data_dir, pattern_str):
 
 # extract mean and std for each metric accross multiple runs
 def extract_mean_std_per_column(filename_tuples, metric_name=None):
+    if len(filename_tuples) == 0:
+        print(f"No files for {metric_name}")
+        return None
+
     df_list = []
     
     print("Reading Data(extract_mean_std_per_column)")
@@ -51,6 +55,10 @@ def extract_mean_std_per_column(filename_tuples, metric_name=None):
 # extract a single mean and std for all metrics accross multiple runs
 # used with flows where the individual flow means don't matter
 def extract_single_mean_std(filename_tuples, metric_name):
+    if len(filename_tuples) == 0:
+        print(f"No files for {metric_name}")
+        return pd.DataFrame()
+
     df = None
 
     print("Reading Data (extract_single_mean_std)")
@@ -81,6 +89,10 @@ def extract_single_mean_std(filename_tuples, metric_name):
     return pd.concat([times_df, mean_df, std_df, top_5_df, bottom_5_df, top_10_df, bottom_10_df], axis=1)
 
 def extract_sum_single_mean_std(filename_tuples, metric_name):
+    if len(filename_tuples) == 0:
+        print(f"No files for {metric_name}")
+        return pd.DataFrame()
+
     df = None
 
     # the first element of the tuple is the run number
@@ -131,7 +143,7 @@ def link_data(data_path, results_path, output_filename):
     data_pattern = "^run_(\d+)_LinkUsage.csv"
     filename_tuples = get_filenames(data_path, data_pattern)
 
-    df = extract_mean_std_per_column(filename_tuples)
+    df = extract_mean_std_per_column(filename_tuples, metric_name="link usage")
 
     # write to file
     filepath = os.path.join(results_path, output_filename)
@@ -223,6 +235,10 @@ def calculate_difference(metric1_filename, metric2_filename, name):
 def calculate_rate(data_path, denominator_pattern, numerator_pattern, metric_name):
     denominator_file_tuples = get_filenames(data_path, denominator_pattern)
     numerator_file_tuples = get_filenames(data_path, numerator_pattern)
+    # if no filenames report and continue
+    if len(denominator_file_tuples) == 0 or len(numerator_file_tuples) == 0:
+        print(f" - no data rate metric found")
+        return None
 
     # combines tuples
     # sort tuples - assume there are corresponding files
@@ -253,22 +269,27 @@ def calculate_rate(data_path, denominator_pattern, numerator_pattern, metric_nam
     return pd.concat([times_df, mean_df, std_df, top_5_df, bottom_5_df, top_10_df, bottom_10_df], axis=1)
 
 def calculate_custom_flow_metrics(data_path, prefix):
+    print("Calculating drop rate")
     df = None
     # drop rate = dropped packets / sent packets
     drop_pattern = f"^run_(\d+)_{prefix}DroppedPackets.csv"
     sent_pattern = f"^run_(\d+)_{prefix}SentPackets.csv"
-    drop_rate_df = calculate_rate(data_path, drop_pattern, sent_pattern, "{prefix}DropRate")
+    drop_rate_df = calculate_rate(data_path, drop_pattern, sent_pattern, f"{prefix}DropRate")
     df = drop_rate_df
 
+    print("Calculating timeout drop rate")
     # timeout drop rate = timedout packets / sent packets
     timeout_pattern = f"^run_(\d+)_{prefix}TimedOutPackets.csv"
-    timeout_drop_rate_df = calculate_rate(data_path, timeout_pattern, sent_pattern, "{prefix}TimeoutDropRate")
-    df = df.merge(timeout_drop_rate_df, on="Time")
+    timeout_drop_rate_df = calculate_rate(data_path, timeout_pattern, sent_pattern, f"{prefix}TimeoutDropRate")
+    if not timeout_drop_rate_df is None:
+        df = df.merge(timeout_drop_rate_df, on="Time")
 
+    print("Calculating congested drop rate")
     # congested drop rate = congested packets / sent packets
     congested_pattern = f"^run_(\d+)_{prefix}CongestedPackets.csv"
-    congested_drop_rate_df = calculate_rate(data_path, congested_pattern, sent_pattern, "{prefix}CongestedDropRate")
-    df = df.merge(congested_drop_rate_df, on="Time")
+    congested_drop_rate_df = calculate_rate(data_path, congested_pattern, sent_pattern, f"{prefix}CongestedDropRate")
+    if not congested_drop_rate_df is None:
+        df = df.merge(congested_drop_rate_df, on="Time")
 
     return df
 
@@ -284,6 +305,7 @@ def flow_data(data_path, results_dir, output_filename):
             "SentRate",
             "Throughput",
             ]
+
     count_metrics = [
             "CongestedPackets",
             "DroppedPackets",
@@ -293,16 +315,19 @@ def flow_data(data_path, results_dir, output_filename):
             "TimedOutPackets",
             ]
 
-    metrics = [pre + m for pre ["", "elephant_"] for m in metrics]
-    count_metrics = [pre + m for pre ["", "elephant_"] for m in count_metrics]
-
-    #extract_sum_single_mean_std(filename_tuples, metric_name)
+    metrics = [pre + m for pre in ["", "elephant_"] for m in metrics]
+    count_metrics = [pre + m for pre in ["", "elephant_"] for m in count_metrics]
 
     df = None
     for metric in metrics:
         print(f"extracting flow {metric} data")
         data_pattern = f"^run_(\d+)_{metric}.csv"
         filename_tuples = get_filenames(data_path, data_pattern)
+        # if no filenames report and continue
+        if len(filename_tuples) == 0:
+            print(f" - no data for switch {metric} found")
+            continue
+
         metric_df = extract_single_mean_std(filename_tuples, metric)
         if df is None:
             df = metric_df
@@ -313,18 +338,27 @@ def flow_data(data_path, results_dir, output_filename):
         print(f"extracting flow {metric} data (sum)")
         data_pattern = f"^run_(\d+)_{metric}.csv"
         filename_tuples = get_filenames(data_path, data_pattern)
+        # if no filenames report and continue
+        if len(filename_tuples) == 0:
+            print(f" - no data for switch {metric} found")
+            continue
+
         metric_df = extract_single_mean_std(filename_tuples, metric)
         if df is None:
             df = metric_df
         elif metric_df is not None:
             df = df.merge(metric_df, on="Time")
 
+    print("Calculating custom flow metrics")
     # calculate custom_metrics
     custom_df = calculate_custom_flow_metrics(data_path, "")
     custom_elephant_df = calculate_custom_flow_metrics(data_path, "elephant_")
-    custom_df = custom_df.merge(custom_elephant_df)
 
-    df = df.merge(custom_df)
+    if custom_df is not None:
+        df = df.merge(custom_df, on="Time")
+
+    if custom_elephant_df is not None:
+        df = df.merge(custom_elephant_df, on="Time")
 
     filepath = os.path.join(results_dir, output_filename)
     print(f"writing to {filepath}")
@@ -337,8 +371,8 @@ def main():
     link_filename = sys.argv[4]
     switch_filename = sys.argv[5]
 
-    flow_data(data_path, result_path, flow_filename)
     link_data(data_path, result_path, link_filename)
+    flow_data(data_path, result_path, flow_filename)
     switch_data(data_path, result_path, switch_filename)
 
 if __name__ == "__main__":

@@ -609,7 +609,7 @@ void BasicFlow::recordPrefixedData(string prefix) {
 void BasicFlow::recordData() {
     this->recordPrefixedData("");
     // if elephant flow record duplicate of data
-    if (elephantFlow) {
+    if (this->elephantFlow) {
         this->recordPrefixedData("elephant_");
     }
 
