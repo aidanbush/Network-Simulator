@@ -308,7 +308,7 @@ def multiple_run_individual_heatmap(test_name, utilization, net_size, run_name_d
     plt.close()
 
 def plot_across_utils(test_name, utilizations, field, fig_type, ylim, file_suffix, net_size, run_name_data, exact_match=True, include_stdev=True, include_min_max=False, stdev_not_mean=False):
-    fig_name = f"{test_name} {net_size} Bursty {fig_type} fc 200 long"
+    fig_name = f"{test_name} {net_size} Bursty {fig_type}"
     output_name = fig_name.replace(' ', '_')
 
     utilizations = sorted(utilizations)
@@ -537,6 +537,15 @@ run_infixes = [
 run_suffix = ""
 '''
 
+utilizations = ["0.05","0.1","0.15","0.2","0.25"]
+experiment_name = "utilization_sweep"
+run_infixes = [
+        "rand_forward_mice-elephant_p_0.01",
+        "rand_deflect_mice-elephant_p_0.01",
+        "rand_deflect_sd_2_mice-elephant_p_0.01",
+        ]
+run_suffix = ""
+
 run_name_data = (run_infixes, run_suffix)
 
 for utilization in utilizations:
@@ -551,9 +560,9 @@ for utilization in utilizations:
     switch_link_usage_heatmap(experiment_name, utilizations, net_size, run_name_data)
     switch_link_usage_grid_plots(experiment_name, utilizations, net_size, run_name_data)
 
-#plot_across_utils(experiment_name, utilizations, "DropRate mean", "Drop Rate", (0,.3), "/results.csv", net_size, run_name_data)
-#plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (0,3), "/results.csv", net_size, run_name_data)
+plot_across_utils(experiment_name, utilizations, "DropRate mean", "Drop Rate", (0,.3), "/results.csv", net_size, run_name_data)
+plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (0,3), "/results.csv", net_size, run_name_data)
 #plot_across_utils(experiment_name, utilizations, "OutOfOrderRatio mean", "Out of Order Ratio", (0,.5), "/results.csv", net_size, run_name_data)
 # link mean
-#plot_across_utils(experiment_name, utilizations, "mean", "Link Usage", (0,.5), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=True)
+plot_across_utils(experiment_name, utilizations, "mean", "Link Usage", (0,.5), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=True)
 #plot_across_utils(experiment_name, utilizations, "mean", "Link Usage stdev", (0,.2), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=False, stdev_not_mean=True)

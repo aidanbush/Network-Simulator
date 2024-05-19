@@ -57,9 +57,9 @@ def main():
     network_type = [helper.NETWORK_2D, helper.NETWORK_3D][0]
 
     traffic_types = [helper.TRAFFIC_MICE_ELEPHANT, helper.TRAFFIC_CHANGING, helper.TRAFFIC_STATIC][0:1]
-    net_utils = [0.05, 0.1, 0.15, 0.2][0:1]
+    net_utils = [0.05, 0.1, 0.15, 0.2, 0.25][0:1]
     prop_delays = [0.01,0.1,0.5][0:1]
-    agent_types = ["mbd", "NDD", "rand_deflect", "rand_forward"][0:1]
+    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][2:3]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
     mbd_hyper_params = [
             # regularizer, delta, discount factor
@@ -120,7 +120,7 @@ def main():
         timeout = 60*60*24*5 # 5 days
         command_line = f"bash run_test.sh -t {timeout} -p {num_runs} -n {num_runs} {run_path} {run_name} {size}x{size}manhattan_flow_params.json"
         print(command_line)
-        #os.system(command_line)
+        os.system(command_line)
 
 if __name__ == "__main__":
     main()

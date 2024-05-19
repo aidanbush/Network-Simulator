@@ -762,9 +762,9 @@ def main():
     dest_dir = "configs"
 
     traffic_types = [TRAFFIC_MICE_ELEPHANT, TRAFFIC_CHANGING, TRAFFIC_STATIC][0:1]
-    net_utils = [0.05, 0.1, 0.15, 0.2][0:1] # [0.1,0.2,0.3,0.4]
+    net_utils = [0.05, 0.1, 0.15, 0.2, 0.25][0:5] # [0.1,0.2,0.3,0.4]
     prop_delays = [0.01,0.1,0.5][0:1]
-    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][0:1]
+    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][2:4]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
     mbd_hyper_params = [
             # regularizer, delta, discount factor
@@ -811,7 +811,7 @@ def main():
     #   for low, high in [[0.0001,0.1],[0.001,0.05],[0.9,0.99]]] # loop over ranges
     ndd_only_forward = [False, True][0:1]
     ndd_multiple_updates = [False, True][1:2]
-    rand_deflect_static_deflects = [-1,2][0:1]
+    rand_deflect_static_deflects = [-1,2][0:2]
 
     experiment_configs = gen_config_list(net_utils, prop_delays, traffic_types,
             agent_types, mbd_agent_algs, mbd_states, mbd_hyper_params,
@@ -826,7 +826,7 @@ def main():
 
         filepath = gen_path(dest_dir, size, network_type, experiment_config)
         print("generating:", filepath)
-        create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs, network_type)
+        #create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs, network_type)
 
 if __name__ == "__main__":
     main()
