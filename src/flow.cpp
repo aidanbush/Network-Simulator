@@ -578,32 +578,50 @@ void BasicFlow::resetData() {
 }
 
 void BasicFlow::recordPrefixedData(string prefix) {
-    bool reportNan = false;
-    if (!this->running && this->bytesSent == 0) {
-        reportNan = true;
+    bool sentNan = false;
+    bool arrivedNan = false;
+
+    if (!this->running) {
+        if (this->bytesSent == 0) {
+            sentNan = true;
+        }
+        if (this->bytesArrived == 0) {
+            arrivedNan = true;
+        }
     }
 
-    double throughput = double(this->bytesArrived) * BITS_PER_BYTE / man.miTime;
-    double sentRate = this->bytesSent * BITS_PER_BYTE / man.miTime;
-    double hop_ratio = this->averageHops / double(this->minHops);
-    double outOfOrderRatio = this->outOfOrderCount / double(this->packetsArrived);
+    double throughput = NAN;
+    double hop_ratio = NAN;
+    double outOfOrderRatio = NAN;
 
-    observer.logFlowData(id, prefix + "AverageHops", this->averageHops, reportNan);
-    observer.logFlowData(id, prefix + "HopRatio", hop_ratio, reportNan);
-    observer.logFlowData(id, prefix + "Throughput", throughput, reportNan);
-    observer.logFlowData(id, prefix + "AverageRTT", this->averageRTT, reportNan);
-    observer.logFlowData(id, prefix + "MinRTT", this->minRTT, reportNan);
-    observer.logFlowData(id, prefix + "SentRate", sentRate, reportNan);
-    observer.logFlowData(id, prefix + "AcksArrived", this->acksArrived, reportNan);
-    observer.logFlowData(id, prefix + "OutOfOrderRatio", outOfOrderRatio, reportNan);
+    double sentRate = NAN;
+
+    if (!sentNan) {
+        sentRate = this->bytesSent * BITS_PER_BYTE / man.miTime;
+    }
+
+    if (!arrivedNan) {
+        throughput = double(this->bytesArrived) * BITS_PER_BYTE / man.miTime;
+        hop_ratio = this->averageHops / double(this->minHops);
+        outOfOrderRatio = this->outOfOrderCount / double(this->packetsArrived);
+    }
+
+    observer.logFlowData(id, prefix + "AverageHops", this->averageHops, arrivedNan);
+    observer.logFlowData(id, prefix + "HopRatio", hop_ratio, arrivedNan);
+    observer.logFlowData(id, prefix + "Throughput", throughput, arrivedNan);
+    observer.logFlowData(id, prefix + "AverageRTT", this->averageRTT, arrivedNan);
+    observer.logFlowData(id, prefix + "MinRTT", this->minRTT, arrivedNan);
+    observer.logFlowData(id, prefix + "SentRate", sentRate, sentNan);
+    observer.logFlowData(id, prefix + "AcksArrived", this->acksArrived, arrivedNan);
+    observer.logFlowData(id, prefix + "OutOfOrderRatio", outOfOrderRatio, arrivedNan);
 
     // packet counts
-    observer.logFlowData(id, prefix + "PacketsArrived", this->packetsArrived, reportNan);
-    observer.logFlowData(id, prefix + "SentPackets", this->packetsSent, reportNan);
-    observer.logFlowData(id, prefix + "TimedOutPackets", this->packetsTimedOut, reportNan);
-    observer.logFlowData(id, prefix + "CongestedPackets", this->packetsDropped - this->packetsTimedOut, reportNan);
-    observer.logFlowData(id, prefix + "DroppedPackets", this->packetsDropped, reportNan);
-    observer.logFlowData(id, prefix + "ErroredPackets", this->packetsErrored, reportNan);
+    observer.logFlowData(id, prefix + "PacketsArrived", this->packetsArrived, arrivedNan);
+    observer.logFlowData(id, prefix + "SentPackets", this->packetsSent, sentNan);
+    observer.logFlowData(id, prefix + "TimedOutPackets", this->packetsTimedOut, sentNan && arrivedNan);
+    observer.logFlowData(id, prefix + "CongestedPackets", this->packetsDropped - this->packetsTimedOut, sentNan && arrivedNan);
+    observer.logFlowData(id, prefix + "DroppedPackets", this->packetsDropped, sentNan && arrivedNan);
+    observer.logFlowData(id, prefix + "ErroredPackets", this->packetsErrored, sentNan && arrivedNan);
 }
 
 void BasicFlow::recordData() {
