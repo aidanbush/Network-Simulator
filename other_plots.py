@@ -38,6 +38,22 @@ def multiple_run_out_of_order(test_name, utilization, net_size, run_name_data):
     y_lim = (0, .5)
     multiple_run_plot(test_name, utilization, mean_field, "Out of Order Ratio", y_lim, "/results.csv", net_size, run_name_data)
 
+def switch_link_usage_heatmap(test_name, utilization, net_size, run_name_data):
+    suffix = run_name_data[1]
+    for infix in run_name_data[0]:
+        name_data = (infix, suffix)
+        multiple_run_individual_heatmap(test_name, utilization, net_size, name_data,
+                "switches.csv", "averageOutgoingLinkUsage", "Average Outgoing Link Usage")
+
+def switch_link_usage_grid_plots(test_name, utilization, net_size, run_name_data):
+    ylim = (0, 0.25)
+    suffix = run_name_data[1]
+
+    for infix in run_name_data[0]:
+        name_data = (infix, suffix)
+        multiple_run_individual_grid(test_name, utilization, net_size, name_data,
+                "switches.csv", "averageOutgoingLinkUsage", "Average Outgoing Link Usage", ylim)
+
 def multiple_run_link_usage(test_name, utilization, net_size, run_name_data):
     fig_type = "links usage"
     file_suffix = "/links.csv"
@@ -205,6 +221,91 @@ def multiple_run_plot(test_name, utilization, mean_field, fig_type, ylim, file_s
         print("wrote to", filepath)
     except Exception as e:
         print("failed to plot", output_name, "exception", str(e))
+
+def multiple_run_individual_grid(test_name, utilization, net_size, run_name_data, filename, metric, fig_type, ylim):
+    run_name = get_run_name(net_size, utilization, run_name_data[0], run_name_data[1])
+
+    fig_name = f"{test_name} {run_name} {fig_type} Heatmap"
+    output_name = fig_name.replace(' ', '_')
+
+    #for run_name in run_name_data
+    file_suffix = filename
+    file_path = os.path.join("results", run_name, file_suffix)
+
+    df = pd.read_csv(file_path)
+
+    dim_size = int(net_size.split("x")[0])
+    fig, axs = plt.subplots(8, 8, figsize=(20, 20))
+    axs = axs.flatten()
+
+    time_data = df["Time"]
+    # for each switch
+    for x, y in [(x,y) for x in range(dim_size) for y in range(dim_size)]:
+        switch_id = x + y * dim_size + 1
+        i = switch_id - 1
+        # grab data and plot
+        col_name = f"switch_{switch_id} {metric} mean"
+        col_data = df[col_name]
+
+        axs[i].plot(time_data, col_data)
+        #axs[i].set_xlabel("Time")
+        #axs[i].set_ylabel(fig_type)
+        #axs[i].set_title(f"switch {switch_id}")
+        axs[i].set_ylim(ylim)
+
+    fig.suptitle(fig_name)
+    fig.supxlabel("Time")
+    fig.supylabel(fig_type)
+    plt.tight_layout(rect=[0.02, 0.03, 1, 0.95])
+    #fig.subplots_adjust(hspace=0.4, wspace=0.4, top=0.92, bottom=0.07)
+
+    try:
+        filepath = os.path.join(output_dir, "{}.{}".format(output_name, plot_format))
+        plt.savefig(filepath, format=plot_format)
+        print("wrote to", filepath)
+    except Exception as e:
+        print("failed to plot", output_name, "exception", str(e))
+
+    plt.close()
+
+def multiple_run_individual_heatmap(test_name, utilization, net_size, run_name_data, filename, metric, fig_type):
+    run_name = get_run_name(net_size, utilization, run_name_data[0], run_name_data[1])
+    fig_name = f"{test_name} {run_name} {fig_type} Heatmap"
+    output_name = fig_name.replace(' ', '_')
+
+    #for run_name in run_name_data
+    file_suffix = filename
+    file_path = os.path.join("results", run_name, file_suffix)
+
+    df = pd.read_csv(file_path)
+
+    dim_size = int(net_size.split("x")[0])
+
+    heatmap_data = np.zeros((dim_size, dim_size))
+
+    time_data = df["Time"]
+    # for each switch
+    for x, y in [(x,y) for x in range(dim_size) for y in range(dim_size)]:
+        switch_id = x + y * dim_size + 1
+        # grab data and plot
+        col_name = f"switch_{switch_id} {metric} mean"
+        col_data = df[col_name]
+
+        heatmap_data[x, y] = col_data.mean()
+
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(heatmap_data, annot=False, fmt=".2f", cmap="viridis", cbar_kws={'label': 'Average Usage'},
+                xticklabels=False, yticklabels=False)
+    plt.title(f'Heatmap of {metric} for {run_name}')
+
+    try:
+        filepath = os.path.join(output_dir, "{}.{}".format(output_name, plot_format))
+        plt.savefig(filepath, format=plot_format)
+        print("wrote to", filepath)
+    except Exception as e:
+        print("failed to plot", output_name, "exception", str(e))
+
+    plt.close()
 
 def plot_across_utils(test_name, utilizations, field, fig_type, ylim, file_suffix, net_size, run_name_data, exact_match=True, include_stdev=True, include_min_max=False, stdev_not_mean=False):
     fig_name = f"{test_name} {net_size} Bursty {fig_type} fc 200 long"
@@ -445,6 +546,10 @@ for utilization in utilizations:
     multiple_run_link_usage(experiment_name, utilization, net_size, run_name_data)
     #multiple_run_out_of_order(experiment_name, utilization, net_size, run_name_data)
     multiple_run_sent_rate(experiment_name, utilization, net_size, run_name_data)
+
+    # only if grid topology
+    switch_link_usage_heatmap(experiment_name, utilizations, net_size, run_name_data)
+    switch_link_usage_grid_plots(experiment_name, utilizations, net_size, run_name_data)
 
 #plot_across_utils(experiment_name, utilizations, "DropRate mean", "Drop Rate", (0,.3), "/results.csv", net_size, run_name_data)
 #plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (0,3), "/results.csv", net_size, run_name_data)
