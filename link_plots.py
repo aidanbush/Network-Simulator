@@ -6,9 +6,16 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import networkx as nx
 
-testName = "8x8_bursty_0.05_mbd_[1_hop_shortest,3x3_section]"
-outputDir = "results/" + testName + "/"
-linkCsvFile = outputDir + "links.csv"
+
+#testName = "8x8_bursty_0.05_mbd_[1_hop_shortest,3x3_section]"
+#testName = "8x8_rand_forward_mice-elephant_p_0.01"
+testName = "8x8_rand_deflect_mice-elephant_p_0.01"
+#testName = "rand_deflect_sd_2_mice-elephant_p_0.01"
+util = "0.05"
+testName = testName + f"_u_{util}"
+outputDir = os.path.join("plots", "link_usage")
+#outputDir = "results/" + testName + "/"
+linkCsvFile = os.path.join("results", testName, "links.csv")
 FIGSIZE=(16,9)
 plotFormat = "pdf"
 titlePostfix = testName
@@ -50,11 +57,16 @@ def plotLinks():
                 continue
 
             for key in row.keys():
-                source_dest, statsElem = key.split()
-                source, dest = source_dest[4:].split('-')
+                if key == "Time":
+                    continue
+
+                source_dest, *statsElem = key.split()
+                statsElem = "_".join(statsElem)
+
+                source, dest = source_dest[5:].split('_')
                 source_dest = (source, dest)
 
-                if statsElem == "mean":
+                if statsElem == "link_usage_mean":
                     rawData[source_dest].append(float(row[key]))
 
     edges = rawData.keys()
@@ -100,9 +112,11 @@ def plotLinks():
     if link_lables:
         nx.draw_networkx_edge_labels(G, pos, edgeLabels)
 
-    linkFigName = "linkUsage"
+    linkFigName = f"{testName}_linkUsage"
     plot_path = os.path.join(outputDir, "{}.{}".format(linkFigName, plotFormat))
     try:
+        print(f"saving plot {plot_path}")
+        os.makedirs(outputDir, exist_ok=True)
         plt.savefig(plot_path, format=plotFormat)
     except Exception as e:
         print(e)
