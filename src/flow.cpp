@@ -267,11 +267,11 @@ void Flow::packetArrived(Packet *p) {
 }
 
 void Flow::sourcePacketArrived(Packet *p) {
-    bytesArrived += p->fullSize();
+    this->bytesArrived += p->fullSize();
 
-    packetsArrived++;
+    this->packetsArrived++;
 
-    this->averageHops += 1 / packetsArrived * (p->hopCount() - averageHops);
+    this->averageHops += 1 / this->packetsArrived * (p->hopCount() - this->averageHops);
 
     int pId = p->getId();
     if (pId > this->newestArrivedId) {
@@ -563,18 +563,18 @@ void BasicFlow::packetGenerationNotification() {
 }
 
 void BasicFlow::resetData() {
-    packetsSent = 0;
-    packetsTimedOut = 0;
-    packetsDropped = 0;
-    bytesSent = 0;
-    bytesArrived = 0;
-    averageRTT = 0;
-    averageHops = 0;
-    outOfOrderCount = 0;
-    minRTT = MAX_RTT;
+    this->packetsSent = 0;
+    this->packetsTimedOut = 0;
+    this->packetsDropped = 0;
+    this->bytesSent = 0;
+    this->bytesArrived = 0;
+    this->averageRTT = 0;
+    this->averageHops = 0;
+    this->outOfOrderCount = 0;
+    this->minRTT = MAX_RTT;
 
-    packetsArrived = 0;
-    acksArrived = 0;
+    this->packetsArrived = 0;
+    this->acksArrived = 0;
 }
 
 void BasicFlow::recordPrefixedData(string prefix) {
@@ -600,10 +600,18 @@ void BasicFlow::recordPrefixedData(string prefix) {
         sentRate = this->bytesSent * BITS_PER_BYTE / man.miTime;
     }
 
+    // running or not running and packets arrived
     if (!arrivedNan) {
-        throughput = double(this->bytesArrived) * BITS_PER_BYTE / man.miTime;
-        hop_ratio = this->averageHops / double(this->minHops);
-        outOfOrderRatio = this->outOfOrderCount / double(this->packetsArrived);
+        // if packets arrived
+        if (this->bytesArrived) {
+            throughput = double(this->bytesArrived) * BITS_PER_BYTE / man.miTime;
+            hop_ratio = this->averageHops / double(this->minHops);
+            outOfOrderRatio = this->outOfOrderCount / double(this->packetsArrived);
+        } else { // no packets arrived so other metrics should be nan
+            this->averageHops = NAN;
+            this->averageRTT = NAN;
+            this->minRTT = NAN;
+        }
     }
 
     observer.logFlowData(id, prefix + "AverageHops", this->averageHops, arrivedNan);
