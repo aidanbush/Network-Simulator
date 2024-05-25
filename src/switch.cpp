@@ -880,8 +880,6 @@ void ManhattanBanditDeflectionSwitch::recordData() {
     observer.logSwitchData(id, "averageReward", averageReward);
     observer.logSwitchData(id, "actionsRewarded", this->actionsRewarded);
 
-    this->resetData();
-
     Switch::recordData();
 }
 
