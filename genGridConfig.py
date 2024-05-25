@@ -772,12 +772,13 @@ def main():
             #[1.0, 2.0, 0.999],
             #[1.0, 2.0, 0.999],
             ]
-    # TODO add S in D-linUCB
-    # ranges delta [0.1, 2]
+    # for original and slide
+    # r_l=0.1;r_h=2.0;d_l=0.1;d_h=1.0;[(np.random.uniform(r_l, r_h), d_l-(d_l-d_h)*(1-(np.random.uniform())**2)) for _ in range(15)]
+    # mbd_hyper_params = [(0.7, 0.97), (1.2, 0.9), (0.86, 0.66), (0.37, 0.96), (0.95, 0.62), (1.26, 0.99), (1.96, 0.99), (0.57, 0.71), (1.76, 0.78), (0.93, 0.54), (1.33, 0.33), (0.9, 1.0), (1.17, 0.7), (1.41, 0.25), (1.32, 0.92)]
+
+    # ranges delta [0.1, 2] := np.random.uniform(0.1, 2)
     # ranges discount factor [0.9999,0.9] -> log
-    # single sample 1/(10**np.random.uniform(np.log10(1 / low), np.log10(1 / high)))
-    # [1/(10**np.random.uniform(np.log10(1 / low), np.log10(1 / high)))
-    #   for low, high in [[l,h],[l,h]]] # loop over ranges
+    # "exp/log":low-(low-high)*(1-(np.random.uniform())**2)
     #mbd_regularizers = [0.5,0.9,1.0,1.1,2.0][2:3]
     #mbd_deltas = [0.1,0.5,0.9,1.0][3:4]
     #mbd_discount_factors = [0.99, 0.999, 0.9999][1:2]
