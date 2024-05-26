@@ -4,11 +4,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import math
+import pandas as pd
+import seaborn as sns
 
 import sys
 
 FIGSIZE = (16/1.5,9/1.5)
-output_dir = "results"
+output_dir = "plots"
 plot_format = "pdf"
 
 # plot averages of multiple runs throughputs
@@ -38,6 +40,11 @@ def multiple_run_out_of_order(test_name, utilization, net_size, run_name_data):
     y_lim = (0, .5)
     multiple_run_plot(test_name, utilization, mean_field, "Out of Order Ratio", y_lim, "/results.csv", net_size, run_name_data)
 
+def multiple_run_forwarding(test_name, utilization, net_size, run_name_data):
+    mean_field = "averageForwardInterfacesRatio mean"
+    y_lim = (0, 4)
+    multiple_run_plot(test_name, utilization, mean_field, "Forwarding Interfaces", y_lim, "/switches.csv", net_size, run_name_data)
+
 def switch_link_usage_heatmap(test_name, utilization, net_size, run_name_data):
     suffix = run_name_data[1]
     for infix in run_name_data[0]:
@@ -57,7 +64,7 @@ def switch_link_usage_grid_plots(test_name, utilization, net_size, run_name_data
 def multiple_run_link_usage(test_name, utilization, net_size, run_name_data):
     fig_type = "links usage"
     file_suffix = "/links.csv"
-    ylim = (0, .4)
+    ylim = (0, 1)
 
     mean_field = "mean"
     mean_fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization mean {fig_type}"
@@ -173,6 +180,9 @@ def get_runs_data(filename, field_name, exact_match=True):
                 row_data.append(val)
             data.append(row_data)
     return np.array(data)
+
+def multiple_run_plot_switch():
+    pass
 
 def multiple_run_plot(test_name, utilization, mean_field, fig_type, ylim, file_suffix, net_size, run_name_data):
     fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization {fig_type}"
@@ -546,6 +556,15 @@ run_infixes = [
         ]
 run_suffix = ""
 
+utilizations = ["0.05"]#["0.1","0.25"]
+experiment_name = "update_rule_selection"
+run_infixes = [
+        "mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01",
+        "mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01",
+        "mbd_slide_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01"
+        ]
+run_suffix = ""
+
 run_name_data = (run_infixes, run_suffix)
 
 for utilization in utilizations:
@@ -553,16 +572,19 @@ for utilization in utilizations:
     multiple_run_hop_ratio(experiment_name, utilization, net_size, run_name_data)
     multiple_run_drop_rate(experiment_name, utilization, net_size, run_name_data)
     multiple_run_link_usage(experiment_name, utilization, net_size, run_name_data)
+    #multiple_run_sent_rate(experiment_name, utilization, net_size, run_name_data)
+    multiple_run_forwarding(experiment_name, utilization, net_size, run_name_data)
+
     #multiple_run_out_of_order(experiment_name, utilization, net_size, run_name_data)
-    multiple_run_sent_rate(experiment_name, utilization, net_size, run_name_data)
 
     # only if grid topology
-    switch_link_usage_heatmap(experiment_name, utilizations, net_size, run_name_data)
-    switch_link_usage_grid_plots(experiment_name, utilizations, net_size, run_name_data)
+    #switch_link_usage_heatmap(experiment_name, utilization, net_size, run_name_data)
+    #switch_link_usage_grid_plots(experiment_name, utilization, net_size, run_name_data)
 
-plot_across_utils(experiment_name, utilizations, "DropRate mean", "Drop Rate", (0,.3), "/results.csv", net_size, run_name_data)
-plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (0,3), "/results.csv", net_size, run_name_data)
+#plot_across_utils(experiment_name, utilizations, "DropRate mean", "Drop Rate", (0,.3), "/results.csv", net_size, run_name_data)
+#plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (0,3), "/results.csv", net_size, run_name_data)
 #plot_across_utils(experiment_name, utilizations, "OutOfOrderRatio mean", "Out of Order Ratio", (0,.5), "/results.csv", net_size, run_name_data)
 # link mean
-plot_across_utils(experiment_name, utilizations, "mean", "Link Usage", (0,.5), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=True)
+#plot_across_utils(experiment_name, utilizations, "mean", "Link Usage", (0,.5), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=True)
 #plot_across_utils(experiment_name, utilizations, "mean", "Link Usage stdev", (0,.2), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=False, stdev_not_mean=True)
+#plot_across_utils(experiment_name, utilizations, "averageForwardInterfacesRatio mean", "Forwarding Interfaces", (0, 2), "/switches.csv", net_size, run_name_data)

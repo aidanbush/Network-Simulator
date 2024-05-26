@@ -59,6 +59,9 @@ chmod 777 $resultsDir
 
 cp $paramFile $resultsDir
 
+echo touch ${resultsDir}/test_start
+touch ${resultsDir}/test_start
+
 # run tests
 for run in `seq 0 $(($numRuns - 1))`; do
     seed=$(($run + $offset))
@@ -80,6 +83,11 @@ for run in `seq 0 $(($numRuns - 1))`; do
 done
 
 wait
+
+#echo cp -r ${tempResultsDir} ${resultsDir}
+#cp -r ${tempResultsDir} ${resultsDir}
+echo touch ${resultsDir}/test_complete
+touch ${resultsDir}/test_complete
 
 # zip into resultsDir
 # cd to tempResultsDir -> zip file -> jump back -> copy over
