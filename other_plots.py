@@ -377,14 +377,12 @@ def plot_across_utils(test_name, utilizations, field, fig_type, ylim, file_suffi
     #for run in sorted(means.keys()):
     for i, run in enumerate(sorted(means.keys())):
         #plt.plot(utilizations, means[run], label=run, alpha=.9)
-        yerr = None
+        yerr_min_max = None
+        yerr_stdev = None
         if include_stdev:
-            yerr = stdevs[run]
+            yerr_stdev = stdevs[run]
         if include_min_max:
-            yerr = np.stack([means[run] - mins[run], maxs[run] - means[run]])
-        if include_stdev and include_min_max:
-            print("ERROR CANNOT HAVE STDEV AND MIN MAX")
-            return None
+            yerr_min_max = np.stack([means[run] - mins[run], maxs[run] - means[run]])
 
         # TODO plot min and max if enabled
         x = means[run]
@@ -395,7 +393,10 @@ def plot_across_utils(test_name, utilizations, field, fig_type, ylim, file_suffi
         #plt.errorbar(utilizations, x, yerr=yerr, capsize=5, label=run, alpha=.9)
         # bar plot
         offset = width * i
-        plt.bar(loc + offset, x, width, yerr=yerr, label=run)
+        plt.bar(loc + offset, x, width, label=run)
+        plt.errorbar(loc + offset, x, yerr=yerr_stdev, fmt='none', ecolor='black', capsize=5)
+        plt.errorbar(loc + offset, x, yerr=yerr_min_max, fmt='none', ecolor='black', capsize=5)
+
 
     plt.legend()
 
@@ -556,14 +557,26 @@ run_infixes = [
         ]
 run_suffix = ""
 
-utilizations = ["0.05"]#["0.1","0.25"]
+'''
+utilizations = ["0.1"]#["0.1","0.2"]
 experiment_name = "update_rule_selection"
 run_infixes = [
-        "mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01",
-        "mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01",
-        "mbd_slide_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01"
+        #"mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01",
+        #"mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01",
+        #"mbd_slide_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01"
+        "mbd_original_s_[1_hop_shortest,section]_r_0.37_d_0.96_sd_-1_ei_5_mice-elephant_p_0.01",
+        "mbd_original_s_[1_hop_shortest,section]_r_0.7_d_0.97_sd_-1_ei_5_mice-elephant_p_0.01",
+        "mbd_original_s_[1_hop_shortest,section]_r_0.86_d_0.66_sd_-1_ei_5_mice-elephant_p_0.01",
+        "mbd_original_s_[1_hop_shortest,section]_r_0.95_d_0.62_sd_-1_ei_5_mice-elephant_p_0.01",
+        "mbd_original_s_[1_hop_shortest,section]_r_1.2_d_0.9_sd_-1_ei_5_mice-elephant_p_0.01",
+        "mbd_slide_s_[1_hop_shortest,section]_r_0.37_d_0.96_sd_-1_ei_5_mice-elephant_p_0.01",
+        "mbd_slide_s_[1_hop_shortest,section]_r_0.7_d_0.97_sd_-1_ei_5_mice-elephant_p_0.01",
+        "mbd_slide_s_[1_hop_shortest,section]_r_0.86_d_0.66_sd_-1_ei_5_mice-elephant_p_0.01",
+        "mbd_slide_s_[1_hop_shortest,section]_r_0.95_d_0.62_sd_-1_ei_5_mice-elephant_p_0.01",
+        "mbd_slide_s_[1_hop_shortest,section]_r_1.2_d_0.9_sd_-1_ei_5_mice-elephant_p_0.01",
         ]
 run_suffix = ""
+'''
 
 run_name_data = (run_infixes, run_suffix)
 
@@ -585,6 +598,6 @@ for utilization in utilizations:
 #plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (0,3), "/results.csv", net_size, run_name_data)
 #plot_across_utils(experiment_name, utilizations, "OutOfOrderRatio mean", "Out of Order Ratio", (0,.5), "/results.csv", net_size, run_name_data)
 # link mean
-#plot_across_utils(experiment_name, utilizations, "mean", "Link Usage", (0,.5), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=True)
+plot_across_utils(experiment_name, utilizations, "mean", "Link Usage", (0,.5), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=True, include_min_max=True)
 #plot_across_utils(experiment_name, utilizations, "mean", "Link Usage stdev", (0,.2), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=False, stdev_not_mean=True)
 #plot_across_utils(experiment_name, utilizations, "averageForwardInterfacesRatio mean", "Forwarding Interfaces", (0, 2), "/switches.csv", net_size, run_name_data)
