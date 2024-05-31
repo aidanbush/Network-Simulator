@@ -164,8 +164,16 @@ def switch_data(data_path, results_path, output_filename):
             "averageOutgoingLinkUsage",
 
             # learning specific metrics
-            "allActionsEntropy",
-            "deflectionEntropy",
+            "allActionsEntropy_1",
+            "allActionsEntropy_2",
+            "allActionsEntropy_4",
+            "allActionsEntropy_6",
+            "allActionsEntropy_8",
+            "deflectionEntropy_1",
+            "deflectionEntropy_2",
+            "deflectionEntropy_4",
+            "deflectionEntropy_6",
+            "deflectionEntropy_8",
             "numAvailableActions",
             "entropyActionsTaken",
             "learningActionsTaken",
