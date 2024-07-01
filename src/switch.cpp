@@ -1561,6 +1561,8 @@ void NDDSwitch::resetData() {
     this->learningActionsTaken = 0;
     this->rewardSum = 0.0;
     this->actionsRewarded = 0;
+
+    Switch::resetData();
 }
 
 void NDDSwitch::recordData() {
