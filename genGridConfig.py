@@ -717,7 +717,6 @@ def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent
                 for ei in mbd_entropy_interval]
 
         if "D-LinUCB" in mbd_agent_algs:
-            print(mbd_hyper_params)
             mbd_algs += [{**d, **{"mbd_alg": "D-LinUCB", "regularizer": r, "delta": de, "discount_factor": df}}
                     for d in mbd_dict for r, de, df in mbd_hyper_params]
         # TODO handle non D-LinUCB
@@ -751,9 +750,9 @@ def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent
     return experiment_dicts
 
 def main():
-    size = 8
+    size = 8#16
     runs = 30
-    simulation_length = 2000 # 1000
+    simulation_length = 1000 # 2000
     num_flow_changes = 200 # 100
     network_type = [NETWORK_2D, NETWORK_3D][0]
 
@@ -762,19 +761,21 @@ def main():
     dest_dir = "configs"
 
     traffic_types = [TRAFFIC_MICE_ELEPHANT, TRAFFIC_CHANGING, TRAFFIC_STATIC][0:1]
-    net_utils = [0.05, 0.1, 0.15, 0.2, 0.25][0:5] # [0.1,0.2,0.3,0.4]
-    prop_delays = [0.01,0.1,0.5][0:1]
-    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][2:4]
-    mbd_agent_algs = ["original", "slide", "D-LinUCB", None][1:2]
+    net_utils = [0.05, 0.1, 0.15, 0.2, 0.25][0:2] # [0.1,0.2,0.3,0.4]
+    net_utils = [0.1, 0.2][0:2] # [0.1,0.2,0.3,0.4]
+    prop_delays = [0.001,0.01,0.1,1.0][1:2]
+    #prop_delays = [0.001,0.1,1.0]
+    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][2:3]
+    mbd_agent_algs = ["original", "slide", "D-LinUCB", None][0:1]
     mbd_hyper_params = [
             # regularizer, delta, discount factor
-            [1.0, 1.0, 0.999],
+            [1.0, 1.0, 0.99999],
             #[1.0, 2.0, 0.999],
             #[1.0, 2.0, 0.999],
             ]
     # for original and slide
     # r_l=0.1;r_h=2.0;d_l=0.1;d_h=1.0;[(np.random.uniform(r_l, r_h), d_l-(d_l-d_h)*(1-(np.random.uniform())**2)) for _ in range(15)]
-    # mbd_hyper_params = [(0.7, 0.97), (1.2, 0.9), (0.86, 0.66), (0.37, 0.96), (0.95, 0.62), (1.26, 0.99), (1.96, 0.99), (0.57, 0.71), (1.76, 0.78), (0.93, 0.54), (1.33, 0.33), (0.9, 1.0), (1.17, 0.7), (1.41, 0.25), (1.32, 0.92)]
+    #mbd_hyper_params = [(0.7, 0.97, 0.999), (1.2, 0.9, 0.9999), (0.86, 0.66, 0.999), (0.37, 0.96, 0.999), (0.95, 0.62, 0.99999), (1.26, 0.99, 0.99999), (1.96, 0.99, 0.9999), (0.57, 0.71, 0.999), (1.76, 0.78, 0.99999), (0.93, 0.54, 0.999), (1.33, 0.33, 0.99999), (0.9, 1.0, 0.999), (1.17, 0.7, 0.999), (1.41, 0.25, 0.99999), (1.32, 0.92, 0.999)][5:10]
 
     # ranges delta [0.1, 2] := np.random.uniform(0.1, 2)
     # ranges discount factor [0.9999,0.9] -> log
@@ -782,22 +783,22 @@ def main():
     #mbd_regularizers = [0.5,0.9,1.0,1.1,2.0][2:3]
     #mbd_deltas = [0.1,0.5,0.9,1.0][3:4]
     #mbd_discount_factors = [0.99, 0.999, 0.9999][1:2]
-    mbd_static_deflect = [-1,2,4][0:1]
-    mbd_action_limits = ["none", "only_deflect", "forward_first"][0:1]
-    mbd_states = [["1-2_hop_shortest"],
-            ["1-2_hop_shortest", "section"],
-            ["2_hop_shortest"],
+    mbd_static_deflect = [-1,2,4,6,8][4:5]
+    mbd_action_limits = ["none", "forward_first", "only_deflect"][0:2]
+    mbd_states = [
             ["1_hop_shortest"],
+            ["1-2_hop_shortest"],
+            ["1_hop_shortest", "2_hop_shortest"],
             ["1_hop_shortest", "section"],
-            ["2_hop_shortest","1_hop_shortest"],
-            ["2_hop_shortest","1_hop_shortest","section"],
+            ["1-2_hop_shortest", "section"],
+            ["1_hop_shortest", "2_hop_shortest", "section"],
             ["1_hop_shortest", "section", "deflect_probability"],
             ["2_hop_shortest", "1_hop_shortest", "section", "deflect_probability"],
             ["1_hop_shortest", "section", "drop_probability"],
             ["2_hop_shortest", "1_hop_shortest", "section", "drop_probability"],
             ["dest_id"],
             ["dest_id", "deflect_probability"],
-            ["dest_id", "drop_probability"], ["flow_id"]][4:5]#[1:12]#[1:14]#[3:8]
+            ["dest_id", "drop_probability"], ["flow_id"]][2:3]#[1:12]#[1:14]#[3:8]
     mbd_entropy_interval = [5][0:1]
     ndd_algs = ["rand", "Q-learning"][1:2]
     ndd_hyper_params =[
@@ -827,7 +828,7 @@ def main():
 
         filepath = gen_path(dest_dir, size, network_type, experiment_config)
         print("generating:", filepath)
-        #create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs, network_type)
+        create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs, network_type)
 
 if __name__ == "__main__":
     main()
