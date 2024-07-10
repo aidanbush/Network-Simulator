@@ -11,7 +11,7 @@ import sys
 
 import code
 
-FIGSIZE = (16/1.5,9/1.5)
+FIGSIZE = (16,9)#(16/1.5,9/1.5)
 output_dir = "plots"
 plot_format = "pdf"
 
@@ -715,6 +715,52 @@ run_infixes = [
         'rand_forward_mice-elephant_p_0.01',
         ]
 run_suffix = ""
+
+net_size = "8x8"
+utilizations = ["0.1","0.2"]
+experiment_name = "Limited Deflections"
+run_infixes = [
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_forward_first_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_4_ei_5_forward_first_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_4_ei_5_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_forward_first_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_forward_first_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+
+net_size = "8x8"
+utilizations = ["0.1","0.2"]
+experiment_name = "Limited Deflections best"
+run_infixes = [
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
+        #'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_forward_first_mice-elephant_p_0.01',
+        #'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_mice-elephant_p_0.01',
+        #'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_forward_first_mice-elephant_p_0.01',
+        #'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+
+net_size = "8x8"
+utilizations = ["0.1","0.2"][0:1]
+experiment_name = "Propagation delay experiments"
+run_infixes = [
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.001',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.1',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_1.0',
+
+        'rand_forward_mice-elephant_p_0.001',
+        'rand_forward_mice-elephant_p_0.01',
+        'rand_forward_mice-elephant_p_0.1',
+        'rand_forward_mice-elephant_p_1.0',
+        ]
+run_suffix = ""
 """
 """
 
@@ -728,19 +774,19 @@ for utilization in utilizations:
     multiple_run_link_usage(experiment_name, utilization, net_size, run_name_data)
     multiple_run_forwarding(experiment_name, utilization, net_size, run_name_data)
 
-    #multiple_run_reward(experiment_name, utilization, net_size, run_name_data)
-    #multiple_run_all_entropy(experiment_name, utilization, net_size, run_name_data)
-    #multiple_run_deflection_entropy(experiment_name, utilization, net_size, run_name_data)
+    multiple_run_reward(experiment_name, utilization, net_size, run_name_data)
+    multiple_run_all_entropy(experiment_name, utilization, net_size, run_name_data)
+    multiple_run_deflection_entropy(experiment_name, utilization, net_size, run_name_data)
 
     #multiple_run_out_of_order(experiment_name, utilization, net_size, run_name_data)
-    #multiple_run_sent_rate(experiment_name, utilization, net_size, run_name_data)
+    multiple_run_sent_rate(experiment_name, utilization, net_size, run_name_data)
 
     # only if grid topology
-    switch_link_usage_heatmap(experiment_name, utilization, net_size, run_name_data, 1500, (0,.1))#(0,.5))
+    #switch_link_usage_heatmap(experiment_name, utilization, net_size, run_name_data, 1500, (0,.1))#(0,.5))
     #switch_link_usage_grid_plots(experiment_name, utilization, net_size, run_name_data)
 
 #plot_across_utils(experiment_name, utilizations, "averageReward mean", "Rewards", (0.5,1), "/switches.csv", net_size, run_name_data)
-#plot_across_utils(experiment_name, utilizations, "DropRate mean", "Drop Rate", (0,.1), "/results.csv", net_size, run_name_data)
+#plot_across_utils(experiment_name, utilizations, "DropRate mean", "Packet Loss", (0,.1), "/results.csv", net_size, run_name_data)
 #plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (0,3), "/results.csv", net_size, run_name_data)
 #plot_across_utils(experiment_name, utilizations, "OutOfOrderRatio mean", "Out of Order Ratio", (0,.5), "/results.csv", net_size, run_name_data)
 # link mean
