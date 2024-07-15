@@ -42,6 +42,16 @@ def multiple_run_sent_rate(test_name, utilization, net_size, run_name_data):
     multiple_run_plot(test_name, utilization, mean_field, "Sent Rates", y_lim, "/results.csv", net_size, run_name_data)
 
 # plot averages of multiple runs throughputs
+def multiple_run_elephant_hop_ratio(test_name, utilization, net_size, run_name_data):
+    mean_field = "elephant_HopRatio mean"
+    y_lim = (1, 2)
+    multiple_run_plot(test_name, utilization, mean_field, "Elephant Hop Ratios", y_lim, "/results.csv", net_size, run_name_data)
+
+def multiple_run_elephant_drop_rate(test_name, utilization, net_size, run_name_data):
+    mean_field = "elephant_DropRate mean"
+    y_lim = (0, .2)
+    multiple_run_plot(test_name, utilization, mean_field, "Elephant Packet Loss", y_lim, "/results.csv", net_size, run_name_data, percent_data=True)
+
 def multiple_run_hop_ratio(test_name, utilization, net_size, run_name_data):
     mean_field = "HopRatio mean"
     y_lim = (1, 2)
@@ -746,6 +756,7 @@ run_infixes = [
         ]
 run_suffix = ""
 
+"""
 net_size = "8x8"
 utilizations = ["0.1","0.2"][0:1]
 experiment_name = "Propagation delay experiments"
@@ -762,7 +773,6 @@ run_infixes = [
         ]
 run_suffix = ""
 """
-"""
 
 
 run_name_data = (run_infixes, run_suffix)
@@ -773,6 +783,9 @@ for utilization in utilizations:
     multiple_run_drop_rate(experiment_name, utilization, net_size, run_name_data)
     multiple_run_link_usage(experiment_name, utilization, net_size, run_name_data)
     multiple_run_forwarding(experiment_name, utilization, net_size, run_name_data)
+
+    multiple_run_elephant_hop_ratio(experiment_name, utilization, net_size, run_name_data)
+    multiple_run_elephant_drop_rate(experiment_name, utilization, net_size, run_name_data)
 
     multiple_run_reward(experiment_name, utilization, net_size, run_name_data)
     multiple_run_all_entropy(experiment_name, utilization, net_size, run_name_data)
@@ -787,6 +800,7 @@ for utilization in utilizations:
 
 #plot_across_utils(experiment_name, utilizations, "averageReward mean", "Rewards", (0.5,1), "/switches.csv", net_size, run_name_data)
 #plot_across_utils(experiment_name, utilizations, "DropRate mean", "Packet Loss", (0,.1), "/results.csv", net_size, run_name_data)
+#plot_across_utils(experiment_name, utilizations, "elephant_DropRate mean", "Elephant Packet Loss", (0,.1), "/results.csv", net_size, run_name_data)
 #plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (0,3), "/results.csv", net_size, run_name_data)
 #plot_across_utils(experiment_name, utilizations, "OutOfOrderRatio mean", "Out of Order Ratio", (0,.5), "/results.csv", net_size, run_name_data)
 # link mean
