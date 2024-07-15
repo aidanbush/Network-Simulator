@@ -212,13 +212,13 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         void recordData();
         void resetData();
 
-        int entropyInterval;
+        vector<int> entropyIntervals;
         double rewardSum;
         int actionsRewarded;
         int learningActionsTaken;
-        int entropyActionsTaken;
-        map<vector<double>, map<int, int>> allActionsEntropyCounts; // context -> action -> count
-        map<vector<double>, map<int, int>> deflectionEntropyCounts; // context -> (shortest count, deflection count)
+        map<int, int> entropyActionsTaken;
+        map<int, map<vector<double>, map<int, int>>> allActionsEntropyCounts; // interval -> context -> action -> count
+        map<int, map<vector<double>, map<int, int>>> deflectionEntropyCounts; // interval -> context -> action type (shortest, deflection) -> count
 
         int routePacket(Packet *p, int sourceInterfaceId);
 

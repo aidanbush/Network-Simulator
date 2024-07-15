@@ -92,18 +92,21 @@ void Observer::writeMetrics(map<string, map<KeyType, vector<double>>> &data, str
 
         int max_data_count = 0;
         int column_count = 0;
-        for (auto& itt : metric_it.second) {
-            if (itt.second.size() > max_data_count) {
-                max_data_count = itt.second.size();
+        for (auto& obj_it : metric_it.second) {
+            if (obj_it.second.size() > max_data_count) {
+                max_data_count = obj_it.second.size();
             }
             column_count++;
         }
 
+        // write headers
+        vector<KeyType> headers;
         {
             fprintf(file, "Time,");
             int i = 0;
-            for (auto& itt : metric_it.second) {
-                string column_name = key_to_string(itt.first);
+            for (auto& obj_it : metric_it.second) {
+                headers.push_back(obj_it.first);
+                string column_name = key_to_string(obj_it.first);
                 fprintf(file, "%s", column_name.c_str());
                 if (i < column_count -1) {
                     fprintf(file, ",");
@@ -113,13 +116,15 @@ void Observer::writeMetrics(map<string, map<KeyType, vector<double>>> &data, str
             fprintf(file, "\n");
         }
 
+        // write data one row at a time
         for (int i = 0; i < max_data_count; i++) {
             int row_i = 0;
 
-            for (auto& itt : metric_it.second) { // for each id
+            // loop through headers to ensure it is sorted properly
+            for (KeyType header: headers) {
                 row[row_i] = NAN;
-                if (i < itt.second.size()) { // if data add else nan
-                    row[row_i] = itt.second[i];
+                if (i < metric_it.second[header].size()) {
+                    row[row_i] = metric_it.second[header][i];
                 }
                 row_i++;
             }

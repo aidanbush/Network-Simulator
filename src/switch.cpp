@@ -691,11 +691,15 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
         throw runtime_error("no states provided\n");
     }
 
-    this->entropyInterval = switchConfig["entropy_interval"];
+    for (int i : switchConfig["entropy_intervals"]) {
+        this->entropyIntervals.push_back(i);
+    }
     this->rewardSum = 0.0;
     this->actionsRewarded = 0;
     this->learningActionsTaken = 0;
-    this->entropyActionsTaken = 0;
+    for (int i : this->entropyIntervals) {
+        this->entropyActionsTaken[i] = 0;
+    }
 }
 
 void ManhattanBanditDeflectionSwitch::forwardPacket(Packet *p) {
@@ -777,15 +781,17 @@ json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchCo
     }
 
     if (!hasMemberOfType(switchConfig, "section", jsonInt)) {
-        message += "No string with name 'section'.\n";
+        message += "No int with name 'section'.\n";
     }
 
     if (!hasMemberOfType(switchConfig, "num_sections", jsonInt)) {
-        message += "No string with name 'num_sections'.\n";
+        message += "No int with name 'num_sections'.\n";
     }
 
-    if (!hasMemberOfType(switchConfig, "entropy_interval", jsonInt)) {
-        message += "No string with name 'entropy_interval'.\n";
+    if (!hasMemberOfType(switchConfig, "entropy_intervals", jsonArray)) {
+        message += "No array with name 'entropy_intervals'.\n";
+    } else if(!checkArrayType(switchConfig["entropy_intervals"], jsonInt)) {
+        message += "Array entropy_intervals does not have all elements of type string";
     }
 
     if (!message.empty()) {
@@ -839,11 +845,13 @@ void ManhattanBanditDeflectionSwitch::startSwitch() {
 }
 
 void ManhattanBanditDeflectionSwitch::resetData() {
-    if (sampleIndex % this->entropyInterval == this->entropyInterval - 1) {
-        this->allActionsEntropyCounts.clear();
-        this->deflectionEntropyCounts.clear();
+    for (int i : this->entropyIntervals) {
+        if (sampleIndex % i == i - 1) {
+            this->allActionsEntropyCounts[i].clear();
+            this->deflectionEntropyCounts[i].clear();
 
-        this->entropyActionsTaken = 0;
+            this->entropyActionsTaken[i] = 0;
+        }
     }
 
     this->learningActionsTaken = 0;
@@ -864,16 +872,23 @@ void ManhattanBanditDeflectionSwitch::recordData() {
         averageReward = this->rewardSum / this->actionsRewarded;
     }
 
-    if (this->sampleIndex % this->entropyInterval == this->entropyInterval - 1) {
-        allEntropy = this->calculateEntropy(allActionsEntropyCounts);
-        deflectionEntropy = this->calculateEntropy(deflectionEntropyCounts);
-        entropyActions = double(this->entropyActionsTaken);
+    for (int i : this->entropyIntervals) {
+        if (this->sampleIndex % i == i - 1) {
+            allEntropy = this->calculateEntropy(allActionsEntropyCounts[i]);
+            deflectionEntropy = this->calculateEntropy(deflectionEntropyCounts[i]);
+            entropyActions = double(this->entropyActionsTaken[i]);
+        } else {
+            allEntropy = NAN;
+            deflectionEntropy = NAN;
+            entropyActions = NAN;
+        }
+
+        observer.logSwitchData(id, "allActionsEntropy_" + to_string(i), allEntropy);
+        observer.logSwitchData(id, "deflectionEntropy_" + to_string(i), deflectionEntropy);
+        observer.logSwitchData(id, "numAvailableActions_" + to_string(i), switchNeighbourIfaces.size());
+        observer.logSwitchData(id, "entropyActionsTaken_" + to_string(i), entropyActions);
     }
 
-    observer.logSwitchData(id, "allActionsEntropy", allEntropy);
-    observer.logSwitchData(id, "deflectionEntropy", deflectionEntropy);
-    observer.logSwitchData(id, "numAvailableActions", switchNeighbourIfaces.size());
-    observer.logSwitchData(id, "entropyActionsTaken", entropyActions);
 
     observer.logSwitchData(id, "learningActionsTaken", this->learningActionsTaken);
 
@@ -1396,15 +1411,18 @@ int ManhattanBanditDeflectionSwitch::takeAgentAction(int sourceInterfaceId, Pack
 #endif /* ONE_HOP_REWARD */
 
     // record actions in entropy maps
-    this->allActionsEntropyCounts[state][action.first]++;
+    bool isShortest = get<1>(this->routingTable.find(p->getDest())->second).contains(actionInterface);
+    for (int i : this->entropyIntervals) {
+        this->allActionsEntropyCounts[i][state][action.first]++;
 
-    if (get<1>(this->routingTable.find(p->getDest())->second).contains(actionInterface)) {
-        this->deflectionEntropyCounts[state][0]++;
-    } else {
-        this->deflectionEntropyCounts[state][1]++;
+        if (isShortest) {
+            this->deflectionEntropyCounts[i][state][0]++;
+        } else {
+            this->deflectionEntropyCounts[i][state][1]++;
+        }
+
+        this->entropyActionsTaken[i]++;
     }
-
-    this->entropyActionsTaken++;
     this->learningActionsTaken++;
 
     return actionInterface;

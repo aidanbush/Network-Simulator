@@ -581,13 +581,14 @@ def gen_path(dest_dir, size, network_type, experiment_config):
         mbd_regularizer = experiment_config["regularizer"]
         mbd_delta = experiment_config["delta"]
         mbd_static_deflect = experiment_config["static_deflections"]
-        mbd_entropy_interval = experiment_config["entropy_interval"]
+        mbd_entropy_interval = experiment_config["entropy_intervals"]
         if experiment_config["action_limit"] != "none":
             filepath = os.path.join(filepath, experiment_config["action_limit"])
 
+        mbd_entropy_string = ",".join(map(str, mbd_entropy_interval))
         filepath = os.path.join(filepath, f"s_{states}",
                 f"r_{mbd_regularizer}-d_{mbd_delta}-sd_{mbd_static_deflect}",
-                f"ei_{mbd_entropy_interval}")
+                f"ei_{mbd_entropy_string}")
     # NDD
     elif experiment_config["type"] == "NDD":
         filepath = os.path.join(filepath, f"NDD")
@@ -655,7 +656,7 @@ def setup_configs(size, experiment_config):
     if experiment_config["type"] == "mbd":
         switchConfig["drop_action"] = False
         switchConfig["action_limit"] = experiment_config["action_limit"]
-        switchConfig["entropy_interval"] = experiment_config["entropy_interval"]
+        switchConfig["entropy_intervals"] = experiment_config["entropy_intervals"]
 
         switchConfig["agent_alg"] = experiment_config["mbd_alg"]
         switchConfig["states"] = experiment_config["states"]
@@ -712,7 +713,7 @@ def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent
     if "mbd" in agent_types:
         mbd_algs = []
         mbd_dict = [{"type": "mbd", "flow_type": "mbd", "drop_action": False,
-                "static_deflections": sd, "states": s, "action_limit": al, "entropy_interval": ei}
+                "static_deflections": sd, "states": s, "action_limit": al, "entropy_intervals": ei}
                 for sd in mbd_static_deflect for s in mbd_states for al in mbd_action_limits
                 for ei in mbd_entropy_interval]
 
@@ -799,7 +800,7 @@ def main():
             ["dest_id"],
             ["dest_id", "deflect_probability"],
             ["dest_id", "drop_probability"], ["flow_id"]][2:3]#[1:12]#[1:14]#[3:8]
-    mbd_entropy_interval = [5][0:1]
+    mbd_entropy_interval = [[1,2,4,6,8],[5]][1:2]
     ndd_algs = ["rand", "Q-learning"][1:2]
     ndd_hyper_params =[
             #alpha, epsilon, gamma

@@ -96,7 +96,7 @@ def main():
             ["dest_id"],
             ["dest_id", "deflect_probability"],
             ["dest_id", "drop_probability"], ["flow_id"]][2:3]#[0:3][3:5]
-    mbd_entropy_interval = [5][0:1]
+    mbd_entropy_interval = [[1,2,4,6,8],[5]][1:2]
     ndd_algs = ["rand", "Q-learning"][1:2]
     ndd_hyper_params =[
             #alpha, epsilon, gamma
@@ -124,7 +124,7 @@ def main():
         timeout = 60*60*24*5 # 5 days
         command_line = f"bash run_test.sh -t {timeout} -p {parallel} -n {num_runs} {run_path} {run_name} {size}x{size}manhattan_flow_params.json"
         print(command_line)
-        os.system(command_line)
+        #os.system(command_line)
 
 if __name__ == "__main__":
     main()
