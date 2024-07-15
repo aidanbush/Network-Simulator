@@ -11,8 +11,9 @@ TRAFFIC_STATIC = 2
 TRAFFIC_CHANGING = 3
 
 NETWORK_2D = 1
-NETWORK_3D = 2
-NETWORK_OTHER = 3
+NETWORK_2D_CUT = 2
+NETWORK_3D = 3
+NETWORK_OTHER = 4
 
 seed = 0
 
@@ -102,6 +103,32 @@ def get_3d_sector(x, y, z, size, sector_per_dim):
 
     return xs + sector_per_dim * ys + sector_per_dim**2 * zs
 
+# for midpoint detection
+def offset(c, n):
+    if c < int(n/2): # near 0
+        return not ((c - (int(n/2) - 1)) % 2)
+
+    return not ((c - int(n/2)) % 2)
+
+def on_line(coord, index, n):
+    c = coord[index]
+    return c in [int(n/2)-1, int(n/2)]
+
+# changed index: c_i
+def keep_midpoint(coord_1, coord_2, c_i, n): # 2d right now
+    #coord_1 = (coord_1[0] - 1, coord_1[1] - 1)
+    #coord_2 = (coord_2[0] - 1, coord_2[1] - 1)
+
+    offset_coords = coord_1[:c_i] + coord_1[c_i+1:]
+    offset_coord = offset_coords[0] # b/c 2d
+
+    # something is wrong maybe offset?
+
+    if on_line(coord_1, c_i, n) and on_line(coord_2, c_i, n) and offset(offset_coord, n):
+        return False
+
+    return True
+
 def gen_3d_network(n, config):
     for z in range(n):
         for y in range(n):
@@ -190,8 +217,9 @@ def gen_3d_network(n, config):
                 config["interfaces"] += interfaces
                 config["links"] += links
 
-def gen_2d_network(n, config):
+def gen_2d_network(n, config, remove_mid=False):
     # create network
+    # 0,0 => top left
     for y in range(n):
         for x in range(n):
             # create switch
@@ -205,33 +233,39 @@ def gen_2d_network(n, config):
                     }
             switch.update(switchConfig)
 
+            c = (x, y)
+
             # create interfaces
             # interface IDs i*n*4 + j*4 + (0-3, [up, right, down, left])
             interfaces = []
 
             # create up
-            if y > 0:
+            c_2 = (x, y - 1)
+            if y > 0 and (not remove_mid or keep_midpoint(c, c_2, 1, n)): # TODO manually validate these
                 interfaces.append({
                     "id": switch["id"] * 4 + 0,
                     "handler_id": switch["id"]
                     })
                 interfaces[-1].update(interfaceConfig)
             # create right
-            if x < n - 1:
+            c_2 = (x + 1, y)
+            if x < n - 1 and (not remove_mid or keep_midpoint(c, c_2, 0, n)):
                 interfaces.append({
                     "id": switch["id"] * 4 + 1,
                     "handler_id": switch["id"]
                     })
                 interfaces[-1].update(interfaceConfig)
             # create down
-            if y < n - 1:
+            c_2 = (x, y + 1)
+            if y < n - 1 and (not remove_mid or keep_midpoint(c, c_2, 1, n)):
                 interfaces.append({
                     "id": switch["id"] * 4 + 2,
                     "handler_id": switch["id"]
                     })
                 interfaces[-1].update(interfaceConfig)
             # create left
-            if x > 0:
+            c_2 = (x - 1, y)
+            if x > 0 and (not remove_mid or keep_midpoint(c, c_2, 0, n)):
                 interfaces.append({
                     "id": switch["id"] * 4 + 3,
                     "handler_id": switch["id"]
@@ -241,14 +275,16 @@ def gen_2d_network(n, config):
             # create up and right links
             links = []
             # create up link
-            if y > 0:
+            c_2 = (x, y - 1)
+            if y > 0 and (not remove_mid or keep_midpoint(c, c_2, 1, n)):
                 links.append({
                     "id": switch["id"] * 2,
                     "interfaces": [switch["id"] * 4 + 0, calculate_id(x, y-1, n) * 4 + 2] # switch up, neighbour down
                     })
                 links[-1].update(linkConfig)
             # create right link
-            if x < n - 1:
+            c_2 = (x + 1, y)
+            if x < n - 1 and (not remove_mid or keep_midpoint(c, c_2, 0, n)):
                 links.append({
                     "id": switch["id"] * 2 + 1,
                     "interfaces": [switch["id"] * 4 + 1, calculate_id(x+1, y, n) * 4 + 3] # switch right, neighbour left
@@ -521,6 +557,8 @@ def create_config(filepath, size, net_util, simulation_length, flow_gen_type, ru
 
         if network_type == NETWORK_2D:
             gen_2d_network(size, config)
+        if network_type == NETWORK_2D_CUT:
+            gen_2d_network(size, config, remove_mid=True)
         elif network_type == NETWORK_3D:
             gen_3d_network(size, config)
         else:
@@ -557,8 +595,11 @@ def create_config(filepath, size, net_util, simulation_length, flow_gen_type, ru
             f.write(json.dumps(config, indent=4))
 
 def gen_path(dest_dir, size, network_type, experiment_config):
-    filepath = os.path.join(dest_dir, f"{size}x{size}")
-    if network_type == NETWORK_3D:
+    if network_type == NETWORK_2D:
+        filepath = os.path.join(dest_dir, f"{size}x{size}")
+    elif network_type == NETWORK_2D_CUT:
+        filepath = os.path.join(dest_dir, f"{size}x{size}_c")
+    elif network_type == NETWORK_3D:
         filepath = os.path.join(dest_dir, f"{size}_3d")
 
     if experiment_config["type"] == "mbd":
@@ -756,7 +797,7 @@ def main():
     runs = 30
     simulation_length = 2000 # 1000
     num_flow_changes = 200 # 100
-    network_type = [NETWORK_2D, NETWORK_3D][0]
+    network_type = [NETWORK_2D, NETWORK_2D_CUT, NETWORK_3D][1]
 
     flowConfigDefault["ttl"] = size * 3
 

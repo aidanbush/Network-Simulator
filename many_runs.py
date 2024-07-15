@@ -4,8 +4,11 @@ import genGridConfig as helper
 def gen_experiment_name(size, config, network_type):
     net_util = config["net_util"]
 
-    network_shape = f"{size}x{size}"
-    if network_type == helper.NETWORK_3D:
+    if network_type == helper.NETWORK_2D:
+        network_shape = f"{size}x{size}"
+    elif network_type == helper.NETWORK_2D_CUT:
+        network_shape = f"{size}x{size}_c"
+    elif network_type == helper.NETWORK_3D:
         network_shape = f"{size}_3d"
 
     traffic_type = ""
@@ -25,7 +28,7 @@ def gen_experiment_name(size, config, network_type):
             agent += "_df_" + str(config["discount_factor"])
         agent += "_r_" + str(config["regularizer"]) + "_d_" + str(config["delta"]) \
                 + "_sd_" + str(config["static_deflections"]) \
-                + "_ei_" + str(config["entropy_interval"])
+                + "_ei_" + ",".join(map(str, config["entropy_intervals"]))
         if config["action_limit"] != "none":
             agent += "_" + config["action_limit"]
     elif agent == "NDD":
@@ -54,7 +57,7 @@ def main():
     size = 8
     num_runs = 30
     config_dir = "configs"
-    network_type = [helper.NETWORK_2D, helper.NETWORK_3D][0]
+    network_type = [helper.NETWORK_2D, helper.NETWORK_2D_CUT, helper.NETWORK_3D][1]
 
     traffic_types = [helper.TRAFFIC_MICE_ELEPHANT, helper.TRAFFIC_CHANGING, helper.TRAFFIC_STATIC][0:1]
     net_utils = [0.05, 0.1, 0.15, 0.2, 0.25][0:1]
@@ -120,7 +123,7 @@ def main():
         timeout = 60*60*24*5 # 5 days
         command_line = f"bash run_test.sh -t {timeout} -p {num_runs} -n {num_runs} {run_path} {run_name} {size}x{size}manhattan_flow_params.json"
         print(command_line)
-        #os.system(command_line)
+        os.system(command_line)
 
 if __name__ == "__main__":
     main()
