@@ -658,6 +658,7 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
         {"none", actionLimitNone},
         {"only_deflect", actionLimitOnlyDeflect},
         {"forward_first", actionLimitForwardFirst},
+        {"only_forward", actionLimitOnlyForward},
     };
 
     this->regularizer = switchConfig["regularizer"];
@@ -1338,7 +1339,8 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
 
     // if only deflect or forward first take forward actions is avaiable
     if (this->actionLimit == this->actionLimitOnlyDeflect ||
-        this->actionLimit == this->actionLimitForwardFirst ) {
+        this->actionLimit == this->actionLimitForwardFirst ||
+        this->actionLimit == this->actionLimitOnlyForward) {
         // if forward set not empty set
         vector<int> forwardAvailableActions = this->availableForwardInterfaces(p);
 
@@ -1354,7 +1356,7 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
             } else {
                 throw runtime_error("MBDSwitch:\nroutePacket: attempting to use non valid actionLimit\n");
             }
-        } else { // deflect
+        } else if (this->actionLimit != this->actionLimitOnlyForward) { // deflect - unless only forward
             actionInterface = this->takeAgentAction(sourceInterfaceId, p, nonBlockedActions);
         }
     } else {

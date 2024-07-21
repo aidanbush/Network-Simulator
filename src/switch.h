@@ -168,7 +168,8 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         enum ActionLimit {
             actionLimitNone,
             actionLimitOnlyDeflect,
-            actionLimitForwardFirst
+            actionLimitForwardFirst,
+            actionLimitOnlyForward,
         };
 
         map<int, set<int>> createShortestLookupTable(vector<int> switches);
