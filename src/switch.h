@@ -248,6 +248,7 @@ class ManhattanBanditDeflectionSwitch: public RandomDeflectionSwitch {
         bool dropAction;
         int section;
         int numSections;
+        int meanUpdateInterval;
         // agent variables
         double regularizer;
         double delta;

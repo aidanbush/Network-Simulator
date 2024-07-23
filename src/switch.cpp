@@ -670,6 +670,7 @@ ManhattanBanditDeflectionSwitch::ManhattanBanditDeflectionSwitch(json &switchCon
     this->actionLimit = actionLimitMap[switchConfig["action_limit"]];
     this->section = switchConfig["section"];
     this->numSections = switchConfig["num_sections"];
+    this->meanUpdateInterval = switchConfig["mean_update_interval"];
 
     this->deflectProbTau = 1; // in seconds TODO use config file to import
     this->deflectProb = 0;
@@ -793,6 +794,10 @@ json &ManhattanBanditDeflectionSwitch::validateManhattanBanditDeflectionSwitchCo
         message += "No array with name 'entropy_intervals'.\n";
     } else if(!checkArrayType(switchConfig["entropy_intervals"], jsonInt)) {
         message += "Array entropy_intervals does not have all elements of type string";
+    }
+
+    if (!hasMemberOfType(switchConfig, "mean_update_interval", jsonInt)) {
+        message += "No int with name 'mean_update_interval'.\n";
     }
 
     if (!message.empty()) {
@@ -1475,8 +1480,10 @@ void ManhattanBanditDeflectionSwitch::rewardAction(int pId, double reward) {
     this->rewardSum += reward;
     this->actionsRewarded++;
 
-    // apply update
-    agent->updateAgent(get<0>(stateAction), get<1>(stateAction), reward);
+    // apply update on a random delay
+    if (this->generator() % this->meanUpdateInterval == 0) {
+        agent->updateAgent(get<0>(stateAction), get<1>(stateAction), reward);
+    }
 }
 
 /* NDDSwitch */
