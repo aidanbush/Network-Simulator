@@ -1350,7 +1350,8 @@ int ManhattanBanditDeflectionSwitch::routePacket(Packet *p, int sourceInterfaceI
                 vector<int> availableActions = {forwardAvailableActions[generator() % forwardAvailableActions.size()]};
                 // force agent to take that action
                 actionInterface = this->takeAgentAction(sourceInterfaceId, p, availableActions);
-            } else if (this->actionLimit == this->actionLimitForwardFirst) {
+            } else if (this->actionLimit == this->actionLimitForwardFirst ||
+                    this->actionLimit == this->actionLimitOnlyForward) {
                 // if actionForward agent takes an action from the forward set
                 actionInterface = this->takeAgentAction(sourceInterfaceId, p, forwardAvailableActions);
             } else {
