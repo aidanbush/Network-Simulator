@@ -32,6 +32,8 @@ def gen_experiment_name(size, config, network_type):
                 + "_ei_" + ",".join(map(str, config["entropy_intervals"]))
         if config["action_limit"] != "none":
             agent += "_" + config["action_limit"]
+        if config["mean_update_interval"] != 1:
+            agent += "_m_ui_" + str(config["mean_update_interval"])
     elif agent == "NDD":
         ndd_type = config["ndd_alg"]
         agent += f"_{ndd_type}"
@@ -59,14 +61,14 @@ def main():
     num_runs = 30
     parallel = 40
     config_dir = "configs"
-    network_type = [helper.NETWORK_2D, helper.NETWORK_2D_CUT, helper.NETWORK_3D][1]
+    network_type = [helper.NETWORK_2D, helper.NETWORK_2D_CUT, helper.NETWORK_3D][0]
 
     traffic_types = [helper.TRAFFIC_MICE_ELEPHANT, helper.TRAFFIC_CHANGING, helper.TRAFFIC_STATIC][0:1]
     net_utils = [0.05, 0.1, 0.15, 0.2, 0.25][0:2]
     net_utils = [0.1, 0.2][0:2] # [0.1,0.2,0.3,0.4]
     prop_delays = [0.01,0.1,0.5][0:1]
     #prop_delays = [0.001,0.1,1.0]
-    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][2:3]
+    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][0:1]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][0:1]
     mbd_hyper_params = [
             # regularizer, delta, discount factor
@@ -83,8 +85,8 @@ def main():
     #mbd_regularizers = [0.5,0.9,1.0,1.1,2.0][2:3]
     #mbd_deltas = [0.1,0.5,0.9,1.0][3:4]
     #mbd_discount_factors = [0.99, 0.999, 0.9999][3:4]
-    mbd_static_deflect = [-1,2,4,6,8][4:5]
-    mbd_action_limits = ["none", "forward_first", "only_deflect"][0:2]
+    mbd_static_deflect = [-1,2,4,6,8][0:1]
+    mbd_action_limits = ["none", "forward_first", "only_deflect", "only_forward"][0:1]
     mbd_states = [
             ["1_hop_shortest"],
             ["1-2_hop_shortest"],
@@ -98,13 +100,14 @@ def main():
             ["2_hop_shortest", "1_hop_shortest", "section", "drop_probability"],
             ["dest_id"],
             ["dest_id", "deflect_probability"],
-            ["dest_id", "drop_probability"], ["flow_id"]][2:3]#[0:3][3:5]
+            ["dest_id", "drop_probability"], ["flow_id"]][2:3]#[3:4]
+    mbd_mean_update_interval = [1,2,4,8,16,32][4:6]
     mbd_entropy_interval = [[1,2,4,6,8],[5]][1:2]
     ndd_algs = ["rand", "Q-learning"][1:2]
     ndd_hyper_params =[
             #alpha, epsilon, gamma
-            [0.5,0.05,0.99],
-            ]
+            [0.100, 0.050, 0.990],
+            [0.006, 0.023, 0.685], [0.081, 0.046, 0.999], [0.002, 0.059, 0.996], [0.013, 0.066, 0.958], [0.050, 0.012, 0.993], [0.009, 0.029, 0.131], [0.021, 0.058, 0.997], [0.002, 0.047, 0.997], [0.096, 0.010, 0.748], [0.088, 0.015, 0.923], [0.038, 0.044, 0.971], [0.091, 0.031, 0.997], [0.004, 0.032, 0.988], [0.009, 0.014, 0.989], [0.031, 0.008, 0.999], [0.002, 0.010, 0.914], [0.082, 0.018, 0.968], [0.002, 0.022, 0.952], [0.010, 0.089, 0.992], [0.002, 0.084, 0.994], [0.016, 0.064, 0.998], [0.015, 0.052, 0.990], [0.009, 0.010, 0.560], [0.004, 0.005, 0.998], ][0:11]
     # ranges alpha [0.1, 0.0001] -> 10-10000 steps - log
     # ranges epsilon [0.05, 0.001] -> 20-200 steps - log
     # ranges gamma [0.99,0.9] -> ?-? log
@@ -113,13 +116,14 @@ def main():
     #   for low, high in [[0.0001,0.1],[0.001,0.05],[0.9,0.99]]] # loop over ranges
     ndd_only_forward = [False, True][0:1]
     ndd_multiple_updates = [False, True][1:2]
-    rand_deflect_static_deflects = [-1,2][0:2]
+    rand_deflect_static_deflects = [-1,2,4,6,8][0:5]
 
     experiment_configs = helper.gen_config_list(net_utils, prop_delays,
             traffic_types, agent_types, mbd_agent_algs, mbd_states,
             mbd_hyper_params, mbd_static_deflect, mbd_action_limits,
-            mbd_entropy_interval, ndd_algs, ndd_hyper_params, ndd_only_forward,
-            ndd_multiple_updates, rand_deflect_static_deflects)
+            mbd_mean_update_interval, mbd_entropy_interval, ndd_algs,
+            ndd_hyper_params, ndd_only_forward, ndd_multiple_updates,
+            rand_deflect_static_deflects)
 
     for config in experiment_configs:
         run_name = gen_experiment_name(size, config, network_type)
