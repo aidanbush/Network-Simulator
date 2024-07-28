@@ -650,6 +650,10 @@ def gen_path(dest_dir, size, network_type, experiment_config):
             filepath = os.path.join(filepath, "of")
         if experiment_config["multiple_updates"] == True:
             filepath = os.path.join(filepath, "mu")
+        if experiment_config["ndd_deflect_count"] != 2:
+            ndd_dc = experiment_config["ndd_deflect_count"]
+            filepath = os.path.join(filepath, f"dc_{ndd_dc}")
+
     elif experiment_config["type"] == "rand_deflect":
         filepath = os.path.join(filepath, f"rand_deflect")
         sd = experiment_config["static_deflections"]
@@ -714,8 +718,9 @@ def setup_configs(size, experiment_config):
         flowConfig["static_deflections"] = experiment_config["static_deflections"]
         switchConfig["deflect_thresh"] = 1.0 # required because it inherits from rand_deflect
     elif experiment_config["type"] == "NDD":
-        switchConfig["DHC_max"] = 2
+        switchConfig["DHC_max"] = experiment_config["ndd_deflect_count"]
         # DN max time = longest path with most deflections
+        # TODO this only works for 2d network
         switchConfig["DN_max_time"] = (2 * (size - 1) + 2) * 2 * experiment_config["prop_delay"]
         switchConfig["NDDAgent"] = {"NDD_type": experiment_config["ndd_alg"]}
 
@@ -734,14 +739,17 @@ def setup_configs(size, experiment_config):
 
 def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent_algs, mbd_states,
         mbd_hyper_params, mbd_static_deflect, mbd_action_limits, mbd_mean_update_interval, mbd_entropy_interval,
-        ndd_alg, ndd_hyper_params, ndd_only_forward, ndd_multiple_updates, rand_deflect_static_deflects):
+        ndd_alg, ndd_hyper_params, ndd_deflect_counts, ndd_only_forward, ndd_multiple_updates,
+        rand_deflect_static_deflects):
 
     agent_dicts = []
 
     if "NDD" in agent_types:
         ndd_algs = []
-        ndd_dict = [{"type":"NDD", "flow_type":"ndd", "only_forward": ndd_of, "multiple_updates": ndd_mu}
-                for ndd_of in ndd_only_forward for ndd_mu in ndd_multiple_updates]
+        ndd_dict = [{"type":"NDD", "flow_type":"ndd", "only_forward": ndd_of, "multiple_updates": ndd_mu,
+                     "ndd_deflect_count": ndd_dc}
+                for ndd_of in ndd_only_forward for ndd_mu in ndd_multiple_updates
+                    for ndd_dc in ndd_deflect_counts]
         # ndd qlearning
         if "Q-learning" in ndd_alg:
             ndd_q_learning = [{**d, **{"ndd_alg":"Q-learning", "ndd_alpha":a, "ndd_epsilon":e, "ndd_gamma":g}}
@@ -811,7 +819,7 @@ def main():
     net_utils = [0.1, 0.2][0:2] # [0.1,0.2,0.3,0.4]
     prop_delays = [0.001,0.01,0.1,1.0][1:2]
     #prop_delays = [0.001,0.1,1.0]
-    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][0:1]
+    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][1:2]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][0:1]
     mbd_hyper_params = [
             # regularizer, delta, discount factor
@@ -851,7 +859,8 @@ def main():
     ndd_hyper_params =[
             #alpha, epsilon, gamma
             [0.100, 0.050, 0.990],
-            [0.006, 0.023, 0.685], [0.081, 0.046, 0.999], [0.002, 0.059, 0.996], [0.013, 0.066, 0.958], [0.050, 0.012, 0.993], [0.009, 0.029, 0.131], [0.021, 0.058, 0.997], [0.002, 0.047, 0.997], [0.096, 0.010, 0.748], [0.088, 0.015, 0.923], [0.038, 0.044, 0.971], [0.091, 0.031, 0.997], [0.004, 0.032, 0.988], [0.009, 0.014, 0.989], [0.031, 0.008, 0.999], [0.002, 0.010, 0.914], [0.082, 0.018, 0.968], [0.002, 0.022, 0.952], [0.010, 0.089, 0.992], [0.002, 0.084, 0.994], [0.016, 0.064, 0.998], [0.015, 0.052, 0.990], [0.009, 0.010, 0.560], [0.004, 0.005, 0.998], ][0:11]
+            [0.006, 0.023, 0.685], [0.081, 0.046, 0.999], [0.002, 0.059, 0.996], [0.013, 0.066, 0.958], [0.050, 0.012, 0.993], [0.009, 0.029, 0.131], [0.021, 0.058, 0.997], [0.002, 0.047, 0.997], [0.096, 0.010, 0.748], [0.088, 0.015, 0.923], [0.038, 0.044, 0.971], [0.091, 0.031, 0.997], [0.004, 0.032, 0.988], [0.009, 0.014, 0.989], [0.031, 0.008, 0.999], [0.002, 0.010, 0.914], [0.082, 0.018, 0.968], [0.002, 0.022, 0.952], [0.010, 0.089, 0.992], [0.002, 0.084, 0.994], [0.016, 0.064, 0.998], [0.015, 0.052, 0.990], [0.009, 0.010, 0.560], [0.004, 0.005, 0.998], ][0:1]#[0:11]
+    ndd_deflect_counts = [2,4,6,8][0:2]
     # ranges alpha [0.1, 0.0001] -> 10-10000 steps - log
     # ranges epsilon [0.05, 0.001] -> 20-200 steps - log
     # ranges gamma [0.99,0.9] -> ?-? log
@@ -865,8 +874,8 @@ def main():
     experiment_configs = gen_config_list(net_utils, prop_delays, traffic_types,
             agent_types, mbd_agent_algs, mbd_states, mbd_hyper_params,
             mbd_static_deflect, mbd_action_limits, mbd_mean_update_interval,
-            mbd_entropy_interval, ndd_algs, ndd_hyper_params, ndd_only_forward,
-            ndd_multiple_updates, rand_deflect_static_deflects)
+            mbd_entropy_interval, ndd_algs, ndd_hyper_params, ndd_deflect_counts,
+            ndd_only_forward, ndd_multiple_updates, rand_deflect_static_deflects)
 
     for experiment_config in experiment_configs:
         setup_configs(size, experiment_config)
@@ -875,7 +884,7 @@ def main():
 
         filepath = gen_path(dest_dir, size, network_type, experiment_config)
         print("generating:", filepath)
-        create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs, network_type)
+        #create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs, network_type)
 
 if __name__ == "__main__":
     main()
