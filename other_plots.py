@@ -47,19 +47,16 @@ def multiple_run_elephant_hop_ratio(test_name, utilization, net_size, run_name_d
     y_lim = (1, 2)
     multiple_run_plot(test_name, utilization, mean_field, "Elephant Hop Ratios", y_lim, "/results.csv", net_size, run_name_data)
 
-def multiple_run_elephant_drop_rate(test_name, utilization, net_size, run_name_data):
+def multiple_run_elephant_drop_rate(test_name, utilization, net_size, run_name_data, y_lim=(0,.2)):
     mean_field = "elephant_DropRate mean"
-    y_lim = (0, .2)
     multiple_run_plot(test_name, utilization, mean_field, "Elephant Packet Loss", y_lim, "/results.csv", net_size, run_name_data, percent_data=True)
 
-def multiple_run_hop_ratio(test_name, utilization, net_size, run_name_data):
+def multiple_run_hop_ratio(test_name, utilization, net_size, run_name_data, y_lim=(1, 2)):
     mean_field = "HopRatio mean"
-    y_lim = (1, 2)
     multiple_run_plot(test_name, utilization, mean_field, "Hop Ratios", y_lim, "/results.csv", net_size, run_name_data)
 
-def multiple_run_drop_rate(test_name, utilization, net_size, run_name_data):
+def multiple_run_drop_rate(test_name, utilization, net_size, run_name_data, y_lim=(0, .2)):
     mean_field = "DropRate mean"
-    y_lim = (0, .2)
     multiple_run_plot(test_name, utilization, mean_field, "Packet Loss", y_lim, "/results.csv", net_size, run_name_data, percent_data=True)
 
 def multiple_run_out_of_order(test_name, utilization, net_size, run_name_data):
@@ -67,9 +64,8 @@ def multiple_run_out_of_order(test_name, utilization, net_size, run_name_data):
     y_lim = (0, .5)
     multiple_run_plot(test_name, utilization, mean_field, "Out of Order Ratio", y_lim, "/results.csv", net_size, run_name_data)
 
-def multiple_run_forwarding(test_name, utilization, net_size, run_name_data):
+def multiple_run_forwarding(test_name, utilization, net_size, run_name_data, y_lim=(0,4)):
     mean_field = "averageForwardInterfacesRatio mean"
-    y_lim = (0, 4)
     multiple_run_plot(test_name, utilization, mean_field, "Forwarding Interfaces", y_lim, "/switches.csv", net_size, run_name_data)
 
 def switch_link_usage_heatmap(test_name, utilization, net_size, run_name_data, start_offset, v_range):
@@ -740,6 +736,51 @@ run_infixes = [
         'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_mice-elephant_p_0.01',
         'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_forward_first_mice-elephant_p_0.01',
         'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_mice-elephant_p_0.01',
+
+        #'NDD_Q-learning_a_0.05_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
+        #'rand_forward_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+
+net_size = "8x8"
+utilizations = ["0.1","0.2"]
+experiment_name = "Limited Deflections Free Reign"
+run_infixes = [
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_4_ei_5_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_mice-elephant_p_0.01',
+
+        #'NDD_Q-learning_a_0.05_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
+        #'rand_forward_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+
+net_size = "8x8"
+utilizations = ["0.1","0.2"]
+experiment_name = "Limited Deflections Forward First"
+run_infixes = [
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_forward_first_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_4_ei_5_forward_first_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_forward_first_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_forward_first_mice-elephant_p_0.01',
+
+        #'NDD_Q-learning_a_0.05_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
+        #'rand_forward_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+
+net_size = "8x8"
+utilizations = ["0.1","0.2"]
+experiment_name = "Limited Deflections Only Forward"
+run_infixes = [
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_only_forward_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_only_forward_mice-elephant_p_0.01',
+
+        'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
+        'rand_forward_mice-elephant_p_0.01',
         ]
 run_suffix = ""
 
@@ -749,6 +790,8 @@ experiment_name = "Limited Deflections best"
 run_infixes = [
         'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01',
         'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_only_forward_mice-elephant_p_0.01'
+
         #'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_forward_first_mice-elephant_p_0.01',
         #'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_mice-elephant_p_0.01',
         #'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_forward_first_mice-elephant_p_0.01',
@@ -756,10 +799,29 @@ run_infixes = [
         ]
 run_suffix = ""
 
-"""
 net_size = "8x8"
-utilizations = ["0.1","0.2"][0:1]
+utilizations = ["0.1","0.2"]
+experiment_name = "Limited Deflections best cut"
+run_infixes = [
+        'c_mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
+        'c_mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+
+net_size = "8x8"
+utilizations = ["0.1","0.2"][1:2]
 experiment_name = "Propagation delay experiments"
+run_infixes = [
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.001',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.1',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_1.0',
+        ]
+run_suffix = ""
+
+net_size = "8x8"
+utilizations = ["0.1","0.2"][1:2]
+experiment_name = "Propagation delay experiments baselines"
 run_infixes = [
         'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.001',
         'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
@@ -772,6 +834,72 @@ run_infixes = [
         'rand_forward_mice-elephant_p_1.0',
         ]
 run_suffix = ""
+
+net_size = "8x8"
+utilizations = ["0.1","0.2"]
+experiment_name = "NDD Param Sweep"
+run_infixes = [
+        'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.006_e_0.023_g_0.685_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.081_e_0.046_g_0.999_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.002_e_0.059_g_0.996_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.013_e_0.066_g_0.958_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.05_e_0.012_g_0.993_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.009_e_0.029_g_0.131_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.021_e_0.058_g_0.997_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.002_e_0.047_g_0.997_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.096_e_0.01_g_0.748_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.088_e_0.015_g_0.923_mu_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+
+net_size = "8x8"
+utilizations = ["0.1","0.2"]
+experiment_name = "Update Frequency test"
+run_infixes = [
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_m_ui_2_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_m_ui_4_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_m_ui_8_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_m_ui_16_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_m_ui_32_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+
+
+"""
+net_size = "8x8"
+utilizations = ["0.1","0.2"][0:1]
+experiment_name = "Random Deflect Deflect Count Test"
+run_infixes = [
+        'rand_deflect_mice-elephant_p_0.01',
+        'rand_deflect_sd_2_mice-elephant_p_0.01',
+        'rand_deflect_sd_4_mice-elephant_p_0.01',
+        'rand_deflect_sd_6_mice-elephant_p_0.01',
+        'rand_deflect_sd_8_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+
+net_size = "8x8"
+utilizations = ["0.1","0.2"][1:2]
+experiment_name = "Compare 2 deflect algorithms"
+run_infixes = [
+        'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_forward_first_mice-elephant_p_0.01',
+        'rand_deflect_sd_2_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+
+net_size = "8x8"
+utilizations = ["0.1","0.2"][0:1]
+experiment_name = "Compare no limit deflect algorithms"
+run_infixes = [
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01',
+        'rand_deflect_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
 """
 
 
@@ -779,10 +907,10 @@ run_name_data = (run_infixes, run_suffix)
 
 for utilization in utilizations:
     multiple_run_throughput(experiment_name, utilization, net_size, run_name_data)
-    multiple_run_hop_ratio(experiment_name, utilization, net_size, run_name_data)
-    multiple_run_drop_rate(experiment_name, utilization, net_size, run_name_data)
+    multiple_run_hop_ratio(experiment_name, utilization, net_size, run_name_data, y_lim=(1,1.5))
+    multiple_run_drop_rate(experiment_name, utilization, net_size, run_name_data, y_lim=(0,.1))
     multiple_run_link_usage(experiment_name, utilization, net_size, run_name_data)
-    multiple_run_forwarding(experiment_name, utilization, net_size, run_name_data)
+    multiple_run_forwarding(experiment_name, utilization, net_size, run_name_data, y_lim=(0,2))
 
     multiple_run_elephant_hop_ratio(experiment_name, utilization, net_size, run_name_data)
     multiple_run_elephant_drop_rate(experiment_name, utilization, net_size, run_name_data)
@@ -795,7 +923,7 @@ for utilization in utilizations:
     multiple_run_sent_rate(experiment_name, utilization, net_size, run_name_data)
 
     # only if grid topology
-    #switch_link_usage_heatmap(experiment_name, utilization, net_size, run_name_data, 1500, (0,.1))#(0,.5))
+    #switch_link_usage_heatmap(experiment_name, utilization, net_size, run_name_data, 500, (None,None))#(0,.5))
     #switch_link_usage_grid_plots(experiment_name, utilization, net_size, run_name_data)
 
 #plot_across_utils(experiment_name, utilizations, "averageReward mean", "Rewards", (0.5,1), "/switches.csv", net_size, run_name_data)
