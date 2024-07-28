@@ -42,6 +42,8 @@ def gen_experiment_name(size, config, network_type):
             agent += "_of"
         if config["multiple_updates"] == True:
             agent += "_mu"
+        if config["ndd_deflect_count"] != 2:
+            agent += "_dc_" + str(config["ndd_deflect_count"])
     elif agent == "rand_forward":
         pass
     elif agent == "rand_deflect":
@@ -105,6 +107,7 @@ def main():
             #alpha, epsilon, gamma
             [0.5,0.05,0.99],
             ]
+    ndd_deflect_counts = [2,4,6,8][0:1]
     # ranges alpha [0.1, 0.0001] -> 10-10000 steps - log
     # ranges epsilon [0.05, 0.001] -> 20-200 steps - log
     # ranges gamma [0.99,0.9] -> ?-? log
@@ -118,8 +121,8 @@ def main():
     experiment_configs = helper.gen_config_list(net_utils, prop_delays,
             traffic_types, agent_types, mbd_agent_algs, mbd_states,
             mbd_hyper_params, mbd_static_deflect, mbd_action_limits,
-            mbd_entropy_interval, ndd_algs, ndd_hyper_params, ndd_only_forward,
-            ndd_multiple_updates, rand_deflect_static_deflects)
+            mbd_entropy_interval, ndd_algs, ndd_hyper_params, ndd_deflect_counts,
+            ndd_only_forward, ndd_multiple_updates, rand_deflect_static_deflects)
 
     for config in experiment_configs:
         run_name = gen_experiment_name(size, config, network_type)
@@ -127,7 +130,7 @@ def main():
         timeout = 60*60*24*5 # 5 days
         command_line = f"bash run_test.sh -t {timeout} -p {parallel} -n {num_runs} {run_path} {run_name} {size}x{size}manhattan_flow_params.json"
         print(command_line)
-        os.system(command_line)
+        #os.system(command_line)
 
 if __name__ == "__main__":
     main()
