@@ -16,7 +16,6 @@ NETWORK_3D = 3
 NETWORK_OTHER = 4
 
 seed = 0
-
 flowId = 1
 
 # switches
@@ -339,8 +338,9 @@ def add_random_flow(config, size, switches, open_switches, fullSwitches, start_t
     if dIndex >= sIndex:
         dIndex -= 1
     if switches[destId][0] + flowRate > switches[destId][1]:
-        open_switches.pop(destId)
-        fullSwitches.append(destId)
+        # Fixed from previous destId
+        open_switches.pop(dIndex)
+        fullSwitches.append(dIndex)
 
     num_hops = get_num_hops(sourceId, destId, size, switches)
     return flowRate * num_hops, (sourceId, destId) # utilization of the flow
@@ -669,6 +669,11 @@ def gen_path(dest_dir, size, network_type, experiment_config):
     prop_delay = experiment_config["prop_delay"]
     filepath = os.path.join(filepath, f"p_{prop_delay}")
 
+    # add bandwidth modifier
+    bandwidth_modifier = experiment_config["bandwidth_modifier"]
+    if bandwidth_modifier != 1:
+        filepath = os.path.join(filepath, f"b_{bandwidth_modifier}")
+
     # add traffic type
     traffic_type = experiment_config["traffic_type"]
     if traffic_type == TRAFFIC_MICE_ELEPHANT:
@@ -696,7 +701,11 @@ def setup_configs(size, experiment_config):
     flowConfig = flowConfigDefault.copy()
 
     linkConfig["time"] = experiment_config["prop_delay"]
+    linkConfig["speed"] = int(linkConfig["speed"] * experiment_config["bandwidth_modifier"])
+
     flowConfig["type"] = experiment_config["flow_type"]
+    flowConfig["start_rate"] = linkConfig["speed"]
+    flowConfig["generator"]["burst_rate"] = linkConfig["speed"]
 
     # set switch type
     switchConfig["type"] = experiment_config["type"]
@@ -737,7 +746,7 @@ def setup_configs(size, experiment_config):
         switchConfig["deflect_thresh"] = 1.0
         flowConfig["static_deflections"] = experiment_config["static_deflections"]
 
-def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent_algs, mbd_states,
+def gen_config_list(net_utils, prop_delay, bandwidths, traffic_types, agent_types, mbd_agent_algs, mbd_states,
         mbd_hyper_params, mbd_static_deflect, mbd_action_limits, mbd_mean_update_interval, mbd_entropy_interval,
         ndd_alg, ndd_hyper_params, ndd_deflect_counts, ndd_only_forward, ndd_multiple_updates,
         rand_deflect_static_deflects):
@@ -798,15 +807,15 @@ def gen_config_list(net_utils, prop_delay, traffic_types, agent_types, mbd_agent
                 for sd in rand_deflect_static_deflects]
         agent_dicts += rand_deflect_dict
 
-    experiment_dicts = [{**d, **{"net_util": u, "prop_delay": p, "traffic_type": t}}
-            for d in agent_dicts for u in net_utils for p in prop_delay for t in traffic_types]
+    experiment_dicts = [{**d, **{"net_util": u, "prop_delay": p, "bandwidth_modifier": b, "traffic_type": t}}
+            for d in agent_dicts for u in net_utils for p in prop_delay for b in bandwidths for t in traffic_types]
 
     return experiment_dicts
 
 def main():
     size = 8#16
     runs = 30
-    simulation_length = 1000 # 2000
+    simulation_length = 2500 # 1000 # 2000
     num_flow_changes = 200 # 100
     network_type = [NETWORK_2D, NETWORK_2D_CUT, NETWORK_3D][0]
 
@@ -815,11 +824,13 @@ def main():
     dest_dir = "configs"
 
     traffic_types = [TRAFFIC_MICE_ELEPHANT, TRAFFIC_CHANGING, TRAFFIC_STATIC][0:1]
-    net_utils = [0.05, 0.1, 0.15, 0.2, 0.25][0:2] # [0.1,0.2,0.3,0.4]
-    net_utils = [0.1, 0.2][0:2] # [0.1,0.2,0.3,0.4]
+    net_utils = [0.05, 0.1, 0.15, 0.2, 0.25][0:1] # [0.1,0.2,0.3,0.4]
+    #net_utils = [0.1, 0.2][0:2] # [0.1,0.2,0.3,0.4]
     prop_delays = [0.001,0.01,0.1,1.0][1:2]
     #prop_delays = [0.001,0.1,1.0]
-    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][1:2]
+    bandwidths = [0.5, 1, 2][1:2] # TODO test
+    #bandwidths = [0.5, 2][0:2]
+    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][0:1]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][0:1]
     mbd_hyper_params = [
             # regularizer, delta, discount factor
@@ -853,14 +864,14 @@ def main():
             ["dest_id"],
             ["dest_id", "deflect_probability"],
             ["dest_id", "drop_probability"], ["flow_id"]][2:3]#[3:4]
-    mbd_mean_update_interval = [1,2,4,8,16,32][4:6]
-    mbd_entropy_interval = [[1,2,4,6,8],[5]][1:2]
+    mbd_mean_update_interval = [1,2,4,8,16,32][0:1]
+    mbd_entropy_interval = [[1,2,4,6,8],[5]][0:1]
     ndd_algs = ["rand", "Q-learning"][1:2]
     ndd_hyper_params =[
             #alpha, epsilon, gamma
             [0.100, 0.050, 0.990],
             [0.006, 0.023, 0.685], [0.081, 0.046, 0.999], [0.002, 0.059, 0.996], [0.013, 0.066, 0.958], [0.050, 0.012, 0.993], [0.009, 0.029, 0.131], [0.021, 0.058, 0.997], [0.002, 0.047, 0.997], [0.096, 0.010, 0.748], [0.088, 0.015, 0.923], [0.038, 0.044, 0.971], [0.091, 0.031, 0.997], [0.004, 0.032, 0.988], [0.009, 0.014, 0.989], [0.031, 0.008, 0.999], [0.002, 0.010, 0.914], [0.082, 0.018, 0.968], [0.002, 0.022, 0.952], [0.010, 0.089, 0.992], [0.002, 0.084, 0.994], [0.016, 0.064, 0.998], [0.015, 0.052, 0.990], [0.009, 0.010, 0.560], [0.004, 0.005, 0.998], ][0:1]#[0:11]
-    ndd_deflect_counts = [2,4,6,8][0:2]
+    ndd_deflect_counts = [2,4,6,8][1:4]
     # ranges alpha [0.1, 0.0001] -> 10-10000 steps - log
     # ranges epsilon [0.05, 0.001] -> 20-200 steps - log
     # ranges gamma [0.99,0.9] -> ?-? log
@@ -871,7 +882,7 @@ def main():
     ndd_multiple_updates = [False, True][1:2]
     rand_deflect_static_deflects = [-1,2,4,6,8][0:5]
 
-    experiment_configs = gen_config_list(net_utils, prop_delays, traffic_types,
+    experiment_configs = gen_config_list(net_utils, prop_delays, bandwidths, traffic_types,
             agent_types, mbd_agent_algs, mbd_states, mbd_hyper_params,
             mbd_static_deflect, mbd_action_limits, mbd_mean_update_interval,
             mbd_entropy_interval, ndd_algs, ndd_hyper_params, ndd_deflect_counts,
@@ -884,7 +895,7 @@ def main():
 
         filepath = gen_path(dest_dir, size, network_type, experiment_config)
         print("generating:", filepath)
-        #create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs, network_type)
+        create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs, network_type)
 
 if __name__ == "__main__":
     main()
