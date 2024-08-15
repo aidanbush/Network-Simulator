@@ -1824,7 +1824,7 @@ void NDDSwitch::feedbackArrived(NDDFeedbackMessage feedback) {
 }
 
 double NDDSwitch::calculateReward(double TTT, int DHC) {
-    return 1 - (TTT / this->DNMaxTime + double(DHC) / this->DHCMax) / 2;
+    return ((1 - TTT / this->DNMaxTime) + (1 - double(DHC) / this->DHCMax)) / 2;
 }
 
 #ifdef _TEST
