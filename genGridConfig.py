@@ -13,7 +13,8 @@ TRAFFIC_CHANGING = 3
 NETWORK_2D = 1
 NETWORK_2D_CUT = 2
 NETWORK_3D = 3
-NETWORK_OTHER = 4
+NETWORK_HEX = 4
+NETWORK_OTHER = 5
 
 seed = 0
 flowId = 1
@@ -86,7 +87,7 @@ def calculate_id(x, y, n):
 def calculate_3d_id(x, y, z, n):
     return z * n**2 + y * n + x + 1
 
-def get_num_hops(source_id, dest_id, size, switches):
+def get_num_hops(source_id, dest_id, switches):
     return sum([abs(s - d) for s, d in zip(switches[source_id][2], switches[dest_id][2])])
 
 def get_2d_sector(x, y, size, sector_per_dim):
@@ -294,6 +295,116 @@ def gen_2d_network(n, config, remove_mid=False):
             config["interfaces"] += interfaces
             config["links"] += links
 
+def skip_corner(x, y, hex_size):
+    '''
+    conditions:
+        -is a corner
+        -top left skip always
+        -top right skip iff odd x hex size
+         -bottom left skip iff odd y hex size
+         -bottom right skip iff odd y hex size and odd x hex size
+                             or even y hex size and even x hex size
+    '''
+    # top left
+    if (x == 0 and y == 0):
+        return True
+    # top right
+    if (x == 2+hex_size[0]-1 and y == 0) and (hex_size[0] % 2 == 1):
+        return True
+    # bottom left
+    if (x == 0 and y == 1+hex_size[1]-1) and (hex_size[1] % 2 == 1):
+        return True
+    # bottom right
+    if (x == 2+hex_size[0]-1 and y == 1+hex_size[1]-1) and \
+        ((hex_size[0] % 2 == 0 and hex_size[1] % 2 == 0) \
+            or (hex_size[0] % 2 == 1 and hex_size[1] % 2 == 1)):
+        return True
+    return False
+
+def gen_hex_network(hex_size, config):
+    assert hex_size[0] > 1
+    assert hex_size[1] > 1
+
+    x_size = hex_size[0]
+    y_size = hex_size[1]
+
+    x_nodes = 2 + x_size
+    y_nodes = 1 + y_size
+    # create network
+    # 0,0 => top left
+    for y in range(y_nodes):
+        for x in range(x_nodes):
+            if skip_corner(x, y, hex_size):
+                continue
+            # create switch
+            switch = {
+                    "id": calculate_id(x, y, x_nodes),
+                    "internal_speed": 0,
+                    "network_size": y_nodes + x_nodes,
+                    "coordinates": [x, y],
+                    "section": 0, # no sections if hex network
+                    "num_sections": 1,
+                    }
+            switch.update(switchConfig)
+
+            # create interfaces
+            # interface IDs i*n*4 + j*4 + (0-3, [up, right, down, left])
+            interfaces = []
+
+            # create up
+            c_2 = (x, y - 1)
+            if y > 0 and ((y % 2 == 0 and x % 2 == 0) or (y % 2 == 1 and x % 2 == 1)) \
+                    and not skip_corner(x, y-1, hex_size):
+                interfaces.append({
+                    "id": switch["id"] * 4 + 0,
+                    "handler_id": switch["id"]
+                    })
+                interfaces[-1].update(interfaceConfig)
+            # create right
+            if x < x_nodes - 1 and not skip_corner(x+1, y, hex_size):
+                interfaces.append({
+                    "id": switch["id"] * 4 + 1,
+                    "handler_id": switch["id"]
+                    })
+                interfaces[-1].update(interfaceConfig)
+            # create down
+            if y < y_nodes - 1 and ((y % 2 == 0 and x % 2 == 1) or (y % 2 == 1 and x % 2 == 0)) \
+                    and not skip_corner(x, y+1, hex_size):
+                interfaces.append({
+                    "id": switch["id"] * 4 + 2,
+                    "handler_id": switch["id"]
+                    })
+                interfaces[-1].update(interfaceConfig)
+            # create left
+            if x > 0 and not skip_corner(x-1, y, hex_size):
+                interfaces.append({
+                    "id": switch["id"] * 4 + 3,
+                    "handler_id": switch["id"]
+                    })
+                interfaces[-1].update(interfaceConfig)
+
+            # create up and right links
+            links = []
+            # create up link
+            if y > 0 and ((y % 2 == 0 and x % 2 == 0) or (y % 2 == 1 and x % 2 == 1)) \
+                    and not skip_corner(x, y-1, hex_size):
+                links.append({
+                    "id": switch["id"] * 2,
+                    "interfaces": [switch["id"] * 4 + 0, calculate_id(x, y-1, x_nodes) * 4 + 2] # switch up, neighbour down
+                    })
+                links[-1].update(linkConfig)
+            # create right link
+            if x < 2 + x_size - 1 and not skip_corner(x+1, y, hex_size):
+                links.append({
+                    "id": switch["id"] * 2 + 1,
+                    "interfaces": [switch["id"] * 4 + 1, calculate_id(x+1, y, x_nodes) * 4 + 3] # switch right, neighbour left
+                    })
+                links[-1].update(linkConfig)
+
+            config["switches"].append(switch)
+            config["interfaces"] += interfaces
+            config["links"] += links
+
 def createValidSwitches(config):
     # structure: {id: [current, max]}
     switchIds = [(s["id"], s["coordinates"]) for s in config["switches"]]
@@ -302,7 +413,7 @@ def createValidSwitches(config):
 
     return {switchId: [0, switch_max_rate[switchId], coordinate] for switchId, coordinate in switchIds}
 
-def add_random_flow(config, size, switches, open_switches, fullSwitches, start_time, end_time, elephant=False):
+def add_random_flow(config, switches, open_switches, fullSwitches, start_time, end_time, elephant=False):
     global flowId
 
     flowRate = flowConfig["generator"]["mean_rate"]
@@ -342,7 +453,7 @@ def add_random_flow(config, size, switches, open_switches, fullSwitches, start_t
         open_switches.pop(dIndex)
         fullSwitches.append(dIndex)
 
-    num_hops = get_num_hops(sourceId, destId, size, switches)
+    num_hops = get_num_hops(sourceId, destId, switches)
     return flowRate * num_hops, (sourceId, destId) # utilization of the flow
 
 def gen_flows(config, util_thresh, net_size, sim_end_time):
@@ -365,7 +476,7 @@ def gen_flows(config, util_thresh, net_size, sim_end_time):
 
     # generate two elephant flows
     for _ in range(num_elephants):
-        flow_band, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, 0, sim_end_time, elephant=True)
+        flow_band, source_dest = add_random_flow(config, valid_switches, available_switches, full_switches, 0, sim_end_time, elephant=True)
         cur_util += flow_band / net_band
 
 
@@ -373,7 +484,7 @@ def gen_flows(config, util_thresh, net_size, sim_end_time):
     while cur_util < util_thresh:
         start_time = 0
         end_time = flow_length
-        flow_band, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, start_time, end_time)
+        flow_band, source_dest = add_random_flow(config, valid_switches, available_switches, full_switches, start_time, end_time)
         flow_util = flow_band / net_band
         cur_util += flow_util
 
@@ -421,7 +532,7 @@ def gen_flows(config, util_thresh, net_size, sim_end_time):
             end_time = start_time + max(1, np.random.normal(flow_length, 1))
             #flow = gen_flow(size, new_start, flow_length)
             #flow_list.append(flow)
-            flow_band, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, start_time, end_time)
+            flow_band, source_dest = add_random_flow(config, valid_switches, available_switches, full_switches, start_time, end_time)
             flow_util = flow_band / net_band
             cur_util += flow_util
             #live_flows.append((flow["end"], flow["util"]))
@@ -469,7 +580,7 @@ def genChangingFlows(config, net_util, net_size, num_changes, sim_end_time):
         end_time = sim_end_time / num_changes * flow_i
         flow_i += 1
         # generate and track flow
-        flow_util, source_dest = add_random_flow(config, net_size, valid_switches, available_switches, full_switches, start_time, end_time)
+        flow_util, source_dest = add_random_flow(config, valid_switches, available_switches, full_switches, start_time, end_time)
         flows.append((end_time, flow_util, source_dest[0], source_dest[1]))
         flows_band += flow_util
 
@@ -521,7 +632,7 @@ def genRandomFlows(config, netUtil, n, start_time, end_time):
     flowRate = flowConfig["generator"]["mean_rate"]
 
     while flowBand < netBand * netUtil:
-        flow_util, _ = add_random_flow(config, n, validSwitches, availableSwitches, fullSwitches, start_time, end_time)
+        flow_util, _ = add_random_flow(config, validSwitches, availableSwitches, fullSwitches, start_time, end_time)
         flowBand += flow_util
 
     print(f"utilisation {flowBand/netBand}", file=sys.stderr)
@@ -561,6 +672,8 @@ def create_config(filepath, size, net_util, simulation_length, flow_gen_type, ru
             gen_2d_network(size, config, remove_mid=True)
         elif network_type == NETWORK_3D:
             gen_3d_network(size, config)
+        elif network_type == NETWORK_HEX:
+            gen_hex_network(size, config)
         else:
             print("network type not supported")
             return
@@ -601,6 +714,8 @@ def gen_path(dest_dir, size, network_type, experiment_config):
         filepath = os.path.join(dest_dir, f"{size}x{size}_c")
     elif network_type == NETWORK_3D:
         filepath = os.path.join(dest_dir, f"{size}_3d")
+    elif network_type == NETWORK_HEX:
+        filepath = os.path.join(dest_dir, f"{size[0]}_{size[1]}_h")
 
     if experiment_config["type"] == "mbd":
         filepath = os.path.join(filepath, f"mbd")
@@ -694,7 +809,7 @@ def gen_path(dest_dir, size, network_type, experiment_config):
 
     return filepath
 
-def setup_configs(size, experiment_config):
+def setup_configs(size, network_type, experiment_config):
     global switchConfig, linkConfig, flowConfig
     switchConfig = switchConfigDefault.copy()
     linkConfig = linkConfigDefault.copy()
@@ -730,7 +845,10 @@ def setup_configs(size, experiment_config):
         switchConfig["DHC_max"] = experiment_config["ndd_deflect_count"]
         # DN max time = longest path with most deflections
         # TODO this only works for 2d network
-        switchConfig["DN_max_time"] = (2 * (size - 1) + 2) * 2 * experiment_config["prop_delay"]
+        if network_type == NETWORK_HEX:
+            switchConfig["DN_max_time"] = ((size[0] + 2 - 1) + (size[1] + 1 - 1) + 2) * 2 * experiment_config["prop_delay"]
+        else:
+            switchConfig["DN_max_time"] = (2 * (size - 1) + 2) * 2 * experiment_config["prop_delay"]
         switchConfig["NDDAgent"] = {"NDD_type": experiment_config["ndd_alg"]}
 
         if experiment_config["ndd_alg"] == "Q-learning":
@@ -813,24 +931,27 @@ def gen_config_list(net_utils, prop_delay, bandwidths, traffic_types, agent_type
     return experiment_dicts
 
 def main():
-    size = 8#16
+    size = [5,3]#[3,3]#8#16
     runs = 30
-    simulation_length = 2500 # 1000 # 2000
+    simulation_length = 1000 # 5000 # 2000
     num_flow_changes = 200 # 100
-    network_type = [NETWORK_2D, NETWORK_2D_CUT, NETWORK_3D][0]
+    network_type = [NETWORK_2D, NETWORK_2D_CUT, NETWORK_3D, NETWORK_HEX][3]
 
-    flowConfigDefault["ttl"] = size * 3
+    if network_type == NETWORK_HEX:
+        flowConfigDefault["ttl"] = int((size[0]+size[1])/2 * 3)
+    else:
+        flowConfigDefault["ttl"] = size * 3
 
     dest_dir = "configs"
 
     traffic_types = [TRAFFIC_MICE_ELEPHANT, TRAFFIC_CHANGING, TRAFFIC_STATIC][0:1]
-    net_utils = [0.05, 0.1, 0.15, 0.2, 0.25][0:1] # [0.1,0.2,0.3,0.4]
+    net_utils = [0.05, 0.1, 0.15, 0.2, 0.25][0:4] # [0.1,0.2,0.3,0.4]
     #net_utils = [0.1, 0.2][0:2] # [0.1,0.2,0.3,0.4]
     prop_delays = [0.001,0.01,0.1,1.0][1:2]
     #prop_delays = [0.001,0.1,1.0]
     bandwidths = [0.5, 1, 2][1:2] # TODO test
     #bandwidths = [0.5, 2][0:2]
-    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][0:1]
+    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][0:4]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][0:1]
     mbd_hyper_params = [
             # regularizer, delta, discount factor
@@ -863,7 +984,7 @@ def main():
             ["2_hop_shortest", "1_hop_shortest", "section", "drop_probability"],
             ["dest_id"],
             ["dest_id", "deflect_probability"],
-            ["dest_id", "drop_probability"], ["flow_id"]][2:3]#[3:4]
+            ["dest_id", "drop_probability"], ["flow_id"]][0:1]#[2:3]#[3:4]
     mbd_mean_update_interval = [1,2,4,8,16,32][0:1]
     mbd_entropy_interval = [[1,2,4,6,8],[5]][0:1]
     ndd_algs = ["rand", "Q-learning"][1:2]
@@ -871,7 +992,7 @@ def main():
             #alpha, epsilon, gamma
             [0.100, 0.050, 0.990],
             [0.006, 0.023, 0.685], [0.081, 0.046, 0.999], [0.002, 0.059, 0.996], [0.013, 0.066, 0.958], [0.050, 0.012, 0.993], [0.009, 0.029, 0.131], [0.021, 0.058, 0.997], [0.002, 0.047, 0.997], [0.096, 0.010, 0.748], [0.088, 0.015, 0.923], [0.038, 0.044, 0.971], [0.091, 0.031, 0.997], [0.004, 0.032, 0.988], [0.009, 0.014, 0.989], [0.031, 0.008, 0.999], [0.002, 0.010, 0.914], [0.082, 0.018, 0.968], [0.002, 0.022, 0.952], [0.010, 0.089, 0.992], [0.002, 0.084, 0.994], [0.016, 0.064, 0.998], [0.015, 0.052, 0.990], [0.009, 0.010, 0.560], [0.004, 0.005, 0.998], ][0:1]#[0:11]
-    ndd_deflect_counts = [2,4,6,8][1:4]
+    ndd_deflect_counts = [2,4,6,8][3:4]
     # ranges alpha [0.1, 0.0001] -> 10-10000 steps - log
     # ranges epsilon [0.05, 0.001] -> 20-200 steps - log
     # ranges gamma [0.99,0.9] -> ?-? log
@@ -880,7 +1001,7 @@ def main():
     #   for low, high in [[0.0001,0.1],[0.001,0.05],[0.9,0.99]]] # loop over ranges
     ndd_only_forward = [False, True][0:1]
     ndd_multiple_updates = [False, True][1:2]
-    rand_deflect_static_deflects = [-1,2,4,6,8][0:5]
+    rand_deflect_static_deflects = [-1,2,4,6,8][0:1]
 
     experiment_configs = gen_config_list(net_utils, prop_delays, bandwidths, traffic_types,
             agent_types, mbd_agent_algs, mbd_states, mbd_hyper_params,
@@ -889,7 +1010,7 @@ def main():
             ndd_only_forward, ndd_multiple_updates, rand_deflect_static_deflects)
 
     for experiment_config in experiment_configs:
-        setup_configs(size, experiment_config)
+        setup_configs(size, network_type, experiment_config)
         net_util = experiment_config["net_util"]
         flow_gen_type = experiment_config["traffic_type"]
 
