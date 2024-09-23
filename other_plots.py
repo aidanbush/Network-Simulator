@@ -21,12 +21,22 @@ def multiple_run_throughput(test_name, utilization, net_size, run_name_data):
     y_lim = (0, 300000)
     multiple_run_plot(test_name, utilization, mean_field, "Throughputs", y_lim, "/results.csv", net_size, run_name_data)
 
-def multiple_run_all_entropy(test_name, utilization, net_size, run_name_data):
+def multiple_run_all_entropy(test_name, utilization, net_size, run_name_data, interval):
+    mean_field = f"allActionsEntropy_{interval} mean"
+    y_lim = (0, 2)
+    multiple_run_plot(test_name, utilization, mean_field, f"entropy {interval}", y_lim, "/switches.csv", net_size, run_name_data)
+
+def multiple_run_deflection_entropy(test_name, utilization, net_size, run_name_data, interval):
+    mean_field = f"deflectionEntropy_{interval} mean"
+    y_lim = (0, 1)
+    multiple_run_plot(test_name, utilization, mean_field, f"action type entropy {interval}", y_lim, "/switches.csv", net_size, run_name_data)
+
+def multiple_run_all_entropy_old(test_name, utilization, net_size, run_name_data):
     mean_field = "allActionsEntropy mean"
     y_lim = (0, 2)
     multiple_run_plot(test_name, utilization, mean_field, "entropy", y_lim, "/switches.csv", net_size, run_name_data)
 
-def multiple_run_deflection_entropy(test_name, utilization, net_size, run_name_data):
+def multiple_run_deflection_entropy_old(test_name, utilization, net_size, run_name_data):
     mean_field = "deflectionEntropy mean"
     y_lim = (0, 1)
     multiple_run_plot(test_name, utilization, mean_field, "action type entropy", y_lim, "/switches.csv", net_size, run_name_data)
@@ -42,9 +52,8 @@ def multiple_run_sent_rate(test_name, utilization, net_size, run_name_data):
     multiple_run_plot(test_name, utilization, mean_field, "Sent Rates", y_lim, "/results.csv", net_size, run_name_data)
 
 # plot averages of multiple runs throughputs
-def multiple_run_elephant_hop_ratio(test_name, utilization, net_size, run_name_data):
+def multiple_run_elephant_hop_ratio(test_name, utilization, net_size, run_name_data, y_lim=(1, 2)):
     mean_field = "elephant_HopRatio mean"
-    y_lim = (1, 2)
     multiple_run_plot(test_name, utilization, mean_field, "Elephant Hop Ratios", y_lim, "/results.csv", net_size, run_name_data)
 
 def multiple_run_elephant_drop_rate(test_name, utilization, net_size, run_name_data, y_lim=(0,.2)):
@@ -83,6 +92,46 @@ def switch_link_usage_grid_plots(test_name, utilization, net_size, run_name_data
         name_data = (infix, suffix)
         multiple_run_individual_grid(test_name, utilization, net_size, name_data,
                 "switches.csv", "averageOutgoingLinkUsage", "Average Outgoing Link Usage", ylim)
+
+def reward_to_packet_loss(test_name, utilization, net_size, name_data):
+    # this should be per run but right now that data is not available
+    reward_field = "averageReward mean"
+    packet_loss_field = "DropRate mean"
+    pass
+
+def correlation_plot(run_name_data, field_1, field_1_file, field_name_1, field_2, field_2_file, field_name_2, fig_type, data_range):
+    pass
+"""
+    run_infixes = run_name_data[0]
+    suffix = run_name_data[1]
+
+    data = {}
+
+    for infix in run_infixes:
+        name_data = (infix, suffix)
+        file_run_name = get_run_name(net_size, util, infix, run_suffix)
+        filename = directory + file_run_name + file_suffix
+        data[name_data] = [[],[]]
+        [0] = get_runs_data(???)
+        [1] = get_runs_data(???)
+
+    for run_infix in run_infixes:
+        field_1_data = get_runs_data(file_1, field_1)
+        field_2_data = get_runs_data(file_2, field_2)
+
+        if data_range != None:
+            field_1_data = field_1_data[data_range[0]:data_range[1]]
+            field_2_data = field_2_data[data_range[0]:data_range[1]]
+
+    # scatter plot
+    #plt.scatter()
+
+    fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization {fig_type}"
+    output_name = fig_name.replace(' ', '_')
+
+    plt.figure(figsize=FIGSIZE)
+    plt.title(mean_fig_name)
+"""
 
 def multiple_run_link_usage(test_name, utilization, net_size, run_name_data):
     fig_type = "links usage"
@@ -773,13 +822,13 @@ run_infixes = [
 run_suffix = ""
 
 net_size = "8x8"
-utilizations = ["0.1","0.2"]
+utilizations = ["0.1","0.2"][0:2]
 experiment_name = "Limited Deflections Only Forward"
 run_infixes = [
         'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_only_forward_mice-elephant_p_0.01',
         'mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_only_forward_mice-elephant_p_0.01',
 
-        'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
+        #'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
         'rand_forward_mice-elephant_p_0.01',
         ]
 run_suffix = ""
@@ -836,38 +885,35 @@ run_infixes = [
 run_suffix = ""
 
 net_size = "8x8"
-utilizations = ["0.1","0.2"]
-experiment_name = "NDD Param Sweep"
+utilizations = ["0.1","0.2"][1:2]
+experiment_name = "bandwidth experiments"
 run_infixes = [
-        'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
-        'NDD_Q-learning_a_0.006_e_0.023_g_0.685_mu_mice-elephant_p_0.01',
-        'NDD_Q-learning_a_0.081_e_0.046_g_0.999_mu_mice-elephant_p_0.01',
-        'NDD_Q-learning_a_0.002_e_0.059_g_0.996_mu_mice-elephant_p_0.01',
-        'NDD_Q-learning_a_0.013_e_0.066_g_0.958_mu_mice-elephant_p_0.01',
-        'NDD_Q-learning_a_0.05_e_0.012_g_0.993_mu_mice-elephant_p_0.01',
-        'NDD_Q-learning_a_0.009_e_0.029_g_0.131_mu_mice-elephant_p_0.01',
-        'NDD_Q-learning_a_0.021_e_0.058_g_0.997_mu_mice-elephant_p_0.01',
-        'NDD_Q-learning_a_0.002_e_0.047_g_0.997_mu_mice-elephant_p_0.01',
-        'NDD_Q-learning_a_0.096_e_0.01_g_0.748_mu_mice-elephant_p_0.01',
-        'NDD_Q-learning_a_0.088_e_0.015_g_0.923_mu_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01_b_0.5',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01_b_2',
         ]
 run_suffix = ""
 
 net_size = "8x8"
-utilizations = ["0.1","0.2"]
+utilizations = ["0.1","0.2"]#[1:2]
 experiment_name = "Update Frequency test"
 run_infixes = [
-        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_m_ui_2_mice-elephant_p_0.01',
-        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_m_ui_4_mice-elephant_p_0.01',
-        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_m_ui_8_mice-elephant_p_0.01',
-        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_m_ui_16_mice-elephant_p_0.01',
-        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_m_ui_32_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_2_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_4_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_8_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_16_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_32_mice-elephant_p_0.01',
+
+        #'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
+        #'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_2_mice-elephant_p_0.01',
+        #'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_4_mice-elephant_p_0.01',
+        #'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_8_mice-elephant_p_0.01',
+        #'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_16_mice-elephant_p_0.01',
+        #'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_32_mice-elephant_p_0.01',
         ]
 run_suffix = ""
 
-
-"""
 net_size = "8x8"
 utilizations = ["0.1","0.2"][0:1]
 experiment_name = "Random Deflect Deflect Count Test"
@@ -892,32 +938,110 @@ run_infixes = [
 run_suffix = ""
 
 net_size = "8x8"
-utilizations = ["0.1","0.2"][0:1]
+utilizations = ["0.1","0.2"]
 experiment_name = "Compare no limit deflect algorithms"
 run_infixes = [
         'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
         'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01',
         'rand_deflect_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+
+net_size = "8x8"
+utilizations = ["0.1","0.2"][1:2]
+experiment_name = "NDD Param Sweep"
+run_infixes = [
+        'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.006_e_0.023_g_0.685_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.081_e_0.046_g_0.999_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.002_e_0.059_g_0.996_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.013_e_0.066_g_0.958_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.05_e_0.012_g_0.993_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.009_e_0.029_g_0.131_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.021_e_0.058_g_0.997_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.002_e_0.047_g_0.997_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.096_e_0.01_g_0.748_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.088_e_0.015_g_0.923_mu_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+
+net_size = "8x8"
+utilizations = ["0.1","0.2"][1:2]
+experiment_name = "NDD Deflect Sweep"
+run_infixes = [
+        'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_4_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_6_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+
+"""
+net_size = "8x8"
+utilizations = ["0.05","0.1", "0.15", "0.2"][0:3]
+experiment_name = "MBD long"
+run_infixes = [
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01'
         ]
 run_suffix = ""
 """
+
+net_size = "8_3d"
+utilizations = ["0.05","0.1", "0.15", "0.2"][1:2]
+experiment_name = "8 3d grid"
+run_infixes = [
+        'mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
+        'rand_forward_mice-elephant_p_0.01',
+        'rand_deflect_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+
+net_size = "3_3_hex"
+utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
+experiment_name = "sparse"
+run_infixes = [
+        'mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
+        'rand_forward_mice-elephant_p_0.01',
+        'rand_deflect_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+
+net_size = "5_3_hex"
+utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
+experiment_name = "sparse"
+run_infixes = [
+        'mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
+        'rand_forward_mice-elephant_p_0.01',
+        'rand_deflect_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
 
 
 run_name_data = (run_infixes, run_suffix)
 
 for utilization in utilizations:
     multiple_run_throughput(experiment_name, utilization, net_size, run_name_data)
+
+    multiple_run_elephant_hop_ratio(experiment_name, utilization, net_size, run_name_data, y_lim=(1,1.5))
     multiple_run_hop_ratio(experiment_name, utilization, net_size, run_name_data, y_lim=(1,1.5))
+
+    multiple_run_elephant_drop_rate(experiment_name, utilization, net_size, run_name_data, y_lim=(0,.1))
     multiple_run_drop_rate(experiment_name, utilization, net_size, run_name_data, y_lim=(0,.1))
+
     multiple_run_link_usage(experiment_name, utilization, net_size, run_name_data)
     multiple_run_forwarding(experiment_name, utilization, net_size, run_name_data, y_lim=(0,2))
 
-    multiple_run_elephant_hop_ratio(experiment_name, utilization, net_size, run_name_data)
-    multiple_run_elephant_drop_rate(experiment_name, utilization, net_size, run_name_data)
-
     multiple_run_reward(experiment_name, utilization, net_size, run_name_data)
-    multiple_run_all_entropy(experiment_name, utilization, net_size, run_name_data)
-    multiple_run_deflection_entropy(experiment_name, utilization, net_size, run_name_data)
+    for entropy in [6,8]:#[1,2,4,5,6,8]:
+        multiple_run_all_entropy(experiment_name, utilization, net_size, run_name_data, entropy)
+        multiple_run_deflection_entropy(experiment_name, utilization, net_size, run_name_data, entropy)
+
+    multiple_run_all_entropy_old(experiment_name, utilization, net_size, run_name_data)
+    multiple_run_deflection_entropy_old(experiment_name, utilization, net_size, run_name_data)
 
     #multiple_run_out_of_order(experiment_name, utilization, net_size, run_name_data)
     multiple_run_sent_rate(experiment_name, utilization, net_size, run_name_data)
