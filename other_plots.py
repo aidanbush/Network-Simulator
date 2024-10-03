@@ -1002,7 +1002,7 @@ net_size = "3_3_hex"
 utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
 experiment_name = "sparse"
 run_infixes = [
-        'mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
         'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
         'rand_forward_mice-elephant_p_0.01',
         'rand_deflect_mice-elephant_p_0.01',
@@ -1013,7 +1013,7 @@ net_size = "5_3_hex"
 utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
 experiment_name = "sparse"
 run_infixes = [
-        'mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
         'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
         'rand_forward_mice-elephant_p_0.01',
         'rand_deflect_mice-elephant_p_0.01',
@@ -1034,17 +1034,17 @@ for utilization in utilizations:
 
     multiple_run_link_usage(experiment_name, utilization, net_size, run_name_data)
     multiple_run_forwarding(experiment_name, utilization, net_size, run_name_data, y_lim=(0,2))
+    multiple_run_sent_rate(experiment_name, utilization, net_size, run_name_data)
 
     multiple_run_reward(experiment_name, utilization, net_size, run_name_data)
     for entropy in [6,8]:#[1,2,4,5,6,8]:
         multiple_run_all_entropy(experiment_name, utilization, net_size, run_name_data, entropy)
         multiple_run_deflection_entropy(experiment_name, utilization, net_size, run_name_data, entropy)
 
-    multiple_run_all_entropy_old(experiment_name, utilization, net_size, run_name_data)
-    multiple_run_deflection_entropy_old(experiment_name, utilization, net_size, run_name_data)
+    #multiple_run_all_entropy_old(experiment_name, utilization, net_size, run_name_data)
+    #multiple_run_deflection_entropy_old(experiment_name, utilization, net_size, run_name_data)
 
     #multiple_run_out_of_order(experiment_name, utilization, net_size, run_name_data)
-    multiple_run_sent_rate(experiment_name, utilization, net_size, run_name_data)
 
     # only if grid topology
     #switch_link_usage_heatmap(experiment_name, utilization, net_size, run_name_data, 500, (None,None))#(0,.5))
