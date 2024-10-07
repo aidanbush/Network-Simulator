@@ -16,66 +16,97 @@ output_dir = "plots"
 plot_format = "pdf"
 
 # plot averages of multiple runs throughputs
-def multiple_run_throughput(test_name, utilization, net_size, run_name_data, experiment_length=1000):
+def multiple_run_throughput(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "Throughput mean"
-    y_lim = (0, 300000)
-    multiple_run_plot(test_name, utilization, mean_field, "Throughputs", y_lim, "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
+    defaults = {"ylim": (0, 300000)}
+    params = {**defaults, **params}
 
-def multiple_run_all_entropy(test_name, utilization, net_size, run_name_data, interval, experiment_length=1000):
-    mean_field = f"allActionsEntropy_{interval} mean"
-    y_lim = (0, 2)
-    multiple_run_plot(test_name, utilization, mean_field, f"entropy {interval}", y_lim, "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+    multiple_run_plot(test_name, utilization, mean_field, "Throughputs", params["ylim"], "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
 
-def multiple_run_deflection_entropy(test_name, utilization, net_size, run_name_data, interval, experiment_length=1000):
-    mean_field = f"deflectionEntropy_{interval} mean"
-    y_lim = (0, 1)
-    multiple_run_plot(test_name, utilization, mean_field, f"action type entropy {interval}", y_lim, "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+def multiple_run_all_entropy(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+    defaults = {"ylim": (0, 2), "interval": 8}
+    params = {**defaults, **params}
 
-def multiple_run_all_entropy_old(test_name, utilization, net_size, run_name_data, experiment_length=1000):
+    mean_field = f"allActionsEntropy_{params['interval']} mean"
+    multiple_run_plot(test_name, utilization, mean_field, f"entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+
+def multiple_run_deflection_entropy(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+    defaults = {"ylim": (0, 1), "interval": 8}
+    params = {**defaults, **params}
+
+    mean_field = f"deflectionEntropy_{params['interval']} mean"
+    multiple_run_plot(test_name, utilization, mean_field, f"action type entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+
+def multiple_run_all_entropy_old(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "allActionsEntropy mean"
-    y_lim = (0, 2)
-    multiple_run_plot(test_name, utilization, mean_field, "entropy", y_lim, "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+    defaults = {"ylim": (0, 2)}
+    params = {**defaults, **params}
 
-def multiple_run_deflection_entropy_old(test_name, utilization, net_size, run_name_data, experiment_length=1000):
+    multiple_run_plot(test_name, utilization, mean_field, "entropy", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+
+def multiple_run_deflection_entropy_old(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "deflectionEntropy mean"
-    y_lim = (0, 1)
-    multiple_run_plot(test_name, utilization, mean_field, "action type entropy", y_lim, "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+    defaults = {"ylim": (0, 1)}
+    params = {**defaults, **params}
 
-def multiple_run_reward(test_name, utilization, net_size, run_name_data, experiment_length=1000):
+    multiple_run_plot(test_name, utilization, mean_field, "action type entropy", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+
+def multiple_run_reward(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "averageReward mean"
-    y_lim = (0, 1)
-    multiple_run_plot(test_name, utilization, mean_field, "Rewards", y_lim, "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+    defaults = {"ylim": (0, 1)}
+    params = {**defaults, **params}
 
-def multiple_run_sent_rate(test_name, utilization, net_size, run_name_data, experiment_length=1000):
+    multiple_run_plot(test_name, utilization, mean_field, "Rewards", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+
+def multiple_run_sent_rate(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "SentRate mean"
-    y_lim = (0, 300000)
-    multiple_run_plot(test_name, utilization, mean_field, "Sent Rates", y_lim, "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
+    defaults = {"ylim": (0, 300000)}
+    params = {**defaults, **params}
+
+    multiple_run_plot(test_name, utilization, mean_field, "Sent Rates", params["ylim"], "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
 
 # plot averages of multiple runs throughputs
-def multiple_run_elephant_hop_ratio(test_name, utilization, net_size, run_name_data, y_lim=(1, 2), experiment_length=1000):
+def multiple_run_elephant_hop_ratio(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "elephant_HopRatio mean"
-    multiple_run_plot(test_name, utilization, mean_field, "Elephant Hop Ratios", y_lim, "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
+    defaults = {"ylim": (1, 2)}
+    params = {**defaults, **params}
 
-def multiple_run_elephant_drop_rate(test_name, utilization, net_size, run_name_data, y_lim=(0,.2), experiment_length=1000):
+    multiple_run_plot(test_name, utilization, mean_field, "Elephant Hop Ratios", params["ylim"], "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
+
+def multiple_run_elephant_drop_rate(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "elephant_DropRate mean"
-    multiple_run_plot(test_name, utilization, mean_field, "Elephant Packet Loss", y_lim, "/results.csv", net_size, run_name_data, percent_data=True, experiment_length=experiment_length)
+    defaults = {"ylim": (0,.2)}
+    params = {**defaults, **params}
 
-def multiple_run_hop_ratio(test_name, utilization, net_size, run_name_data, y_lim=(1, 2), experiment_length=1000):
+    multiple_run_plot(test_name, utilization, mean_field, "Elephant Packet Loss", params["ylim"], "/results.csv", net_size, run_name_data, percent_data=True, experiment_length=experiment_length)
+
+def multiple_run_hop_ratio(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "HopRatio mean"
-    multiple_run_plot(test_name, utilization, mean_field, "Hop Ratios", y_lim, "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
+    defaults = {"ylim": (1, 2)}
+    params = {**defaults, **params}
 
-def multiple_run_drop_rate(test_name, utilization, net_size, run_name_data, y_lim=(0, .2), experiment_length=1000):
+    multiple_run_plot(test_name, utilization, mean_field, "Hop Ratios", params["ylim"], "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
+
+def multiple_run_drop_rate(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "DropRate mean"
-    multiple_run_plot(test_name, utilization, mean_field, "Packet Loss", y_lim, "/results.csv", net_size, run_name_data, percent_data=True, experiment_length=experiment_length)
+    defaults = {"ylim": (0, .2)}
+    params = {**defaults, **params}
 
-def multiple_run_out_of_order(test_name, utilization, net_size, run_name_data, experiment_length=1000):
+    multiple_run_plot(test_name, utilization, mean_field, "Packet Loss", params["ylim"], "/results.csv", net_size, run_name_data, percent_data=True, experiment_length=experiment_length)
+
+def multiple_run_out_of_order(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "OutOfOrderRatio mean"
-    y_lim = (0, .5)
-    multiple_run_plot(test_name, utilization, mean_field, "Out of Order Ratio", y_lim, "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
+    defaults = {"ylim": (0, .5)}
+    params = {**defaults, **params}
 
-def multiple_run_forwarding(test_name, utilization, net_size, run_name_data, y_lim=(0,4), experiment_length=1000):
+    multiple_run_plot(test_name, utilization, mean_field, "Out of Order Ratio", params["ylim"], "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
+
+def multiple_run_forwarding(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "averageForwardInterfacesRatio mean"
-    multiple_run_plot(test_name, utilization, mean_field, "Forwarding Interfaces", y_lim, "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+    defaults = {"ylim": (0,4)}
+    params = {**defaults, **params}
+
+    multiple_run_plot(test_name, utilization, mean_field, "Forwarding Interfaces", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
 
 def switch_link_usage_heatmap(test_name, utilization, net_size, run_name_data, start_offset, v_range):
     suffix = run_name_data[1]
@@ -414,7 +445,22 @@ def multiple_run_individual_heatmap(test_name, utilization, net_size, run_name_d
 
     plt.close()
 
-def plot_across_utils(test_name, utilizations, field, fig_type, ylim, file_suffix, net_size, run_name_data, exact_match=True, include_stdev=True, include_min_max=False, stdev_not_mean=False, experiment_length=1000):
+#def plot_across_utils(test_name, utilizations, field, fig_type, ylim, file_suffix, net_size, run_name_data, exact_match=True, include_stdev=True, include_min_max=False, stdev_not_mean=False, experiment_length=1000):
+
+def plot_across_utils(test_name, utilizations, net_size, run_name_data, experiment_length, params):
+    defaults = {}
+    {"field": "", "fig_type":"", "ylim":"", "file_suffix":"", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False}
+    params = {**defaults, **params}
+
+    field = params["field"]
+    fig_type = params["fig_type"]
+    ylim = params["fig_type"]
+    file_suffix = params["file_suffix"]
+    exact_match = params["exact_match"]
+    include_stdev = params["include_stdev"]
+    include_min_max = params["include_min_max"]
+    stdev_not_mean = params["stdev_not_mean"]
+
     fig_name = f"{test_name} {net_size} Bursty {fig_type}"
     output_name = fig_name.replace(' ', '_')
 
@@ -517,6 +563,51 @@ def get_no_util_run_name(net_size, infix, suffix):
 def get_run_name(net_size, utilization, infix, suffix):
     prefix = f"{net_size}_"
     return prefix + infix + suffix + "_u_" + utilization
+
+def get_single_util_func(name):
+    mappings = {
+            "hop_ratio": multiple_run_hop_ratio,
+            "elephant_hop_ratio": multiple_run_elephant_hop_ratio,
+            "drop_rate": multiple_run_drop_rate,
+            "elephant_drop_rate": multiple_run_elephant_drop_rate,
+
+            "throughput": multiple_run_throughput,
+            "sent_rate": multiple_run_sent_rate,
+
+            "link_usage": multiple_run_link_usage,
+            "forwarding_links": multiple_run_forwarding,
+
+            "reward": multiple_run_reward,
+            "entropy": multiple_run_all_entropy,
+            "action_type_entropy": multiple_run_deflection_entropy,
+
+            "entropy_old": multiple_run_all_entropy_old,
+            "action_type_entropy_old": multiple_run_deflection_entropy_old,
+
+            "out_of_order": multiple_run_out_of_order, # unsupported
+
+            "switch_usage_heatmap": switch_link_usage_heatmap, # 2d grid only
+            "switch_usage_plots": switch_link_usage_grid_plots, # 2d grid only
+            }
+
+    if name in mappings:
+        return mappings[name]
+    print("############################################")
+    print(f"  Plot '{name}' not found")
+    print("############################################")
+
+def plot_data(experiment_name, topology, utils, run_infixes, run_suffix, length, single_util_plots, across_util_plots):
+    #single_util_plots = {name: {params}}
+    run_name_data = (run_infixes, run_suffix)
+    for util in utils:
+        for name, params in single_util_plots.items():
+            func = get_single_util_func(name)
+            func(experiment_name, util, topology, run_name_data, params, experiment_length=length)
+            #TODO change entropy, y_lim, etc to be in a dict of paramters
+    #across_util_plots = [{params}, ...]
+    for params in across_util_plots:
+        plot_across_utils(experiment_name, utils, topology, run_name_data, experiment_length, params)
+        #TODO change field, fig_type/name, file_suffix, entropy, y_lim, etc to be in a dict of paramters
 
 utilizations = ["0.05","0.1","0.15","0.2"]
 net_size = "8x8"
@@ -926,42 +1017,86 @@ run_infixes = [
         ]
 run_suffix = ""
 
+net_size = "5_3_hex"
+utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
+experiment_name = "sparse"
+experiment_length = 1000
+run_infixes = [
+        'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
+        'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
+        'rand_forward_mice-elephant_p_0.01',
+        'rand_deflect_mice-elephant_p_0.01',
+        ]
+run_suffix = ""
+single_util_plots = {
+        "drop_rate": {"ylim": (0,.1)},
+        "hop_ratio": {"ylim": (1,2)},
 
-run_name_data = (run_infixes, run_suffix)
+        "reward": {},
+        "entropy": {"interval": 8},
+        "action_type_entropy": {"interval": 8},
+        }
+across_util_plots = [
+        #{"field": "DropRate mean", "fig_type": "Packet Loss", "ylim": (0,.1), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False},
+        ]
 
-for utilization in utilizations:
-    #multiple_run_throughput(experiment_name, utilization, net_size, run_name_data, experiment_length=experiment_length)
+plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-    #multiple_run_elephant_hop_ratio(experiment_name, utilization, net_size, run_name_data, y_lim=(1,1.5), experiment_length=experiment_length)
-    #multiple_run_hop_ratio(experiment_name, utilization, net_size, run_name_data, y_lim=(1,1.5), experiment_length=experiment_length)
+sample_single_util_plots = {
+        "throughput": {},
+        #multiple_run_throughput(experiment_name, utilization, net_size, run_name_data, experiment_length=experiment_length)
+        "sent_rate": {},
+        #multiple_run_sent_rate(experiment_name, utilization, net_size, run_name_data, experiment_length=experiment_length)
 
-    #multiple_run_elephant_drop_rate(experiment_name, utilization, net_size, run_name_data, y_lim=(0,.1), experiment_length=experiment_length)
-    multiple_run_drop_rate(experiment_name, utilization, net_size, run_name_data, y_lim=(0,.1), experiment_length=experiment_length)
+        "elephant_hop_ratio": {"ylim": (1,2)},
+        #multiple_run_elephant_hop_ratio(experiment_name, utilization, net_size, run_name_data, y_lim=(1,1.5), experiment_length=experiment_length)
+        "hop_ratio": {"ylim": (1,2)},
+        #multiple_run_hop_ratio(experiment_name, utilization, net_size, run_name_data, y_lim=(1,1.5), experiment_length=experiment_length)
 
-    #multiple_run_link_usage(experiment_name, utilization, net_size, run_name_data, experiment_length=experiment_length)
-    #multiple_run_forwarding(experiment_name, utilization, net_size, run_name_data, y_lim=(0,2), experiment_length=experiment_length)
-    #multiple_run_sent_rate(experiment_name, utilization, net_size, run_name_data, experiment_length=experiment_length)
+        "elephant_drop_rate": {"ylim": (0,.1)},
+        #multiple_run_elephant_drop_rate(experiment_name, utilization, net_size, run_name_data, y_lim=(0,.1), experiment_length=experiment_length)
+        "drop_rate": {"ylim": (0,.1)},
+        #multiple_run_drop_rate(experiment_name, utilization, net_size, run_name_data, y_lim=(0,.1), experiment_length=experiment_length)
 
-    #multiple_run_reward(experiment_name, utilization, net_size, run_name_data, experiment_length=experiment_length)
-    for entropy in []:#[6,8]:#[1,2,4,5,6,8]:
-        multiple_run_all_entropy(experiment_name, utilization, net_size, run_name_data, entropy, experiment_length=experiment_length)
-        multiple_run_deflection_entropy(experiment_name, utilization, net_size, run_name_data, entropy, experiment_length=experiment_length)
+        "link_usage": {},
+        #multiple_run_link_usage(experiment_name, utilization, net_size, run_name_data, experiment_length=experiment_length)
+        "forwarding_links": {"ylim": (0,2)},
+        #multiple_run_forwarding(experiment_name, utilization, net_size, run_name_data, y_lim=(0,2), experiment_length=experiment_length)
 
-    #multiple_run_all_entropy_old(experiment_name, utilization, net_size, run_name_data, experiment_length=experiment_length)
-    #multiple_run_deflection_entropy_old(experiment_name, utilization, net_size, run_name_data, experiment_length=experiment_length)
+        "reward": {},
+        #multiple_run_reward(experiment_name, utilization, net_size, run_name_data, experiment_length=experiment_length)
+        "entropy": {"interval": 8},
+        #multiple_run_all_entropy(experiment_name, utilization, net_size, run_name_data, entropy, experiment_length=experiment_length)
+        "action_type_entropy": {"interval": 8},
+        #multiple_run_deflection_entropy(experiment_name, utilization, net_size, run_name_data, entropy, experiment_length=experiment_length)
 
-    #multiple_run_out_of_order(experiment_name, utilization, net_size, run_name_data, experiment_length=experiment_length)
+        "entropy_old": {},
+        #multiple_run_all_entropy_old(experiment_name, utilization, net_size, run_name_data, experiment_length=experiment_length)
+        "action_type_entropy_old": {},
+        #multiple_run_deflection_entropy_old(experiment_name, utilization, net_size, run_name_data, experiment_length=experiment_length)
 
-    # only if grid topology
-    #switch_link_usage_heatmap(experiment_name, utilization, net_size, run_name_data, 500, (None,None))#(0,.5))
-    #switch_link_usage_grid_plots(experiment_name, utilization, net_size, run_name_data)
+        # only if grid topology
+        "switch_usage_heatmap": {"start_offset": 500, "v_range": (None,None)},
+        #switch_link_usage_heatmap(experiment_name, utilization, net_size, run_name_data, 500, (None,None))#(0,.5))
+        "switch_usage_plots": {},
+        #switch_link_usage_grid_plots(experiment_name, utilization, net_size, run_name_data)
+        }
 
-#plot_across_utils(experiment_name, utilizations, "averageReward mean", "Rewards", (0.5,1), "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
-#plot_across_utils(experiment_name, utilizations, "DropRate mean", "Packet Loss", (0,.1), "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
-#plot_across_utils(experiment_name, utilizations, "elephant_DropRate mean", "Elephant Packet Loss", (0,.1), "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
-#plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (0,3), "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
-#plot_across_utils(experiment_name, utilizations, "OutOfOrderRatio mean", "Out of Order Ratio", (0,.5), "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
-# link mean
-#plot_across_utils(experiment_name, utilizations, "mean", "Link Usage", (0,.5), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=True, include_min_max=True, experiment_length=experiment_length)
-#plot_across_utils(experiment_name, utilizations, "mean", "Link Usage stdev", (0,.2), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=False, stdev_not_mean=True, experiment_length=experiment_length)
-#plot_across_utils(experiment_name, utilizations, "averageForwardInterfacesRatio mean", "Forwarding Interfaces", (0, 2), "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+sample_across_util_plots = [
+        {"field": "averageReward mean", "fig_type": "Rewards", "ylim": (.5,1), "file_suffix": "/switches.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False},
+        #plot_across_utils(experiment_name, utilizations, "averageReward mean", "Rewards", (0.5,1), "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+        {"field": "DropRate mean", "fig_type": "Packet Loss", "ylim": (0,.1), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False},
+        #plot_across_utils(experiment_name, utilizations, "DropRate mean", "Packet Loss", (0,.1), "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
+        {"field": "elephant_DropRate mean", "fig_type": "Elephant Packet Loss", "ylim": (0,.1), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False},
+        #plot_across_utils(experiment_name, utilizations, "elephant_DropRate mean", "Elephant Packet Loss", (0,.1), "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
+        {"field": "HopRatio mean", "fig_type": "Hop Ratios", "ylim": (0,3), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False},
+        #plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (0,3), "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
+
+        {"field": "mean", "fig_type":"Link Usage", "ylim":(0,.5), "file_suffix":"/links.csv", "exact_match":False, "include_stdev":True, "include_min_max": True, "stdev_not_mean":False},
+        #plot_across_utils(experiment_name, utilizations, "mean", "Link Usage", (0,.5), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=True, include_min_max=True, experiment_length=experiment_length)
+        {"field": "mean", "fig_type":"Link Usage stdev", "ylim":(0,.2), "file_suffix":"/links.csv", "exact_match":False, "include_stdev":False, "include_min_max": False, "stdev_not_mean":True},
+        #plot_across_utils(experiment_name, utilizations, "mean", "Link Usage stdev", (0,.2), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=False, stdev_not_mean=True, experiment_length=experiment_length)
+
+        {"field": "averageForwardInterfacesRatio mean", "fig_type":"Forwarding Interfaces", "ylim":(0,2), "file_suffix":"/switches.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False},
+        #plot_across_utils(experiment_name, utilizations, "averageForwardInterfacesRatio mean", "Forwarding Interfaces", (0, 2), "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+        ]
