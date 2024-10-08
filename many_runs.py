@@ -67,20 +67,21 @@ def gen_experiment_name(size, config, network_type):
     return name + f"_u_{net_util}"
 
 def main():
-    size = [5,3]#[3,3]#8#16
+    size = 8#[5,3] [3,3] 8 16
     num_runs = 30
     parallel = 30
     config_dir = "configs"
-    network_type = [helper.NETWORK_2D, helper.NETWORK_2D_CUT, helper.NETWORK_3D, helper.NETWORK_HEX][3]
+    network_type = [helper.NETWORK_2D, helper.NETWORK_2D_CUT, helper.NETWORK_3D, helper.NETWORK_HEX][0]
 
     traffic_types = [helper.TRAFFIC_MICE_ELEPHANT, helper.TRAFFIC_CHANGING, helper.TRAFFIC_STATIC][0:1]
     net_utils = [0.05, 0.1, 0.15, 0.2, 0.25][0:4]
+    #net_utils = [0.05, 0.15]
     #net_utils = [0.1, 0.2][0:2] # [0.1,0.2,0.3,0.4]
     prop_delays = [0.01,0.1,0.5][0:1]
     #prop_delays = [0.001,0.1,1.0]
     bandwidths = [0.5, 1, 2][1:2]
-    #bandwidths = [0.5, 2][0:1]
-    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][0:4]
+    #bandwidths = [0.5, 2][0:2]
+    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][1:4]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][0:1]
     mbd_hyper_params = [
             # regularizer, delta, discount factor
@@ -112,7 +113,7 @@ def main():
             ["2_hop_shortest", "1_hop_shortest", "section", "drop_probability"],
             ["dest_id"],
             ["dest_id", "deflect_probability"],
-            ["dest_id", "drop_probability"], ["flow_id"]][0:1]#[2:3]#[3:4]
+            ["dest_id", "drop_probability"], ["flow_id"]][2:3]#[0:1]#[3:4]
     mbd_mean_update_interval = [1,2,4,8,16,32][0:1]
     mbd_entropy_interval = [[1,2,4,6,8],[5]][0:1]
     ndd_algs = ["rand", "Q-learning"][1:2]
@@ -144,7 +145,7 @@ def main():
         timeout = 60*60*24*10 # 10 days
         command_line = f"bash run_test.sh -t {timeout} -p {parallel} -n {num_runs} {run_path} {run_name} manhattan_flow_params.json"
         print(command_line)
-        os.system(command_line)
+        #os.system(command_line)
 
 if __name__ == "__main__":
     main()

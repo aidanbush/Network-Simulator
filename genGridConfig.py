@@ -931,11 +931,11 @@ def gen_config_list(net_utils, prop_delay, bandwidths, traffic_types, agent_type
     return experiment_dicts
 
 def main():
-    size = [5,3]#[3,3]#8#16
+    size = 8#[3,3] [5,3] 8 16
     runs = 30
-    simulation_length = 1000 # 5000 # 2000
+    simulation_length = 5000 # 5000 # 2000
     num_flow_changes = 200 # 100
-    network_type = [NETWORK_2D, NETWORK_2D_CUT, NETWORK_3D, NETWORK_HEX][3]
+    network_type = [NETWORK_2D, NETWORK_2D_CUT, NETWORK_3D, NETWORK_HEX][0]
 
     if network_type == NETWORK_HEX:
         flowConfigDefault["ttl"] = int((size[0]+size[1])/2 * 3)
@@ -946,12 +946,13 @@ def main():
 
     traffic_types = [TRAFFIC_MICE_ELEPHANT, TRAFFIC_CHANGING, TRAFFIC_STATIC][0:1]
     net_utils = [0.05, 0.1, 0.15, 0.2, 0.25][0:4] # [0.1,0.2,0.3,0.4]
+    #net_utils = [0.05, 0.15]
     #net_utils = [0.1, 0.2][0:2] # [0.1,0.2,0.3,0.4]
     prop_delays = [0.001,0.01,0.1,1.0][1:2]
     #prop_delays = [0.001,0.1,1.0]
-    bandwidths = [0.5, 1, 2][1:2] # TODO test
+    bandwidths = [0.5, 1, 2][1:2]
     #bandwidths = [0.5, 2][0:2]
-    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][0:4]
+    agent_types = ["mbd", "NDD", "rand_forward", "rand_deflect"][1:4]
     mbd_agent_algs = ["original", "slide", "D-LinUCB", None][0:1]
     mbd_hyper_params = [
             # regularizer, delta, discount factor
@@ -984,7 +985,7 @@ def main():
             ["2_hop_shortest", "1_hop_shortest", "section", "drop_probability"],
             ["dest_id"],
             ["dest_id", "deflect_probability"],
-            ["dest_id", "drop_probability"], ["flow_id"]][0:1]#[2:3]#[3:4]
+            ["dest_id", "drop_probability"], ["flow_id"]][2:3]#[0:1]
     mbd_mean_update_interval = [1,2,4,8,16,32][0:1]
     mbd_entropy_interval = [[1,2,4,6,8],[5]][0:1]
     ndd_algs = ["rand", "Q-learning"][1:2]
@@ -1016,7 +1017,7 @@ def main():
 
         filepath = gen_path(dest_dir, size, network_type, experiment_config)
         print("generating:", filepath)
-        create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs, network_type)
+        #create_config(filepath, size, net_util, simulation_length, flow_gen_type, runs, network_type)
 
 if __name__ == "__main__":
     main()
