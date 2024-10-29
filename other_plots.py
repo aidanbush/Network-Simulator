@@ -446,20 +446,19 @@ def multiple_run_individual_heatmap(test_name, utilization, net_size, run_name_d
     plt.close()
 
 #def plot_across_utils(test_name, utilizations, field, fig_type, ylim, file_suffix, net_size, run_name_data, exact_match=True, include_stdev=True, include_min_max=False, stdev_not_mean=False, experiment_length=1000):
-
 def plot_across_utils(test_name, utilizations, net_size, run_name_data, experiment_length, params):
-    defaults = {}
-    {"field": "", "fig_type":"", "ylim":"", "file_suffix":"", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False}
-    params = {**defaults, **params}
+    #defaults = {"field": None, "fig_type":None, "ylim":None, "file_suffix":"", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False, "percent_data":False}
+    #params = {**defaults, **params}
 
     field = params["field"]
     fig_type = params["fig_type"]
-    ylim = params["fig_type"]
+    ylim = params["ylim"]
     file_suffix = params["file_suffix"]
     exact_match = params["exact_match"]
     include_stdev = params["include_stdev"]
     include_min_max = params["include_min_max"]
     stdev_not_mean = params["stdev_not_mean"]
+    percent_data = params["percent_data"]
 
     fig_name = f"{test_name} {net_size} Bursty {fig_type}"
     output_name = fig_name.replace(' ', '_')
@@ -546,7 +545,13 @@ def plot_across_utils(test_name, utilizations, net_size, run_name_data, experime
     plt.ylim(bottom=ylim[0], top=ylim[1])
     plt.grid()
 
+    if percent_data:
+        ax = plt.gca()
+        y_ticks = ax.get_yticks()
+        ax.set_yticklabels([f'{t * 100:g}%' for t in y_ticks])
+
     plt.xlabel("Network Utilization")
+    plt.xticks(np.arange(len(utilizations)) + width/len(means.keys()), [f"{float(u)*100:g}%" for u in utilizations])
 
     try:
         filepath = os.path.join(output_dir, "{}.{}".format(output_name, plot_format))
@@ -596,20 +601,22 @@ def get_single_util_func(name):
     print(f"  Plot '{name}' not found")
     print("############################################")
 
-def plot_data(experiment_name, topology, utils, run_infixes, run_suffix, length, single_util_plots, across_util_plots):
+def plot_data(experiment_name, topology, utils, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots):
     #single_util_plots = {name: {params}}
     run_name_data = (run_infixes, run_suffix)
     for util in utils:
         for name, params in single_util_plots.items():
             func = get_single_util_func(name)
-            func(experiment_name, util, topology, run_name_data, params, experiment_length=length)
+            func(experiment_name, util, topology, run_name_data, params, experiment_length=experiment_length)
             #TODO change entropy, y_lim, etc to be in a dict of paramters
     #across_util_plots = [{params}, ...]
     for params in across_util_plots:
         plot_across_utils(experiment_name, utils, topology, run_name_data, experiment_length, params)
         #TODO change field, fig_type/name, file_suffix, entropy, y_lim, etc to be in a dict of paramters
 
-def utilization_sweep():
+def plot_utilization_sweep():
+    print("plot_utilization_sweep")
+
     net_size = "8x8"
     utilizations = ["0.05","0.1","0.15","0.2","0.25"]
     experiment_name = "Utilization Sweep"
@@ -617,22 +624,23 @@ def utilization_sweep():
     run_infixes = [
             "rand_forward_mice-elephant_p_0.01",
             "rand_deflect_mice-elephant_p_0.01",
-            "rand_deflect_sd_2_mice-elephant_p_0.01",
+            #"rand_deflect_sd_2_mice-elephant_p_0.01",
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.3)},#or (0,.05), (0,.1) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
+            #"drop_rate": {"ylim": (0,.3)},#or (0,.05), (0,.1) at 10%, 20%
+            #"hop_ratio": {"ylim": (1,1.5)},
             }
     across_util_plots = [
-            {"field": "DropRate mean", "fig_type": "Packet Loss", "ylim": (0,.3), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False},
+            {"field": "DropRate mean", "fig_type": "Packet Loss", "ylim": (0,.3), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False, "percent_data":True},
+            {"field": "mean", "fig_type":"Link Usage", "ylim":(0,.5), "file_suffix":"/links.csv", "exact_match":False, "include_stdev":True, "include_min_max": True, "stdev_not_mean":False, "percent_data":True},
             ]
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-utilization_sweep()
-
 def plot_algorithm_sweep_original():
+    print("plot_algorithm_sweep_original")
+
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
     experiment_name = "Algorithm Sweep Original"
@@ -660,9 +668,9 @@ def plot_algorithm_sweep_original():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_algorithm_sweep_original
-
 def plot_algorithm_sweep_slide():
+    print("plot_algorithm_sweep_slide")
+
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
     experiment_name = "Algorithm Sweep Slide"
@@ -690,9 +698,9 @@ def plot_algorithm_sweep_slide():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_algorithm_sweep_slide()
-
 def plot_algorithm_sweep_D_LinUCB():
+    print("plot_algorithm_sweep_D_LinUCB")
+
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
     experiment_name = "Algorithm Sweep D-LinUCB"
@@ -726,9 +734,9 @@ def plot_algorithm_sweep_D_LinUCB():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_algorithm_sweep_D_LinUCB()
-
 def plot_algorithm_sweep_best():
+    print("plot_algorithm_sweep_best")
+
     # TODO currently best D-LinUCB has a run that crashes
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
@@ -753,9 +761,9 @@ def plot_algorithm_sweep_best():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_algorithm_sweep_best()
-
 def plot_state_sweep_8x8():
+    print("plot_state_sweep_8x8")
+
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
     experiment_name = "State Sweep"
@@ -782,6 +790,8 @@ def plot_state_sweep_8x8():
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
 def plot_state_sweep_16x16():
+    print("plot_state_sweep_16x16")
+
     net_size = "16x16"
     utilizations = ["0.1","0.2"][1:2]
     experiment_name = "State Sweep"
@@ -807,9 +817,9 @@ def plot_state_sweep_16x16():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_state_sweep_16x16()
-
 def plot_dlrl_poster():
+    print("plot_dlrl_poster")
+
     net_size = "16x16"
     utilizations = ["0.05"]
     experiment_name = "DLRL poster"
@@ -828,9 +838,9 @@ def plot_dlrl_poster():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_dlrl_poster()
-
 def plot_limited_deflections():
+    print("plot_limited_deflections")
+
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
     experiment_name = "Limited Deflections"
@@ -864,9 +874,9 @@ def plot_limited_deflections():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_limited_deflections()
-
 def plot_limited_deflections_free_reign():
+    print("plot_limited_deflections_free_reign")
+
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
     experiment_name = "Limited Deflections Free Reign"
@@ -895,9 +905,9 @@ def plot_limited_deflections_free_reign():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_limited_deflections_free_reign()
-
 def plot_limited_deflections_forward_first():
+    print("plot_limited_deflections_forward_first")
+
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
     experiment_name = "Limited Deflections Forward First"
@@ -926,9 +936,9 @@ def plot_limited_deflections_forward_first():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_limited_deflections_forward_first()
-
 def plot_limited_deflecitons_only_forward():
+    print("plot_limited_deflecitons_only_forward")
+
     net_size = "8x8"
     utilizations = ["0.1","0.2"][0:2]
     experiment_name = "Limited Deflections Only Forward"
@@ -954,9 +964,9 @@ def plot_limited_deflecitons_only_forward():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_limited_deflecitons_only_forward()
-
 def plot_limited_deflections_best():
+    print("plot_limited_deflections_best")
+
     # TODO do something about only forward
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
@@ -986,9 +996,9 @@ def plot_limited_deflections_best():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_limited_deflections_best()
-
 def plot_limited_deflections_best_cut():
+    print("plot_limited_deflections_best_cut")
+
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
     experiment_name = "Limited Deflections best cut"
@@ -1011,9 +1021,9 @@ def plot_limited_deflections_best_cut():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_limited_deflections_best_cut()
+def plot_prop_delay():
+    print("plot_prop_delay")
 
-def plot_prop_delay()
     net_size = "8x8"
     utilizations = ["0.1","0.2"][1:2]
     experiment_name = "Propagation delay experiments"
@@ -1053,9 +1063,9 @@ def plot_prop_delay()
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_prop_delay()
+def plot_bandwidth():
+    print("plot_bandwidth")
 
-def plot_bandwidth()
     net_size = "8x8"
     utilizations = ["0.05","0.1","0.15","0.2"]
     experiment_name = "bandwidth experiments"
@@ -1091,9 +1101,9 @@ def plot_bandwidth()
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_bandwidth()
-
 def plot_update_freq_test():
+    print("plot_update_freq_test")
+
     net_size = "8x8"
     utilizations = ["0.1","0.2"]#[1:2]
     experiment_name = "Update Frequency test"
@@ -1120,9 +1130,9 @@ def plot_update_freq_test():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_update_freq_test()
-
 def plot_random_deflect_deflect_count():
+    print("plot_random_deflect_deflect_count")
+
     net_size = "8x8"
     utilizations = ["0.1","0.2"][0:1]
     experiment_name = "Random Deflect Deflect Count Test"
@@ -1148,9 +1158,9 @@ def plot_random_deflect_deflect_count():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_random_deflect_deflect_count()
-
 def plot_compare_2_deflect():
+    print("plot_compare_2_deflect")
+
     net_size = "8x8"
     utilizations = ["0.1","0.2"][1:2]
     experiment_name = "Compare 2 deflect algorithms"
@@ -1175,9 +1185,9 @@ def plot_compare_2_deflect():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_compare_2_deflect()
-
 def plot_compare_limitless_deflect():
+    print("plot_compare_limitless_deflect")
+
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
     experiment_name = "Compare no limit deflect algorithms"
@@ -1202,9 +1212,9 @@ def plot_compare_limitless_deflect():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_compare_limitless_deflect()
-
 def plot_ndd_param_sweep():
+    print("plot_ndd_param_sweep")
+
     net_size = "8x8"
     utilizations = ["0.1","0.2"][0:2]
     experiment_name = "NDD Param Sweep"
@@ -1236,9 +1246,9 @@ def plot_ndd_param_sweep():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_ndd_param_sweep()
-
 def plot_ndd_deflect_sweep():
+    print("plot_ndd_deflect_sweep")
+
     net_size = "8x8"
     utilizations = ["0.1","0.2"][0:2]
     experiment_name = "NDD Deflect Sweep"
@@ -1263,22 +1273,22 @@ def plot_ndd_deflect_sweep():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_ndd_deflect_sweep()
-
 def plot_8_8_long():
+    print("plot_8_8_long")
+
     net_size = "8x8"
     utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
     experiment_name = "long run"
     experiment_length = 5000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01'
+            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
             'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
             'rand_forward_mice-elephant_p_0.01',
             'rand_deflect_mice-elephant_p_0.01',
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.02)},#(0,.05) at 20%
+            "drop_rate": {"ylim": (0,.02)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
             "hop_ratio": {"ylim": (1,1.5)},
 
             "reward": {},
@@ -1290,9 +1300,9 @@ def plot_8_8_long():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_8_8_long()
-
 def plot_8_3d_grid():
+    print("plot_8_3d_grid")
+
     net_size = "8_3d"
     utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
     experiment_name = "8 3d grid"
@@ -1317,9 +1327,9 @@ def plot_8_3d_grid():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_8_3d_grid()
-
 def plot_3_3_hex():
+    print("plot_3_3_hex")
+
     net_size = "3_3_hex"
     utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
     experiment_name = "sparse (3 3 hex)"
@@ -1344,9 +1354,9 @@ def plot_3_3_hex():
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_3_3_hex()
-
 def plot_5_3_hex():
+    print("plot_5_3_hex")
+
     net_size = "5_3_hex"
     utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
     experiment_name = "sparse (5 3 hex)"
@@ -1367,12 +1377,12 @@ def plot_5_3_hex():
             "action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
-            #{"field": "DropRate mean", "fig_type": "Packet Loss", "ylim": (0,.1), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False},
+            #{"field": "DropRate mean", "fig_type": "Packet Loss", "ylim": (0,.1), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False, "percent_data":True},
             ]
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
-plot_5_3_hex()
+## samples ##
 
 sample_single_util_plots = {
         "throughput": {},
@@ -1415,20 +1425,65 @@ sample_single_util_plots = {
         }
 
 sample_across_util_plots = [
-        {"field": "averageReward mean", "fig_type": "Rewards", "ylim": (.5,1), "file_suffix": "/switches.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False},
+        {"field": "averageReward mean", "fig_type": "Rewards", "ylim": (.5,1), "file_suffix": "/switches.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False, "percent_data":False},
         #plot_across_utils(experiment_name, utilizations, "averageReward mean", "Rewards", (0.5,1), "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
-        {"field": "DropRate mean", "fig_type": "Packet Loss", "ylim": (0,.1), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False},
+        {"field": "DropRate mean", "fig_type": "Packet Loss", "ylim": (0,.1), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False, "percent_data":True},
         #plot_across_utils(experiment_name, utilizations, "DropRate mean", "Packet Loss", (0,.1), "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
-        {"field": "elephant_DropRate mean", "fig_type": "Elephant Packet Loss", "ylim": (0,.1), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False},
+        {"field": "elephant_DropRate mean", "fig_type": "Elephant Packet Loss", "ylim": (0,.1), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False, "percent_data":True},
         #plot_across_utils(experiment_name, utilizations, "elephant_DropRate mean", "Elephant Packet Loss", (0,.1), "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
-        {"field": "HopRatio mean", "fig_type": "Hop Ratios", "ylim": (0,3), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False},
+        {"field": "HopRatio mean", "fig_type": "Hop Ratios", "ylim": (0,3), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False, "percent_data":False},
         #plot_across_utils(experiment_name, utilizations, "HopRatio mean", "Hop Ratios", (0,3), "/results.csv", net_size, run_name_data, experiment_length=experiment_length)
 
-        {"field": "mean", "fig_type":"Link Usage", "ylim":(0,.5), "file_suffix":"/links.csv", "exact_match":False, "include_stdev":True, "include_min_max": True, "stdev_not_mean":False},
+        {"field": "mean", "fig_type":"Link Usage", "ylim":(0,.5), "file_suffix":"/links.csv", "exact_match":False, "include_stdev":True, "include_min_max": True, "stdev_not_mean":False, "percent_data":True},
         #plot_across_utils(experiment_name, utilizations, "mean", "Link Usage", (0,.5), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=True, include_min_max=True, experiment_length=experiment_length)
-        {"field": "mean", "fig_type":"Link Usage stdev", "ylim":(0,.2), "file_suffix":"/links.csv", "exact_match":False, "include_stdev":False, "include_min_max": False, "stdev_not_mean":True},
+        {"field": "mean", "fig_type":"Link Usage stdev", "ylim":(0,.2), "file_suffix":"/links.csv", "exact_match":False, "include_stdev":False, "include_min_max": False, "stdev_not_mean":True, "percent_data":False},
         #plot_across_utils(experiment_name, utilizations, "mean", "Link Usage stdev", (0,.2), "/links.csv", net_size, run_name_data, exact_match=False, include_stdev=False, include_min_max=False, stdev_not_mean=True, experiment_length=experiment_length)
 
-        {"field": "averageForwardInterfacesRatio mean", "fig_type":"Forwarding Interfaces", "ylim":(0,2), "file_suffix":"/switches.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False},
+        {"field": "averageForwardInterfacesRatio mean", "fig_type":"Forwarding Interfaces", "ylim":(0,2), "file_suffix":"/switches.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False, "percent_data":True},
         #plot_across_utils(experiment_name, utilizations, "averageForwardInterfacesRatio mean", "Forwarding Interfaces", (0, 2), "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
         ]
+
+###########
+## plots ##
+###########
+
+## sweep experiments ##
+
+#plot_utilization_sweep()
+
+#plot_algorithm_sweep_original
+#plot_algorithm_sweep_slide()
+#plot_algorithm_sweep_D_LinUCB()
+#plot_algorithm_sweep_best()
+
+#plot_state_sweep_8x8()
+#plot_state_sweep_16x16()
+
+#plot_dlrl_poster()
+
+#plot_limited_deflections()
+#plot_limited_deflections_best()
+
+#plot_ndd_param_sweep()
+#plot_ndd_deflect_sweep()
+
+#plot_random_deflect_deflect_count()
+
+## evaluation experiments ##
+
+plot_8_8_long()
+
+#plot_prop_delay()
+#plot_bandwidth()
+#plot_update_freq_test()
+#plot_compare_2_deflect()
+#plot_compare_limitless_deflect()
+#plot_8_3d_grid()
+#plot_3_3_hex()
+#plot_5_3_hex()
+
+
+#plot_limited_deflections_free_reign()
+#plot_limited_deflections_forward_first()
+#plot_limited_deflecitons_only_forward()
+#plot_limited_deflections_best_cut()
