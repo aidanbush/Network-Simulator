@@ -108,6 +108,14 @@ def multiple_run_forwarding(test_name, utilization, net_size, run_name_data, par
 
     multiple_run_plot(test_name, utilization, mean_field, "Forwarding Interfaces", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
 
+#TODO new!
+def multiple_util_reward_together(test_name, utilizations, net_size, run_name_data, params, experiment_length=1000):
+    mean_field = "averageReward mean"
+    defaults = {"ylim": (0, 1)}
+    params = {**defaults, **params}
+
+    multiple_util_plot(test_name, utilizations, mean_field, "Rewards", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+
 def switch_link_usage_heatmap(test_name, utilization, net_size, run_name_data, start_offset, v_range):
     suffix = run_name_data[1]
     for infix in run_name_data[0]:
@@ -316,6 +324,64 @@ def multiple_run_plot(test_name, utilization, mean_field, fig_type, ylim, file_s
         data[run_name] = np.nanmean(run_data,1)
 
         #data[run_name] = np.array(means)
+
+    # plot data
+    plt.figure(figsize=FIGSIZE)
+    plt.title(fig_name)
+
+    for run in sorted(data.keys()):
+        run_data = data[run]
+        #why does this not always work?
+        mask = ~np.isnan(run_data)
+        plt.plot(np.arange(len(run_data))[mask], run_data[mask], label=run, alpha=0.8, linewidth=1)
+    plt.legend()
+
+    plt.ylim(bottom=ylim[0], top=ylim[1])
+    plt.grid()
+
+    if percent_data:
+        ax = plt.gca()
+        y_ticks = ax.get_yticks()
+        ax.set_yticklabels([f'{t * 100}%' for t in y_ticks])
+
+    plt.ylabel(fig_type)
+    plt.xlabel("Time (s)")
+
+    try:
+        filepath = os.path.join(output_dir, "{}.{}".format(output_name, plot_format))
+        plt.savefig(filepath, format=plot_format)
+        plt.close()
+        print("wrote to", filepath)
+    except Exception as e:
+        print("failed to plot", output_name, "exception", str(e))
+
+#TODO new! this should work
+def multiple_util_plot(test_name, utilizations, mean_field, fig_type, ylim, file_suffix, net_size, run_name_data, percent_data=False, experiment_length=1000):
+    fig_name = f"{test_name} {net_size} Bursty {fig_type}"
+    output_name = fig_name.replace(' ', '_')
+
+    directory = "results/"
+
+    #run_prefix = run_name_data[0]
+    run_infixes = run_name_data[0]
+    run_suffix = run_name_data[1]
+
+    run_infixes = sorted(run_infixes)
+
+    data = {}
+
+    # for each run calculate averages
+    for utilization in utilizations:
+        for run_infix in run_infixes:
+            run_name = get_run_name(net_size, utilization, run_infix, run_suffix)
+            filename = directory + run_name + file_suffix
+
+            means = []
+
+            run_data = get_runs_data(filename, mean_field, experiment_length)
+            data[run_name] = np.nanmean(run_data,1)
+
+            #data[run_name] = np.array(means)
 
     # plot data
     plt.figure(figsize=FIGSIZE)
@@ -1291,14 +1357,44 @@ def plot_8_8_long():
             "drop_rate": {"ylim": (0,.02)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
             "hop_ratio": {"ylim": (1,1.5)},
 
-            "reward": {},
             "entropy": {"interval": 8},
             "action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
 
+    # 5 + 10 for single
+    utilizations = ["0.05","0.1", "0.15", "0.2"][0:2]
+    single_util_plots = {
+            "drop_rate": {"ylim": (0,.02)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
+            "elephant_drop_rate": {"ylim": (0,.02)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
+            "hop_ratio": {"ylim": (1,1.5)},
+
+            "entropy": {"interval": 8},
+            "action_type_entropy": {"interval": 8},
+            }
+    print(experiment_length)
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+
+    # 15 + 20 for single
+    utilizations = ["0.05","0.1", "0.15", "0.2"][2:4]
+    single_util_plots = {
+            "drop_rate": {"ylim": (0,.04)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
+            "elephant_drop_rate": {"ylim": (0,.04)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
+            "hop_ratio": {"ylim": (1,1.5)},
+
+            "entropy": {"interval": 8},
+            "action_type_entropy": {"interval": 8},
+            }
+    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+
+    # combine reward
+    utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
+    run_infixes = [
+            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
+            ]
+    run_name_data = (run_infixes, run_suffix)
+    multiple_util_reward_together(experiment_name, utilizations, net_size, run_name_data, {}, experiment_length=experiment_length)
 
 def plot_8_3d_grid():
     print("plot_8_3d_grid")
@@ -1422,6 +1518,10 @@ sample_single_util_plots = {
         #switch_link_usage_heatmap(experiment_name, utilization, net_size, run_name_data, 500, (None,None))#(0,.5))
         "switch_usage_plots": {},
         #switch_link_usage_grid_plots(experiment_name, utilization, net_size, run_name_data)
+        }
+
+sample_combine_util_plots = {
+        "reward_across_utils": {},
         }
 
 sample_across_util_plots = [
