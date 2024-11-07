@@ -108,7 +108,22 @@ def multiple_run_forwarding(test_name, utilization, net_size, run_name_data, par
 
     multiple_run_plot(test_name, utilization, mean_field, "Forwarding Interfaces", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
 
-#TODO new!
+def multiple_util_action_type_entropy_together(test_name, utilizations, net_size, run_name_data, params, experiment_length=1000):
+    defaults = {"ylim": (0, 1), "interval": 8}
+    params = {**defaults, **params}
+
+    mean_field = f"deflectionEntropy_{params['interval']} mean"
+
+    multiple_util_plot(test_name, utilizations, mean_field, f"action type entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+
+def multiple_util_all_entropy_together(test_name, utilizations, net_size, run_name_data, params, experiment_length=1000):
+    defaults = {"ylim": (0, 2), "interval": 8}
+    params = {**defaults, **params}
+
+    mean_field = f"allActionsEntropy_{params['interval']} mean"
+
+    multiple_util_plot(test_name, utilizations, mean_field, f"entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length)
+
 def multiple_util_reward_together(test_name, utilizations, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "averageReward mean"
     defaults = {"ylim": (0, 1)}
@@ -1094,13 +1109,11 @@ def plot_prop_delay():
     single_util_plots = {
             "drop_rate": {"ylim": (0,.2)},#or (0,.05), (0,.2) at 10%, 20%
             "hop_ratio": {"ylim": (1,1.5)},
-
-            "reward": {},
             }
     across_util_plots = [
             ]
 
-    utilizations = ["0.05","0.15"][0:2]
+    utilizations = ["0.05","0.1","0.15","0.2"][0:1]
     run_infixes = [
             'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.001',
             'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
@@ -1122,32 +1135,41 @@ def plot_prop_delay():
             #'rand_deflect_mice-elephant_p_0.1',
             #'rand_deflect_mice-elephant_p_1.0',
             ]
+    single_util_plots = {
+            "drop_rate": {"ylim": (0,.05)},#or (0,.05), (0,.2) at 10%, 20%
+            "hop_ratio": {"ylim": (1,1.5)},
+            }
+
+    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+
+    utilizations = ["0.05","0.1","0.15","0.2"][2:3]
+    single_util_plots = {
+            "drop_rate": {"ylim": (0,.2)},#or (0,.05), (0,.2) at 10%, 20%
+            "hop_ratio": {"ylim": (1,1.5)},
+            }
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
     utilizations = ["0.1","0.2"][0:2]
+    utilizations = ["0.05","0.1","0.15","0.2"][1:2]
     run_infixes = [
             'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.001',
             'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
             'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.1',
             'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_1.0',
-
-            #'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.001',
-            #'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
-            #'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.1',
-            #'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_1.0',
-
-            #'rand_forward_mice-elephant_p_0.001',
-            #'rand_forward_mice-elephant_p_0.01',
-            #'rand_forward_mice-elephant_p_0.1',
-            #'rand_forward_mice-elephant_p_1.0',
-
-            #'rand_deflect_mice-elephant_p_0.001',
-            #'rand_deflect_mice-elephant_p_0.01',
-            #'rand_deflect_mice-elephant_p_0.1',
-            #'rand_deflect_mice-elephant_p_1.0',
             ]
+    single_util_plots = {
+            "drop_rate": {"ylim": (0,.05)},#or (0,.05), (0,.2) at 10%, 20%
+            "hop_ratio": {"ylim": (1,1.5)},
+            }
 
+    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+
+    utilizations = ["0.05","0.1","0.15","0.2"][3:4]
+    single_util_plots = {
+            "drop_rate": {"ylim": (0,.2)},#or (0,.05), (0,.2) at 10%, 20%
+            "hop_ratio": {"ylim": (1,1.5)},
+            }
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
 def plot_bandwidth():
@@ -1244,7 +1266,7 @@ def plot_update_freq_test():
     print("plot_update_freq_test")
 
     net_size = "8x8"
-    utilizations = ["0.1","0.2"]#[1:2]
+    utilizations = ["0.05","0.1","0.15","0.2"][:2]
     experiment_name = "Update Frequency test"
     experiment_length = 1000
     run_infixes = [
@@ -1257,17 +1279,28 @@ def plot_update_freq_test():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.1)},#or (0,.02), (0,.1) at 10%, 20%
+            "drop_rate": {"ylim": (0,.02)},#or (0,.02), (0,.1) at 10%, 20%
             "hop_ratio": {"ylim": (1,1.5)},
-
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+
+    utilizations = ["0.05","0.1","0.15","0.2"][2:]
+    single_util_plots = {
+            "drop_rate": {"ylim": (0,.05)},#or (0,.02), (0,.1) at 10%, 20%
+            "hop_ratio": {"ylim": (1,1.5)},
+            }
+
+    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+
+    utilizations = ["0.05","0.1","0.15","0.2"]
+    run_name_data = (run_infixes, run_suffix)
+
+    multiple_util_reward_together(experiment_name, utilizations, net_size, run_name_data, {}, experiment_length=experiment_length)
+    multiple_util_all_entropy_together(experiment_name, utilizations, net_size, run_name_data, {"interval": 8}, experiment_length=experiment_length)
+    multiple_util_action_type_entropy_together(experiment_name, utilizations, net_size, run_name_data, {"interval": 8}, experiment_length=experiment_length)
 
 def plot_random_deflect_deflect_count():
     print("plot_random_deflect_deflect_count")
@@ -1429,9 +1462,6 @@ def plot_8_8_long():
     single_util_plots = {
             "drop_rate": {"ylim": (0,.02)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
             "hop_ratio": {"ylim": (1,1.5)},
-
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -1443,9 +1473,6 @@ def plot_8_8_long():
             "elephant_drop_rate": {"ylim": (0,.02)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
             "hop_ratio": {"ylim": (1,1.5)},
             "elephant_hop_ratio": {"ylim": (1,1.5)},
-
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
             }
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
@@ -1456,9 +1483,6 @@ def plot_8_8_long():
             "elephant_drop_rate": {"ylim": (0,.04)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
             "hop_ratio": {"ylim": (1,1.5)},
             "elephant_hop_ratio": {"ylim": (1,1.5)},
-
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
             }
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
@@ -1469,6 +1493,8 @@ def plot_8_8_long():
             ]
     run_name_data = (run_infixes, run_suffix)
     multiple_util_reward_together(experiment_name, utilizations, net_size, run_name_data, {}, experiment_length=experiment_length)
+    multiple_util_all_entropy_together(experiment_name, utilizations, net_size, run_name_data, {"interval": 8}, experiment_length=experiment_length)
+    multiple_util_action_type_entropy_together(experiment_name, utilizations, net_size, run_name_data, {"interval": 8}, experiment_length=experiment_length)
 
 def plot_16x16():
     print("plot_16x16")
@@ -1500,7 +1526,7 @@ def plot_16x16():
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
     # 15 + 20 for single
-    utilizations = ["0.05","0.1", "0.15", "0.2"][3:4]# TODO add 15% back later
+    utilizations = ["0.05","0.1", "0.15", "0.2"][2:4]
     single_util_plots = {
             "drop_rate": {"ylim": (0,.1)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
             "hop_ratio": {"ylim": (1,1.5)},
@@ -1508,13 +1534,12 @@ def plot_16x16():
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
     # combine reward
-    utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]# TODO add 15% back later
-    utilizations = ["0.05","0.1", "0.2"][0:3]
+    utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
     run_infixes = [
             'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
             ]
     run_name_data = (run_infixes, run_suffix)
-    #multiple_util_reward_together(experiment_name, utilizations, net_size, run_name_data, {}, experiment_length=experiment_length)
+    multiple_util_reward_together(experiment_name, utilizations, net_size, run_name_data, {}, experiment_length=experiment_length)
 
 def plot_8_3d_grid():
     print("plot_8_3d_grid")
@@ -1727,9 +1752,9 @@ sample_across_util_plots = [
 
 ## evaluation experiments ##
 
-plot_8_8_long()
+#plot_8_8_long()
 #plot_update_freq_test()
-#plot_prop_delay()
+plot_prop_delay()
 #plot_bandwidth()
 #plot_bandwidth_all()
 #plot_16x16()
