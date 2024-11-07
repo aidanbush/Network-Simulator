@@ -11,6 +11,14 @@ import sys
 
 import code
 
+RAND_FORWARD_NAME = 'rand forward'
+RAND_DEFLECT_NAME = 'rand deflect'
+NDD_NAME = 'NDD'
+OUR_SOLN_NAME = 'Our Solution'
+MBD_ORIGINAL = 'LinUCB'
+MBD_SLIDE = 'LinUCB Slide'
+MBD_D_LINUCB = 'D-LinUCB'
+
 FIGSIZE = (16,9)#(16/1.5,9/1.5)
 output_dir = "plots"
 plot_format = "pdf"
@@ -202,12 +210,14 @@ def multiple_run_link_usage(test_name, utilization, net_size, run_name_data):
     run_infixes = run_name_data[0]
     run_suffix = run_name_data[1]
 
-    run_infixes = sorted(run_infixes)
+#TODO RUN INFIX HERE
+    run_infixes = sorted(run_infixes, key=lambda t: t[-1])
 
     data = {}
 
     for run_infix in run_infixes:
         run_name = get_run_name(net_size, utilization, run_infix, run_suffix)
+        plot_name = run_infix[1]
         filename = directory + run_name + file_suffix
 
         #for mean_field in mean_fields:
@@ -238,7 +248,7 @@ def multiple_run_link_usage(test_name, utilization, net_size, run_name_data):
                 maxs.append(np.nanmin(np.array(row_means)))
                 stdevs.append(np.nanstd(np.array(row_means)))
 
-        data[run_name] = [np.array(means), np.array(maxs), np.array(mins), stdevs]
+        data[plot_name] = [np.array(means), np.array(maxs), np.array(mins), stdevs]
 
     # plot mean data
     plt.figure(figsize=FIGSIZE)
@@ -324,19 +334,21 @@ def multiple_run_plot(test_name, utilization, mean_field, fig_type, ylim, file_s
     run_infixes = run_name_data[0]
     run_suffix = run_name_data[1]
 
-    run_infixes = sorted(run_infixes)
+#TODO RUN INFIX HERE
+    run_infixes = sorted(run_infixes, key=lambda t: t[-1])
 
     data = {}
 
     # for each run calculate averages
     for run_infix in run_infixes:
         run_name = get_run_name(net_size, utilization, run_infix, run_suffix)
+        plot_name = run_infix[1]
         filename = directory + run_name + file_suffix
 
         means = []
 
         run_data = get_runs_data(filename, mean_field, experiment_length)
-        data[run_name] = np.nanmean(run_data,1)
+        data[plot_name] = np.nanmean(run_data,1)
 
         #data[run_name] = np.array(means)
 
@@ -381,7 +393,8 @@ def multiple_util_plot(test_name, utilizations, mean_field, fig_type, ylim, file
     run_infixes = run_name_data[0]
     run_suffix = run_name_data[1]
 
-    run_infixes = sorted(run_infixes)
+#TODO RUN INFIX HERE
+    run_infixes = sorted(run_infixes, key=lambda t: t[-1])
 
     data = {}
 
@@ -389,14 +402,11 @@ def multiple_util_plot(test_name, utilizations, mean_field, fig_type, ylim, file
     for utilization in utilizations:
         for run_infix in run_infixes:
             run_name = get_run_name(net_size, utilization, run_infix, run_suffix)
+            plot_name = run_infix[1]
             filename = directory + run_name + file_suffix
 
-            means = []
-
             run_data = get_runs_data(filename, mean_field, experiment_length)
-            data[run_name] = np.nanmean(run_data,1)
-
-            #data[run_name] = np.array(means)
+            data[plot_name] = np.nanmean(run_data,1)
 
     # plot data
     plt.figure(figsize=FIGSIZE)
@@ -429,6 +439,7 @@ def multiple_util_plot(test_name, utilizations, mean_field, fig_type, ylim, file
         print("failed to plot", output_name, "exception", str(e))
 
 def multiple_run_individual_grid(test_name, utilization, net_size, run_name_data, filename, metric, fig_type, ylim):
+#TODO RUN INFIX HERE
     run_name = get_run_name(net_size, utilization, run_name_data[0], run_name_data[1])
 
     fig_name = f"{test_name} {run_name} {fig_type} Grid"
@@ -478,6 +489,7 @@ def multiple_run_individual_grid(test_name, utilization, net_size, run_name_data
 
 def multiple_run_individual_heatmap(test_name, utilization, net_size, run_name_data,
         filename, metric, fig_type, start_offset, v_range):
+#TODO RUN INFIX HERE
     run_name = get_run_name(net_size, utilization, run_name_data[0], run_name_data[1])
     fig_name = f"{test_name} {run_name} {fig_type} Heatmap"
     output_name = fig_name.replace(' ', '_')
@@ -551,7 +563,8 @@ def plot_across_utils(test_name, utilizations, net_size, run_name_data, experime
     run_infixes = run_name_data[0]
     run_suffix = run_name_data[1]
 
-    run_infixes = sorted(run_infixes)
+#TODO RUN INFIX HERE
+    run_infixes = sorted(run_infixes, key=lambda t: t[-1])
 
     means = {}
     stdevs = {}
@@ -562,10 +575,11 @@ def plot_across_utils(test_name, utilizations, net_size, run_name_data, experime
     for run_infix in run_infixes:
         # for util
         run_name = get_no_util_run_name(net_size, run_infix, run_suffix)
-        means[run_name] = []
-        stdevs[run_name] = []
-        mins[run_name] = []
-        maxs[run_name] = []
+        plot_name = run_infix[1]
+        means[plot_name] = []
+        stdevs[plot_name] = []
+        mins[plot_name] = []
+        maxs[plot_name] = []
 
         for util in utilizations:
             file_run_name = get_run_name(net_size, util, run_infix, run_suffix)
@@ -574,21 +588,21 @@ def plot_across_utils(test_name, utilizations, net_size, run_name_data, experime
             run_data = get_runs_data(filename, field, experiment_length, exact_match=exact_match)
             # only look at second half
             run_data = run_data[run_data.shape[0]//2:]
-            means[run_name].append(np.nanmean(run_data))
-            stdevs[run_name].append(np.nanstd(run_data))
+            means[plot_name].append(np.nanmean(run_data))
+            stdevs[plot_name].append(np.nanstd(run_data))
 
             #TODO these min and max are incorrect
             if len(run_data.shape) > 1:
-                mins[run_name].append(np.nanmin(run_data))
-                maxs[run_name].append(np.nanmax(run_data))
+                mins[plot_name].append(np.nanmin(run_data))
+                maxs[plot_name].append(np.nanmax(run_data))
             else:
-                mins[run_name].append(run_data.min())
-                maxs[run_name].append(run_data.max())
+                mins[plot_name].append(run_data.min())
+                maxs[plot_name].append(run_data.max())
 
-        means[run_name] = np.array(means[run_name])
-        stdevs[run_name] = np.array(stdevs[run_name])
-        mins[run_name] = np.array(mins[run_name])
-        maxs[run_name] = np.array(maxs[run_name])
+        means[plot_name] = np.array(means[plot_name])
+        stdevs[plot_name] = np.array(stdevs[plot_name])
+        mins[plot_name] = np.array(mins[plot_name])
+        maxs[plot_name] = np.array(maxs[plot_name])
 
     plt.figure(figsize=FIGSIZE)
     plt.title(fig_name)
@@ -644,11 +658,11 @@ def plot_across_utils(test_name, utilizations, net_size, run_name_data, experime
 
 def get_no_util_run_name(net_size, infix, suffix):
     prefix = f"{net_size}_"
-    return prefix + infix + suffix
+    return prefix + infix[0] + suffix
 
 def get_run_name(net_size, utilization, infix, suffix):
     prefix = f"{net_size}_"
-    return prefix + infix + suffix + "_u_" + utilization
+    return prefix + infix[0] + suffix + "_u_" + utilization
 
 def get_single_util_func(name):
     mappings = {
@@ -703,8 +717,8 @@ def plot_utilization_sweep():
     experiment_name = "Utilization Sweep"
     experiment_length = 1000
     run_infixes = [
-            "rand_forward_mice-elephant_p_0.01",
-            "rand_deflect_mice-elephant_p_0.01",
+            ("rand_forward_mice-elephant_p_0.01", RAND_FORWARD_NAME, 1),
+            ("rand_deflect_mice-elephant_p_0.01", RAND_DEFLECT_NAME, 2),
             #"rand_deflect_sd_2_mice-elephant_p_0.01",
             ]
     run_suffix = ""
@@ -727,13 +741,13 @@ def plot_algorithm_sweep_original():
     experiment_name = "Algorithm Sweep Original"
     experiment_length = 1000
     run_infixes = [
-            "mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01",
+            ("mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", MBD_ORIGINAL +" 1.0, 1.0", 1),
 
-            "mbd_original_s_[1_hop_shortest,section]_r_0.37_d_0.96_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_original_s_[1_hop_shortest,section]_r_0.7_d_0.97_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_original_s_[1_hop_shortest,section]_r_0.86_d_0.66_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_original_s_[1_hop_shortest,section]_r_0.95_d_0.62_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_original_s_[1_hop_shortest,section]_r_1.2_d_0.9_sd_-1_ei_5_mice-elephant_p_0.01",
+            ("mbd_original_s_[1_hop_shortest,section]_r_0.37_d_0.96_sd_-1_ei_5_mice-elephant_p_0.01", MBD_ORIGINAL+" 0.37, 0.96", 2),
+            ("mbd_original_s_[1_hop_shortest,section]_r_0.7_d_0.97_sd_-1_ei_5_mice-elephant_p_0.01", MBD_ORIGINAL+" 0.7, 0.97", 3),
+            ("mbd_original_s_[1_hop_shortest,section]_r_0.86_d_0.66_sd_-1_ei_5_mice-elephant_p_0.01", MBD_ORIGINAL+" 0.86, 0.66", 4),
+            ("mbd_original_s_[1_hop_shortest,section]_r_0.95_d_0.62_sd_-1_ei_5_mice-elephant_p_0.01", MBD_ORIGINAL+" 0.95, 0.62", 5),
+            ("mbd_original_s_[1_hop_shortest,section]_r_1.2_d_0.9_sd_-1_ei_5_mice-elephant_p_0.01", MBD_ORIGINAL+" 1.2, 0.9", 6),
             ]
     run_suffix = ""
     single_util_plots = {
@@ -756,13 +770,13 @@ def plot_algorithm_sweep_slide():
     experiment_name = "Algorithm Sweep Slide"
     experiment_length = 1000
     run_infixes = [
-            "mbd_slide_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01",
+            ("mbd_slide_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", MBD_SLIDE+" 1.0, 1.0", 1),
 
-            "mbd_slide_s_[1_hop_shortest,section]_r_0.37_d_0.96_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_slide_s_[1_hop_shortest,section]_r_0.7_d_0.97_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_slide_s_[1_hop_shortest,section]_r_0.86_d_0.66_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_slide_s_[1_hop_shortest,section]_r_0.95_d_0.62_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_slide_s_[1_hop_shortest,section]_r_1.2_d_0.9_sd_-1_ei_5_mice-elephant_p_0.01",
+            ("mbd_slide_s_[1_hop_shortest,section]_r_0.37_d_0.96_sd_-1_ei_5_mice-elephant_p_0.01", MBD_SLIDE+" 0.37, 0.96", 2),
+            ("mbd_slide_s_[1_hop_shortest,section]_r_0.7_d_0.97_sd_-1_ei_5_mice-elephant_p_0.01", MBD_SLIDE+" 0.7, 0.97", 3),
+            ("mbd_slide_s_[1_hop_shortest,section]_r_0.86_d_0.66_sd_-1_ei_5_mice-elephant_p_0.01", MBD_SLIDE+" 0.86, 0.66", 4),
+            ("mbd_slide_s_[1_hop_shortest,section]_r_0.95_d_0.62_sd_-1_ei_5_mice-elephant_p_0.01", MBD_SLIDE+" 0.95 0.62", 5),
+            ("mbd_slide_s_[1_hop_shortest,section]_r_1.2_d_0.9_sd_-1_ei_5_mice-elephant_p_0.01", MBD_SLIDE+" 1.2, 0.9", 6),
             ]
     run_suffix = ""
     single_util_plots = {
@@ -785,19 +799,19 @@ def plot_algorithm_sweep_D_LinUCB():
     experiment_name = "Algorithm Sweep D-LinUCB"
     experiment_length = 1000
     run_infixes = [
-            "mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01",
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.99999, 1.0, 1.0", 1),
 
-            "mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.7_d_0.97_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.9999_r_1.2_d_0.9_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.86_d_0.66_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.37_d_0.96_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_0.95_d_0.62_sd_-1_ei_5_mice-elephant_p_0.01",
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.7_d_0.97_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.999, 0.7, 0.97", 2),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.9999_r_1.2_d_0.9_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.9999, 1.2, 0.9", 3),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.86_d_0.66_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.999, 0.86, 0.66", 4),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.37_d_0.96_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.999, 0.37, 0.96", 5),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_0.95_d_0.62_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.9999, 0.95, 0.62", 6),
 
-            "mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.26_d_0.99_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.9999_r_1.96_d_0.99_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.57_d_0.71_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.76_d_0.78_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.93_d_0.54_sd_-1_ei_5_mice-elephant_p_0.01",
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.26_d_0.99_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.99999, 1.26, 0.99", 7),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.9999_r_1.96_d_0.99_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.9999, 1.96, 0.99", 8),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.57_d_0.71_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.999, 0.57, 0.71", 9),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.76_d_0.78_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.99999, 1.76, 0.78", 10),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.93_d_0.54_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.999, 0.93, 0.54", 11),
             ]
     run_suffix = ""
     single_util_plots = {
@@ -821,9 +835,9 @@ def plot_algorithm_sweep_best():
     experiment_name = "Algorithm Sweep Best"
     experiment_length = 1000
     run_infixes = [
-            "mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01",
-            "mbd_slide_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01",
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.99999, 1.0, 1.0", 1),
+            ("mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", MBD_ORIGINAL+" 1.0, 1.0", 2),
+            ("mbd_slide_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", MBD_SLIDE+" 1.0, 1.0", 3),
             ]
     run_suffix = ""
     single_util_plots = {
@@ -846,20 +860,20 @@ def plot_state_sweep_8x8():
     experiment_name = "State Sweep"
     experiment_length = 1000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1-2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1-2_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', '1-hop', 1),
+            ('mbd_original_s_[1-2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', '1-2-hop', 2),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', '1-hop + 2-hop', 3),
+            ('mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', '1-hop + sector', 4),
+            ('mbd_original_s_[1-2_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', '1-2-hop + sector', 5),
             ]
     run_suffix = ""
     single_util_plots = {
             "drop_rate": {"ylim": (0,.05)},#or (0,.02), (0,.05) at 10%, 20%
             "hop_ratio": {"ylim": (1,1.5)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -874,20 +888,20 @@ def plot_state_sweep_16x16():
     experiment_name = "State Sweep"
     experiment_length = 2000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1-2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1-2_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', '1-hop', 1),
+            ('mbd_original_s_[1-2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', '1-2-hop', 2),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', '1-hop + 2-hop', 3),
+            ('mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', '1-hop + sector', 4),
+            ('mbd_original_s_[1-2_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', '1-2-hop + sector', 5),
             ]
     run_suffix = ""
     single_util_plots = {
             "drop_rate": {"ylim": (0,.2)},#or (0,.1), (0,.2) at 10%, 20%
             "hop_ratio": {"ylim": (1,2)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -902,9 +916,9 @@ def plot_dlrl_poster():
     experiment_name = "DLRL poster"
     experiment_length = 2000
     run_infixes = [
-            'NDD_Q-learning_a_0.5_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'rand_forward_mice-elephant_p_0.01',
+            ('NDD_Q-learning_a_0.5_e_0.05_g_0.99_mu_mice-elephant_p_0.01', NDD_NAME, 1),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', 'Our Solution', 2),
+            ('rand_forward_mice-elephant_p_0.01', RAND_FORWARD_NAME, 3),
             ]
     run_suffix = ""
     single_util_plots = {
@@ -923,16 +937,16 @@ def plot_limited_deflections():
     experiment_name = "Limited Deflections"
     experiment_length = 1000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_forward_first_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_4_ei_5_forward_first_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_4_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_forward_first_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_forward_first_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01', 'forward first, no deflection limit', 1),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', 'free reign, no deflection limit', 2),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_forward_first_mice-elephant_p_0.01', 'forward first, deflection limit: 2', 3),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_mice-elephant_p_0.01', 'free reign, deflection limit: 2', 4),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_4_ei_5_forward_first_mice-elephant_p_0.01', 'forward first, deflection limit: 4', 5),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_4_ei_5_mice-elephant_p_0.01', 'free reign, deflection limit: 4', 6),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_forward_first_mice-elephant_p_0.01', 'forward first, deflection limit: 6', 7),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_mice-elephant_p_0.01', 'free reign, deflection limit: 6', 8),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_forward_first_mice-elephant_p_0.01', 'forward first, deflection limit: 8', 9),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_mice-elephant_p_0.01', 'free reign, deflection limit: 8', 10),
 
             #'NDD_Q-learning_a_0.05_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
             #'rand_forward_mice-elephant_p_0.01',
@@ -942,9 +956,9 @@ def plot_limited_deflections():
             "drop_rate": {"ylim": (0,.1)},#or (0,.05), (0,.1) at 10%, 20%
             "hop_ratio": {"ylim": (1,1.5)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -959,11 +973,11 @@ def plot_limited_deflections_free_reign():
     experiment_name = "Limited Deflections Free Reign"
     experiment_length = 1000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_4_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', 'no deflection limit', 1),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_mice-elephant_p_0.01', 'deflection limit: 2', 2),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_4_ei_5_mice-elephant_p_0.01', 'deflection limit: 4', 3),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_mice-elephant_p_0.01', 'deflection limit: 6', 4),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_mice-elephant_p_0.01', 'deflection limit: 8', 5),
 
             #'NDD_Q-learning_a_0.05_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
             #'rand_forward_mice-elephant_p_0.01',
@@ -973,9 +987,9 @@ def plot_limited_deflections_free_reign():
             "drop_rate": {"ylim": (0,.1)},#or (0,.05), (0,.1) at 10%, 20%
             "hop_ratio": {"ylim": (1,1.5)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -990,11 +1004,11 @@ def plot_limited_deflections_forward_first():
     experiment_name = "Limited Deflections Forward First"
     experiment_length = 1000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_forward_first_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_4_ei_5_forward_first_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_forward_first_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_forward_first_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01', 'no deflection limit', 1),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_forward_first_mice-elephant_p_0.01', 'deflection limit: 2', 2),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_4_ei_5_forward_first_mice-elephant_p_0.01', 'deflection limit: 4', 3),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_forward_first_mice-elephant_p_0.01', 'deflection limit: 6', 4),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_8_ei_5_forward_first_mice-elephant_p_0.01', 'deflection limit: 8', 5),
 
             #'NDD_Q-learning_a_0.05_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
             #'rand_forward_mice-elephant_p_0.01',
@@ -1004,9 +1018,9 @@ def plot_limited_deflections_forward_first():
             "drop_rate": {"ylim": (0,.1)},#or (0,.05), (0,.1) at 10%, 20%
             "hop_ratio": {"ylim": (1,1.5)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -1021,20 +1035,20 @@ def plot_limited_deflecitons_only_forward():
     experiment_name = "Limited Deflections Only Forward"
     experiment_length = 1000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_only_forward_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_only_forward_mice-elephant_p_0.01', OUR_SOLN_NAME+' forward only', 1),
             #'mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_only_forward_mice-elephant_p_0.01',
 
             #'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
-            'rand_forward_mice-elephant_p_0.01',
+            ('rand_forward_mice-elephant_p_0.01', RAND_FORWARD_NAME, 2),
             ]
     run_suffix = ""
     single_util_plots = {
             "drop_rate": {"ylim": (0,.25)},#or (0,.15), (0,.25) at 10%, 20%
             #"hop_ratio": {"ylim": (1,1.5)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -1050,9 +1064,9 @@ def plot_limited_deflections_best():
     experiment_name = "Limited Deflections best"
     experiment_length = 1000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_only_forward_mice-elephant_p_0.01'
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01', 'forward first, no deflection limit', 1),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', 'free reign no deflection limit', 2),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_only_forward_mice-elephant_p_0.01', 'only forward', 3)
 
             #'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_forward_first_mice-elephant_p_0.01',
             #'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_6_ei_5_mice-elephant_p_0.01',
@@ -1064,9 +1078,9 @@ def plot_limited_deflections_best():
             "drop_rate": {"ylim": (0,.05)},#or (0,.02), (0,.05) at 10%, 20%
             "hop_ratio": {"ylim": (1,1.5)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -1081,17 +1095,17 @@ def plot_limited_deflections_best_cut():
     experiment_name = "Limited Deflections best cut"
     experiment_length = 1000
     run_infixes = [
-            'c_mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'c_mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01',
+            ('c_mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', 'free reign no deflection limit', 1),
+            ('c_mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01', 'forward first no deflection limit', 2),
             ]
     run_suffix = ""
     single_util_plots = {
             "drop_rate": {"ylim": (0,.2)},#or (0,.05), (0,.2) at 10%, 20%
             "hop_ratio": {"ylim": (1,2)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -1115,10 +1129,10 @@ def plot_prop_delay():
 
     utilizations = ["0.05","0.1","0.15","0.2"][0:1]
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.001',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.1',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_1.0',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.001', OUR_SOLN_NAME+' 1ms', 1),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', OUR_SOLN_NAME+' 10ms', 2),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.1', OUR_SOLN_NAME+' 100ms', 3),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_1.0', OUR_SOLN_NAME+' 1s', 4),
 
             #'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.001',
             #'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
@@ -1153,10 +1167,10 @@ def plot_prop_delay():
     utilizations = ["0.1","0.2"][0:2]
     utilizations = ["0.05","0.1","0.15","0.2"][1:2]
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.001',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.1',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_1.0',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.001', OUR_SOLN_NAME+ ' 1ms', 1),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', OUR_SOLN_NAME+' 10ms', 2),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.1', OUR_SOLN_NAME+' 100ms', 3),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_1.0', OUR_SOLN_NAME+ ' 1s', 4),
             ]
     single_util_plots = {
             "drop_rate": {"ylim": (0,.05)},#or (0,.05), (0,.2) at 10%, 20%
@@ -1180,9 +1194,9 @@ def plot_bandwidth():
     experiment_name = "bandwidth experiments"
     experiment_length = 1000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01_b_0.5',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01_b_2',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01_b_0.5', OUR_SOLN_NAME+' 0.5x bandwidth', 1),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', OUR_SOLN_NAME+' 1x bandwidth', 2),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01_b_2', OUR_SOLN_NAME+' 2x bandwidth', 3),
 
             #'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01_b_0.5',
             #'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
@@ -1201,9 +1215,9 @@ def plot_bandwidth():
             "drop_rate": {"ylim": (0,.02)},#or (0,.02), (0,.05) at 10%, 20%
             "hop_ratio": {"ylim": (1,1.5)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -1215,9 +1229,9 @@ def plot_bandwidth():
             "drop_rate": {"ylim": (0,.05)},#or (0,.02), (0,.05) at 10%, 20%
             "hop_ratio": {"ylim": (1,1.5)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
@@ -1229,13 +1243,13 @@ def plot_bandwidth_all():
     experiment_name = "bandwidth experiments all"
     experiment_length = 1000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01_b_0.5',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01_b_2',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01_b_0.5', OUR_SOLN_NAME+' 0.5x bandwidth', 1),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', OUR_SOLN_NAME+' 1x bandwidth', 2),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01_b_2', OUR_SOLN_NAME+' 2x bandwidth', 3),
 
-            'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01_b_0.5',
-            'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01_b_2',
+            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01_b_0.5', NDD_NAME+' 0.5x bandwidth', 4),
+            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01', NDD_NAME+' 1x bandwidth', 5),
+            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01_b_2', NDD_NAME+' 2x bandwidth', 6),
 
             #'rand_forward_mice-elephant_p_0.01_b_0.5',
             #'rand_forward_mice-elephant_p_0.01',
@@ -1270,12 +1284,12 @@ def plot_update_freq_test():
     experiment_name = "Update Frequency test"
     experiment_length = 1000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_2_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_4_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_8_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_16_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_32_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', 'Update frequency: 1', 1),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_2_mice-elephant_p_0.01', 'Update frequency: 2', 2),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_4_mice-elephant_p_0.01', 'Update frequency: 4', 3),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_8_mice-elephant_p_0.01', 'Update frequency: 8', 4),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_16_mice-elephant_p_0.01', 'Update frequency: 16', 5),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_32_mice-elephant_p_0.01', 'Update frequency: 32', 6),
             ]
     run_suffix = ""
     single_util_plots = {
@@ -1310,20 +1324,20 @@ def plot_random_deflect_deflect_count():
     experiment_name = "Random Deflect Deflect Count Test"
     experiment_length = 1000
     run_infixes = [
-            'rand_deflect_mice-elephant_p_0.01',
-            'rand_deflect_sd_2_mice-elephant_p_0.01',
-            'rand_deflect_sd_4_mice-elephant_p_0.01',
-            'rand_deflect_sd_6_mice-elephant_p_0.01',
-            'rand_deflect_sd_8_mice-elephant_p_0.01',
+            ('rand_deflect_mice-elephant_p_0.01', 'no deflection limit', 1),
+            ('rand_deflect_sd_2_mice-elephant_p_0.01', 'deflection limit: 2', 2),
+            ('rand_deflect_sd_4_mice-elephant_p_0.01', 'deflection limit: 4', 3),
+            ('rand_deflect_sd_6_mice-elephant_p_0.01', 'deflection limit: 6', 4),
+            ('rand_deflect_sd_8_mice-elephant_p_0.01', 'deflection limit: 8', 5),
             ]
     run_suffix = ""
     single_util_plots = {
             "drop_rate": {"ylim": (0,.15)},#or (0,.05), (0,.15) at 10%, 20%
             "hop_ratio": {"ylim": (1,1.5)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -1338,19 +1352,19 @@ def plot_compare_2_deflect():
     experiment_name = "Compare 2 deflect algorithms"
     experiment_length = 1000
     run_infixes = [
-            'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_forward_first_mice-elephant_p_0.01',
-            'rand_deflect_sd_2_mice-elephant_p_0.01',
+            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01', NDD_NAME+' deflection limit: 2', 1),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_mice-elephant_p_0.01', OUR_SOLN_NAME+' free reign, deflection limit: 2', 2),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_2_ei_5_forward_first_mice-elephant_p_0.01', OUR_SOLN_NAME+' forward first, deflection limit: 2', 3),
+            ('rand_deflect_sd_2_mice-elephant_p_0.01', RAND_DEFLECT_NAME+' deflection limit: 2', 4),
             ]
     run_suffix = ""
     single_util_plots = {
             "drop_rate": {"ylim": (0,.15)},#or (0,.1), (0,.15) at 10%, 20%
             "hop_ratio": {"ylim": (1,1.5)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -1365,19 +1379,19 @@ def plot_compare_limitless_deflect():
     experiment_name = "Compare no limit deflect algorithms"
     experiment_length = 1000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01',
-            'rand_deflect_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', OUR_SOLN_NAME+' free reign, no deflection limit', 2),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_forward_first_mice-elephant_p_0.01', OUR_SOLN_NAME+' forward first, no deflection limit', 3),
+            ('rand_deflect_mice-elephant_p_0.01', RAND_DEFLECT_NAME+' no deflection limit', 1),
+            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01', NDD_NAME+' no deflection limit', 4),
             ]
     run_suffix = ""
     single_util_plots = {
             "drop_rate": {"ylim": (0,.1)},#or (0,.02), (0,.1) at 10%, 20%
             "hop_ratio": {"ylim": (1,1.5)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -1392,26 +1406,26 @@ def plot_ndd_param_sweep():
     experiment_name = "NDD Param Sweep"
     experiment_length = 1000
     run_infixes = [
-            'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.006_e_0.023_g_0.685_mu_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.081_e_0.046_g_0.999_mu_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.002_e_0.059_g_0.996_mu_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.013_e_0.066_g_0.958_mu_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.05_e_0.012_g_0.993_mu_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.009_e_0.029_g_0.131_mu_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.021_e_0.058_g_0.997_mu_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.002_e_0.047_g_0.997_mu_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.096_e_0.01_g_0.748_mu_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.088_e_0.015_g_0.923_mu_mice-elephant_p_0.01',
+            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01', NDD_NAME+' 0.1, 0.05 0.99', 1),
+            ('NDD_Q-learning_a_0.006_e_0.023_g_0.685_mu_mice-elephant_p_0.01', NDD_NAME+' 0.006, 0.023, 0.685', 2),
+            ('NDD_Q-learning_a_0.081_e_0.046_g_0.999_mu_mice-elephant_p_0.01', NDD_NAME+' 0.081, 0.046, 0.999', 3),
+            ('NDD_Q-learning_a_0.002_e_0.059_g_0.996_mu_mice-elephant_p_0.01', NDD_NAME+' 0.002, 0.059, 0.996', 4),
+            ('NDD_Q-learning_a_0.013_e_0.066_g_0.958_mu_mice-elephant_p_0.01', NDD_NAME+' 0.013, 0.066, 0.958', 5),
+            ('NDD_Q-learning_a_0.05_e_0.012_g_0.993_mu_mice-elephant_p_0.01', NDD_NAME+' 0.05, 0.012, 0.993', 6),
+            ('NDD_Q-learning_a_0.009_e_0.029_g_0.131_mu_mice-elephant_p_0.01', NDD_NAME+' 0.009, 0.029, 0.131', 7),
+            ('NDD_Q-learning_a_0.021_e_0.058_g_0.997_mu_mice-elephant_p_0.01', NDD_NAME+' 0.021, 0.058, 0.997', 8),
+            ('NDD_Q-learning_a_0.002_e_0.047_g_0.997_mu_mice-elephant_p_0.01', NDD_NAME+' 0.002, 0.047, 0.997', 9),
+            ('NDD_Q-learning_a_0.096_e_0.01_g_0.748_mu_mice-elephant_p_0.01', NDD_NAME+' 0.096, 0.01, 0.748', 10),
+            ('NDD_Q-learning_a_0.088_e_0.015_g_0.923_mu_mice-elephant_p_0.01', NDD_NAME+' 0.088, 0.015, 0.923', 11),
             ]
     run_suffix = ""
     single_util_plots = {
             "drop_rate": {"ylim": (0,.15)},#or (0,.05), (0,.15) at 10%, 20%
             "hop_ratio": {"ylim": (1,1.5)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -1426,19 +1440,19 @@ def plot_ndd_deflect_sweep():
     experiment_name = "NDD Deflect Sweep"
     experiment_length = 1000
     run_infixes = [
-            'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_4_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_6_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
+            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01', NDD_NAME+' deflection limit: 2', 1),
+            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_4_mice-elephant_p_0.01', NDD_NAME+' deflection limit: 4', 2),
+            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_6_mice-elephant_p_0.01', NDD_NAME+' deflection limit: 6', 3),
+            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01', NDD_NAME+' deflection limit: 8', 4),
             ]
     run_suffix = ""
     single_util_plots = {
             "drop_rate": {"ylim": (0,.15)},#or (0,.05), (0,.15) at 10%, 20%
             "hop_ratio": {"ylim": (1,1.5)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -1453,10 +1467,10 @@ def plot_8_8_long():
     experiment_name = "long run"
     experiment_length = 5000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
-            'rand_forward_mice-elephant_p_0.01',
-            'rand_deflect_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', OUR_SOLN_NAME, 1),
+            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01', NDD_NAME, 2),
+            #('rand_forward_mice-elephant_p_0.01', RAND_FORWARD_NAME, 3),
+            ('rand_deflect_mice-elephant_p_0.01', RAND_DEFLECT_NAME, 4),
             ]
     run_suffix = ""
     single_util_plots = {
@@ -1489,7 +1503,7 @@ def plot_8_8_long():
     # combine reward
     utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', OUR_SOLN_NAME, 1),
             ]
     run_name_data = (run_infixes, run_suffix)
     multiple_util_reward_together(experiment_name, utilizations, net_size, run_name_data, {}, experiment_length=experiment_length)
@@ -1504,10 +1518,10 @@ def plot_16x16():
     experiment_name = "large network"
     experiment_length = 2000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
-            #'rand_forward_mice-elephant_p_0.01',
-            'rand_deflect_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', OUR_SOLN_NAME, 1),
+            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01', NDD_NAME, 2),
+            #('rand_forward_mice-elephant_p_0.01', RAND_FORWARD_NAME, 3),
+            ('rand_deflect_mice-elephant_p_0.01', RAND_DEFLECT_NAME, 4),
             ]
     run_suffix = ""
     single_util_plots = {
@@ -1536,7 +1550,7 @@ def plot_16x16():
     # combine reward
     utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', OUR_SOLN_NAME, 1),
             ]
     run_name_data = (run_infixes, run_suffix)
     multiple_util_reward_together(experiment_name, utilizations, net_size, run_name_data, {}, experiment_length=experiment_length)
@@ -1549,18 +1563,18 @@ def plot_8_3d_grid():
     experiment_name = "action dense experiments"
     experiment_length = 1000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
-            #'rand_forward_mice-elephant_p_0.01',
-            'rand_deflect_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', OUR_SOLN_NAME, 1),
+            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01', NDD_NAME, 2),
+            #('rand_forward_mice-elephant_p_0.01', RAND_FORWARD_NAME, 3),
+            ('rand_deflect_mice-elephant_p_0.01', RAND_DEFLECT_NAME, 4),
             ]
     run_suffix = ""
     single_util_plots = {
             "drop_rate": {"ylim": (0,.02)},#(0,.05) at 20%
             "hop_ratio": {"ylim": (1,1.5)},
 
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -1572,15 +1586,15 @@ def plot_8_3d_grid():
             "drop_rate": {"ylim": (0,.05)},#(0,.05) at 20%
             "hop_ratio": {"ylim": (1,1.5)},
 
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
 
     # combine reward
     utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', OUR_SOLN_NAME, 1),
             ]
     run_name_data = (run_infixes, run_suffix)
     multiple_util_reward_together(experiment_name, utilizations, net_size, run_name_data, {}, experiment_length=experiment_length)
@@ -1593,19 +1607,19 @@ def plot_3_3_hex():
     experiment_name = "sparse (3 3 hex)"
     experiment_length = 1000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
-            'rand_forward_mice-elephant_p_0.01',
-            'rand_deflect_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', OUR_SOLN_NAME, 1),
+            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01', NDD_NAME, 2),
+            ('rand_forward_mice-elephant_p_0.01', RAND_FORWARD_NAME, 3),
+            ('rand_deflect_mice-elephant_p_0.01', RAND_DEFLECT_NAME, 4),
             ]
     run_suffix = ""
     single_util_plots = {
             "drop_rate": {"ylim": (0,.1)},
             "hop_ratio": {"ylim": (1,2)},
 
-            "reward": {},
-            "entropy": {"interval": 8},
-            "action_type_entropy": {"interval": 8},
+            #"reward": {},
+            #"entropy": {"interval": 8},
+            #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -1620,10 +1634,10 @@ def plot_5_3_hex():
     experiment_name = "sparse topology"
     experiment_length = 1000
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
-            'NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01',
-            #'rand_forward_mice-elephant_p_0.01',
-            'rand_deflect_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', OUR_SOLN_NAME, 1),
+            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01', NDD_NAME, 2),
+            #('rand_forward_mice-elephant_p_0.01', RAND_FORWARD_NAME, 3),
+            ('rand_deflect_mice-elephant_p_0.01', RAND_DEFLECT_NAME, 4),
             ]
     run_suffix = ""
     single_util_plots = {
@@ -1654,7 +1668,7 @@ def plot_5_3_hex():
     # combine reward
     utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
     run_infixes = [
-            'mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01',
+            ('mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', OUR_SOLN_NAME, 1),
             ]
     run_name_data = (run_infixes, run_suffix)
     multiple_util_reward_together(experiment_name, utilizations, net_size, run_name_data, {}, experiment_length=experiment_length)
@@ -1728,6 +1742,7 @@ sample_across_util_plots = [
 ## plots ##
 ###########
 
+
 ## sweep experiments ##
 
 #plot_utilization_sweep()
@@ -1750,18 +1765,24 @@ sample_across_util_plots = [
 
 #plot_random_deflect_deflect_count()
 
+
 ## evaluation experiments ##
 
 #plot_8_8_long()
+
 #plot_update_freq_test()
-plot_prop_delay()
+
+#plot_prop_delay()
 #plot_bandwidth()
 #plot_bandwidth_all()
-#plot_16x16()
-#plot_8_3d_grid()
-#plot_5_3_hex()
 
-#cut results
+plot_16x16()
+plot_8_3d_grid()
+plot_5_3_hex()
+
+
+## cut results ##
+
 #plot_limited_deflections_free_reign()
 #plot_limited_deflections_forward_first()
 #plot_limited_deflecitons_only_forward()
