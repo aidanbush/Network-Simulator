@@ -25,122 +25,203 @@ SEM_FIGSIZE = (12,4)
 SEM_SQ_FIGSIZE = (8,4)
 output_dir = "plots"
 plot_format = "pdf"
+NUM_RUNS = 30
 
 # plot averages of multiple runs throughputs
 def multiple_run_throughput(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "Throughput mean"
-    defaults = {"ylim": (0, 300000), "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} throughput"}
+    stdev_field = "Throughput stdev"
+    defaults = {"ylim": (0, 300000), "smooth": (False, None),
+            "figsize": FIGSIZE, "title":f"{test_name} throughput", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, "Throughputs", params["ylim"], "/results.csv", net_size, run_name_data, experiment_length=experiment_length, smooth=params["smooth"], figsize=params["figsize"])
+    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+            "Throughputs", params["ylim"], "/results.csv", net_size, run_name_data,
+            experiment_length=experiment_length, smooth=params["smooth"],
+            figsize=params["figsize"], stderr=params["stderr"])
 
 def multiple_run_all_entropy(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
-    defaults = {"ylim": (0, 2), "interval": 8, "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} entropy"}
+    defaults = {"ylim": (0, 2), "interval": 8, "smooth": (False, None),
+            "figsize": FIGSIZE, "title":f"{test_name} entropy", "stderr":False}
     params = {**defaults, **params}
 
     mean_field = f"allActionsEntropy_{params['interval']} mean"
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, f"entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length, smooth=params["smooth"], figsize=params["figsize"])
+    stdev_field = f"allActionsEntropy_{params['interval']} stdev"
+    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+            f"entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data,
+            experiment_length=experiment_length, smooth=params["smooth"],
+            figsize=params["figsize"], stderr=params["stderr"])
 
 def multiple_run_deflection_entropy(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
-    defaults = {"ylim": (0, 1), "interval": 8, "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} deflection entropy"}
+    defaults = {"ylim": (0, 1), "interval": 8, "smooth": (False, None),
+            "figsize": FIGSIZE, "title":f"{test_name} deflection entropy", "stderr":False}
     params = {**defaults, **params}
 
     mean_field = f"deflectionEntropy_{params['interval']} mean"
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, f"action type entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length, smooth=params["smooth"], figsize=params["figsize"])
+    stdev_field = f"deflectionEntropy_{params['interval']} stdev"
+    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+            f"action type entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data,
+            experiment_length=experiment_length, smooth=params["smooth"],
+            figsize=params["figsize"], stderr=params["stderr"])
 
 def multiple_run_all_entropy_old(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "allActionsEntropy mean"
-    defaults = {"ylim": (0, 2), "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} entropy"}
+    stdev_field = "allActionsEntropy stdev"
+    defaults = {"ylim": (0, 2), "smooth": (False, None), "figsize": FIGSIZE,
+            "title":f"{test_name} entropy", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, "entropy", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length, smooth=params["smooth"], figsize=params["figsize"])
+    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+            "entropy", params["ylim"], "/switches.csv", net_size, run_name_data,
+            experiment_length=experiment_length, smooth=params["smooth"],
+            figsize=params["figsize"], stderr=params["stderr"])
 
 def multiple_run_deflection_entropy_old(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "deflectionEntropy mean"
-    defaults = {"ylim": (0, 1), "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} action type entropy"}
+    stdev_field = "deflectionEntropy stdev"
+    defaults = {"ylim": (0, 1), "smooth": (False, None), "figsize": FIGSIZE,
+            "title":f"{test_name} action type entropy", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, "action type entropy", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length, smooth=params["smooth"], figsize=params["figsize"])
+    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+            "action type entropy", params["ylim"], "/switches.csv", net_size, run_name_data,
+            experiment_length=experiment_length, smooth=params["smooth"],
+            figsize=params["figsize"], stderr=params["stderr"])
 
 def multiple_run_reward(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "averageReward mean"
-    defaults = {"ylim": (0, 1), "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} reward"}
+    stdev_field = "averageReward stdev"
+    defaults = {"ylim": (0, 1), "smooth": (False, None), "figsize": FIGSIZE,
+            "title":f"{test_name} reward", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, "Rewards", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length, smooth=params["smooth"], figsize=params["figsize"])
+    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+            "Rewards", params["ylim"], "/switches.csv", net_size, run_name_data,
+            experiment_length=experiment_length, smooth=params["smooth"],
+            figsize=params["figsize"], stderr=params["stderr"])
 
 def multiple_run_sent_rate(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "SentRate mean"
-    defaults = {"ylim": (0, 300000), "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} sent rate"}
+    stdev_field = "SentRate stdev"
+    defaults = {"ylim": (0, 300000), "smooth": (False, None), "figsize": FIGSIZE,
+            "title":f"{test_name} sent rate", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, "Sent Rates", params["ylim"], "/results.csv", net_size, run_name_data, experiment_length=experiment_length, smooth=params["smooth"], figsize=params["figsize"])
+    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+            "Sent Rates", params["ylim"], "/results.csv", net_size, run_name_data,
+            experiment_length=experiment_length, smooth=params["smooth"],
+            figsize=params["figsize"], stderr=params["stderr"])
 
 # plot averages of multiple runs throughputs
 def multiple_run_elephant_hop_ratio(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "elephant_HopRatio mean"
-    defaults = {"ylim": (1, 2), "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} elephant hop ratio"}
+    stdev_field = "elephant_HopRatio stdev"
+    defaults = {"ylim": (1, 2), "smooth": (False, None), "figsize": FIGSIZE,
+            "title":f"{test_name} elephant hop ratio", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, "Elephant Hop Ratios", params["ylim"], "/results.csv", net_size, run_name_data, experiment_length=experiment_length, smooth=params["smooth"], figsize=params["figsize"])
+    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+            "Elephant Hop Ratios", params["ylim"], "/results.csv", net_size, run_name_data,
+            experiment_length=experiment_length, smooth=params["smooth"],
+            figsize=params["figsize"], stderr=params["stderr"])
 
 def multiple_run_elephant_drop_rate(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "elephant_DropRate mean"
-    defaults = {"ylim": (0,.2), "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} elephant packet loss"}
+    stdev_field = "elephant_DropRate stdev"
+    defaults = {"ylim": (0,.2), "smooth": (False, None), "figsize": FIGSIZE,
+            "title":f"{test_name} elephant packet loss", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, "Elephant Packet Loss", params["ylim"], "/results.csv", net_size, run_name_data, percent_data=True, experiment_length=experiment_length, smooth=params["smooth"], figsize=params["figsize"])
+    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+            "Elephant Packet Loss", params["ylim"], "/results.csv", net_size, run_name_data,
+            percent_data=True, experiment_length=experiment_length, smooth=params["smooth"],
+            figsize=params["figsize"], stderr=params["stderr"])
 
 def multiple_run_hop_ratio(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "HopRatio mean"
-    defaults = {"ylim": (1, 2), "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} hop ratio"}
+    stdev_field = "HopRatio stdev"
+    defaults = {"ylim": (1, 2), "smooth": (False, None), "figsize": FIGSIZE,
+            "title":f"{test_name} hop ratio", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, "Hop Ratios", params["ylim"], "/results.csv", net_size, run_name_data, experiment_length=experiment_length, smooth=params["smooth"], figsize=params["figsize"])
+    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+            "Hop Ratios", params["ylim"], "/results.csv", net_size, run_name_data,
+            experiment_length=experiment_length, smooth=params["smooth"],
+            figsize=params["figsize"], stderr=params["stderr"])
 
 def multiple_run_drop_rate(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "DropRate mean"
-    defaults = {"ylim": (0, .2), "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} packet loss"}
+    stdev_field = "DropRate stdev"
+    defaults = {"ylim": (0, .2), "smooth": (False, None), "figsize": FIGSIZE,
+            "title":f"{test_name} packet loss", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, "Packet Loss", params["ylim"], "/results.csv", net_size, run_name_data, percent_data=True, experiment_length=experiment_length, smooth=params["smooth"], figsize=params["figsize"])
+    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+            "Packet Loss", params["ylim"], "/results.csv", net_size, run_name_data,
+            percent_data=True, experiment_length=experiment_length, smooth=params["smooth"],
+            figsize=params["figsize"], stderr=params["stderr"])
 
 def multiple_run_out_of_order(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "OutOfOrderRatio mean"
-    defaults = {"ylim": (0, .5), "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} out of order packets"}
+    stdev_field = "OutOfOrderRatio stdev"
+    defaults = {"ylim": (0, .5), "smooth": (False, None), "figsize": FIGSIZE,
+            "title":f"{test_name} out of order packets", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, "Out of Order Ratio", params["ylim"], "/results.csv", net_size, run_name_data, experiment_length=experiment_length, smooth=params["smooth"], figsize=params["figsize"])
+    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+            "Out of Order Ratio", params["ylim"], "/results.csv", net_size, run_name_data,
+            experiment_length=experiment_length, smooth=params["smooth"],
+            figsize=params["figsize"], stderr=params["stderr"])
 
 def multiple_run_forwarding(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "averageForwardInterfacesRatio mean"
-    defaults = {"ylim": (0,4), "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} forward action ratio"}
+    stdev_field = "averageForwardInterfacesRatio stdev"
+    defaults = {"ylim": (0,4), "smooth": (False, None), "figsize": FIGSIZE,
+            "title":f"{test_name} forward action ratio", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, "Forwarding Interfaces", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length, smooth=params["smooth"], figsize=params["figsize"])
+    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+            "Forwarding Interfaces", params["ylim"], "/switches.csv", net_size, run_name_data,
+            experiment_length=experiment_length, smooth=params["smooth"],
+            figsize=params["figsize"], stderr=params["stderr"])
 
 def multiple_util_action_type_entropy_together(test_name, utilizations, net_size, run_name_data, params, experiment_length=1000):
-    defaults = {"ylim": (0, 1), "interval": 8, "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} action type entropy"}
+    defaults = {"ylim": (0, 1), "interval": 8, "smooth": (False, None), "figsize": FIGSIZE,
+            "title":f"{test_name} action type entropy", "stderr":False}
     params = {**defaults, **params}
 
     mean_field = f"deflectionEntropy_{params['interval']} mean"
+    stdev_field = f"deflectionEntropy_{params['interval']} stdev"
 
-    multiple_util_plot(test_name, params["title"], utilizations, mean_field, f"action type entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length, smooth=params["smooth"])
+    multiple_util_plot(test_name, params["title"], utilizations, mean_field, stdev_field,
+            f"action type entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data,
+            experiment_length=experiment_length,
+            smooth=params["smooth"], stderr=params["stderr"])
 
 def multiple_util_all_entropy_together(test_name, utilizations, net_size, run_name_data, params, experiment_length=1000):
-    defaults = {"ylim": (0, 2), "interval": 8, "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} entropy"}
+    defaults = {"ylim": (0, 2), "interval": 8, "smooth": (False, None), "figsize": FIGSIZE,
+            "title":f"{test_name} entropy", "stderr":False}
     params = {**defaults, **params}
 
     mean_field = f"allActionsEntropy_{params['interval']} mean"
+    stdev_field = f"allActionsEntropy_{params['interval']} stdev"
 
-    multiple_util_plot(test_name, params["title"], utilizations, mean_field, f"entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length, smooth=params["smooth"])
+    multiple_util_plot(test_name, params["title"], utilizations, mean_field, stdev_field,
+            f"entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data,
+            experiment_length=experiment_length, smooth=params["smooth"],
+            stderr=params["stderr"])
 
 def multiple_util_reward_together(test_name, utilizations, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "averageReward mean"
-    defaults = {"ylim": (0, 1), "smooth": (False, None), "figsize": FIGSIZE, "title":f"{test_name} reward"}
+    stdev_field = "averageReward stdev"
+    defaults = {"ylim": (0, 1), "smooth": (False, None), "figsize": FIGSIZE,
+            "title":f"{test_name} reward", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_util_plot(test_name, params["title"], utilizations, mean_field, "Rewards", params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length, smooth=params["smooth"])
+    multiple_util_plot(test_name, params["title"], utilizations, mean_field, stdev_field,
+            "Rewards", params["ylim"], "/switches.csv", net_size, run_name_data,
+            experiment_length=experiment_length, figsize=params["figsize"], smooth=params["smooth"],
+            stderr=params["stderr"])
 
 def switch_link_usage_heatmap(test_name, utilization, net_size, run_name_data, start_offset, v_range):
     suffix = run_name_data[1]
@@ -327,7 +408,8 @@ def get_runs_data(filename, field_name, experiment_length, exact_match=True):
             data.append(row_data)
     return np.array(data)
 
-def multiple_run_plot(test_filename, test_title, utilization, mean_field, fig_type, ylim, file_suffix, net_size, run_name_data, percent_data=False, experiment_length=1000, smooth=(False, None), figsize=FIGSIZE):
+# TODO add stdev_field and stderr bool
+def multiple_run_plot(test_filename, test_title, utilization, mean_field, stdev_field, fig_type, ylim, file_suffix, net_size, run_name_data, percent_data=False, experiment_length=1000, smooth=(False, None), figsize=FIGSIZE, stderr=False):
     #fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization {fig_type}"
     #output_name = fig_name.replace(' ', '_')
     output_name = f"{test_filename} {net_size} Bursty {utilization} Utilization {fig_type}".replace(' ','_')
@@ -350,10 +432,14 @@ def multiple_run_plot(test_filename, test_title, utilization, mean_field, fig_ty
         plot_name = run_infix[1]
         filename = directory + run_name + file_suffix
 
-        means = []
+        mean_data = get_runs_data(filename, mean_field, experiment_length)
+        if stderr:
+            stdev_data = get_runs_data(filename, stdev_field, experiment_length)
 
-        run_data = get_runs_data(filename, mean_field, experiment_length)
-        data[plot_name] = np.nanmean(run_data,1)
+        data[plot_name] = [None,None]
+        data[plot_name][0] = np.nanmean(mean_data, 1)
+        if stderr:
+            data[plot_name][1] = np.nanmean(stdev_data, 1) / np.sqrt(NUM_RUNS)
 
         #data[run_name] = np.array(means)
 
@@ -364,10 +450,17 @@ def multiple_run_plot(test_filename, test_title, utilization, mean_field, fig_ty
     for run in sorted(data.keys()):
         run_data = data[run]
         if smooth[0] != False:
-            run_data = pd.Series(run_data).rolling(window=smooth[1], min_periods=1, center=True).mean()
+            run_data[0] = pd.Series(run_data[0]).rolling(window=smooth[1], min_periods=1, center=True).mean()
+            if stderr:
+                run_data[1] = pd.Series(run_data[1]).rolling(window=smooth[1], min_periods=1, center=True).mean()
         #why does this not always work?
-        mask = ~np.isnan(run_data)
-        plt.plot(np.arange(len(run_data))[mask], run_data[mask], label=run, alpha=0.8, linewidth=1)
+        mask = ~np.isnan(run_data[0])
+        x = np.arange(len(run_data[0]))[mask]
+        y = run_data[0][mask]
+        plt.plot(x, y, label=run, alpha=0.8, linewidth=1)
+        if stderr:
+            error = run_data[1][mask]
+            plt.fill_between(x, y - error, y + error, alpha=0.2)
 
     ax = plt.gca()  # Get current Axes
     handles, labels = ax.get_legend_handles_labels()  # Get current legend handles and labels
@@ -401,11 +494,11 @@ def multiple_run_plot(test_filename, test_title, utilization, mean_field, fig_ty
         print("failed to plot", output_name, "exception", str(e))
 
 #TODO new! this should work
-def multiple_util_plot(test_name, test_title, utilizations, mean_field, fig_type, ylim, file_suffix, net_size, run_name_data, percent_data=False, experiment_length=1000, figsize=FIGSIZE):
+def multiple_util_plot(test_filename, test_title, utilizations, mean_field, stdev_field, fig_type, ylim, file_suffix, net_size, run_name_data, percent_data=False, experiment_length=1000, smooth=(False,None), figsize=FIGSIZE, stderr=False):
     #fig_name = f"{test_name} {net_size} Bursty {fig_type}"
     #output_name = fig_name.replace(' ', '_')
-    output_name = f"{test_filename} {net_size} Bursty {utilization} Utilization {fig_type}".replace(' ','_')
-    fig_name = f"{test_title} at {float(utilization)*100:.0f}% Utilization"
+    output_name = f"{test_filename} {net_size} Bursty {fig_type}".replace(' ','_')
+    fig_name = f"{test_title}"
 
     directory = "results/"
 
@@ -422,11 +515,17 @@ def multiple_util_plot(test_name, test_title, utilizations, mean_field, fig_type
     for utilization in utilizations:
         for run_infix in run_infixes:
             run_name = get_run_name(net_size, utilization, run_infix, run_suffix)
-            plot_name = f'{run_infix[1]} util: {int(float(utilization)*100)}%'
+            plot_name = f'{run_infix[1]} util: {int(float(utilization)*100):2d}%'
             filename = directory + run_name + file_suffix
 
-            run_data = get_runs_data(filename, mean_field, experiment_length)
-            data[plot_name] = np.nanmean(run_data,1)
+            mean_data = get_runs_data(filename, mean_field, experiment_length)
+            if stderr:
+                stdev_data = get_runs_data(filename, stdev_field, experiment_length)
+
+            data[plot_name] = [None,None]
+            data[plot_name][0] = np.nanmean(mean_data, 1)
+            if stderr:
+                data[plot_name][1] = np.nanmean(stdev_data, 1) / np.sqrt(NUM_RUNS)
 
     # plot data
     plt.figure(figsize=figsize)
@@ -434,9 +533,18 @@ def multiple_util_plot(test_name, test_title, utilizations, mean_field, fig_type
 
     for run in sorted(data.keys()):
         run_data = data[run]
+        if smooth[0] != False:
+            run_data[0] = pd.Series(run_data[0]).rolling(window=smooth[1], min_periods=1, center=True).mean()
+            if stderr:
+                run_data[1] = pd.Series(run_data[1]).rolling(window=smooth[1], min_periods=1, center=True).mean()
         #why does this not always work?
-        mask = ~np.isnan(run_data)
-        plt.plot(np.arange(len(run_data))[mask], run_data[mask], label=run, alpha=0.8, linewidth=1)
+        mask = ~np.isnan(run_data[0])
+        x = np.arange(len(run_data[0]))[mask]
+        y = run_data[0][mask]
+        plt.plot(x, y, label=run, alpha=0.8, linewidth=1)
+        if stderr:
+            error = run_data[1][mask]
+            plt.fill_between(x, y - error, y + error, alpha=0.2)
 
     # new legend
     ax = plt.gca()  # Get current Axes
@@ -1776,8 +1884,8 @@ def plot_sem_state_sweep():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.2), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title": "Context Sweep Packet Loss"},#or (0,.1), (0,.2) at 10%, 20%
-            "hop_ratio": {"ylim": (1,2), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title": "Context Sweep Hop Ratio"},
+            "drop_rate": {"ylim": (0,.2), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title": "Context Selection Packet Loss", "stderr":True},#or (0,.1), (0,.2) at 10%, 20%
+            "hop_ratio": {"ylim": (1,2), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title": "Context Selection Hop Ratio", "stderr":True},
 
             #"reward": {},
             #"entropy": {"interval": 8},
@@ -1804,8 +1912,8 @@ def plot_sem_limited_deflections_deflect_count():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.05), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Deflection Count Packet Loss"},#or (0,.05), (0,.1) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Deflection Count Hop Ratio"},
+            "drop_rate": {"ylim": (0,.05), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Deflection Count Packet Loss", "stderr":True},#or (0,.05), (0,.1) at 10%, 20%
+            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Deflection Count Hop Ratio", "stderr":True},
             }
     across_util_plots = [
             ]
@@ -1827,8 +1935,8 @@ def plot_sem_limited_deflections_type():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.02), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Action Limit Packet Loss"},#or (0,.02), (0,.05) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Action Limit Hop Ratio"},
+            "drop_rate": {"ylim": (0,.02), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Action Limit Packet Loss", "stderr":True},#or (0,.02), (0,.05) at 10%, 20%
+            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Action Limit Hop Ratio", "stderr":True},
             }
     across_util_plots = [
             ]
@@ -1850,8 +1958,8 @@ def plot_sem_comparison():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.02), "smooth":(True, 20), "figsize":SEM_FIGSIZE, "title":"Baseline Comparison Packet Loss"},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
-            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 20), "figsize":SEM_FIGSIZE, "title":"Baseline Comparison Hop Ratio"},
+            "drop_rate": {"ylim": (0,.02), "smooth":(True, 20), "figsize":SEM_FIGSIZE, "title":"Baseline Comparison Packet Loss", "stderr":True},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
+            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 20), "figsize":SEM_FIGSIZE, "title":"Baseline Comparison Hop Ratio", "stderr":True},
             }
     across_util_plots = [
             ]
@@ -1873,13 +1981,23 @@ def plot_sem_utils_comparison():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.05), "smooth":(True, 5), "figsize":SEM_SQ_FIGSIZE, "title":"Baseline Comparison Packet Loss"},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
-            #"hop_ratio": {"ylim": (1,1.5), "smooth":(True, 20), "figsize":SEM_SQ_FIGSIZE, "title":"Baseline Comparison Hop Ratio"},
+            "drop_rate": {"ylim": (0,.05), "smooth":(True, 5), "figsize":SEM_SQ_FIGSIZE, "title":"Baseline Comparison Packet Loss", "stderr":True},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
+            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 20), "figsize":SEM_SQ_FIGSIZE, "title":"Baseline Comparison Hop Ratio", "stderr":True},
             }
     across_util_plots = [
             ]
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    #plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+
+    utilizations = ["0.05","0.1","0.15","0.2"]
+    run_infixes = [
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', OUR_SOLN_NAME, 1),
+            ]
+    experiment_length = 5000
+    run_name_data = (run_infixes, run_suffix)
+    multiple_util_reward_together(experiment_name, utilizations, net_size, run_name_data, {"ylim":(0.5,1), "smooth":(True,5), "figsize":SEM_FIGSIZE, "stderr":True}, experiment_length=experiment_length)
+    #multiple_util_all_entropy_together(experiment_name, utilizations, net_size, run_name_data, {"interval": 8}, experiment_length=experiment_length, "stderr":True)
+    #multiple_util_action_type_entropy_together(experiment_name, utilizations, net_size, run_name_data, {"interval": 8}, experiment_length=experiment_length, "stderr":True)
 
 def plot_sem_large():
     print("plot_sem_large")
@@ -1896,8 +2014,8 @@ def plot_sem_large():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.02), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Larger Network (16x16) Packet Loss"},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
-            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Larger Network (16x16) Hop Ratio"},
+            "drop_rate": {"ylim": (0,.02), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Larger Network (16x16) Packet Loss", "stderr":True},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
+            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Larger Network (16x16) Hop Ratio", "stderr":True},
             }
     across_util_plots = [
             ]
@@ -1919,8 +2037,8 @@ def plot_sem_3D():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.02), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"3D Topology Packet Loss"},#(0,.05) at 20%
-            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"3D Topology Hop Ratio"},
+            "drop_rate": {"ylim": (0,.02), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"3D Topology Packet Loss", "stderr":True},#(0,.05) at 20%
+            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"3D Topology Hop Ratio", "stderr":True},
 
             #"entropy": {"interval": 8},
             #"action_type_entropy": {"interval": 8},
@@ -1945,8 +2063,8 @@ def plot_sem_rings():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.05), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Rings Topology Packet Loss"},
-            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Rings Topology Hop Ratio"},
+            "drop_rate": {"ylim": (0,.05), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Rings Topology Packet Loss", "stderr":True},
+            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Rings Topology Hop Ratio", "stderr":True},
 
             #"reward": {},
             #"entropy": {"interval": 8},
@@ -1966,22 +2084,46 @@ def plot_sem_update_freq():
     experiment_name = "Update Frequency"
     experiment_length = 1000
     run_infixes = [
-            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', 'Update frequency: 1', 1),
-            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_2_mice-elephant_p_0.01', 'Update frequency: 2', 2),
-            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_4_mice-elephant_p_0.01', 'Update frequency: 4', 3),
-            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_8_mice-elephant_p_0.01', 'Update frequency: 8', 4),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', 'Update frequency:  1', 1),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_2_mice-elephant_p_0.01', 'Update frequency:  2', 2),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_4_mice-elephant_p_0.01', 'Update frequency:  4', 3),
+            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_8_mice-elephant_p_0.01', 'Update frequency:  8', 4),
             ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_16_mice-elephant_p_0.01', 'Update frequency: 16', 5),
             ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_m_ui_32_mice-elephant_p_0.01', 'Update frequency: 32', 6),
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.02), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Update Frequency (Rare Switching) Packet Loss"},#or (0,.02), (0,.1) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Update Frequency (Rare Switching) Hop Ratio"},
+            "drop_rate": {"ylim": (0,.02), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Update Frequency (Rare Switching) Packet Loss", "stderr":True},#or (0,.02), (0,.1) at 10%, 20%
+            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Update Frequency (Rare Switching) Hop Ratio", "stderr":True},
             }
     across_util_plots = [
             ]
 
     plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+
+def plot_sem_algorithm_best():
+    print("plot_algorithm_sweep_best")
+
+    # TODO currently best D-LinUCB has a run that crashes
+    net_size = "8x8"
+    utilizations = ["0.2"]
+    experiment_name = "Algorithm comparison"
+    experiment_length = 1000
+    run_infixes = [
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB, 1),
+            ("mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", MBD_ORIGINAL, 2),
+            ("mbd_slide_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", MBD_SLIDE, 3),
+            ]
+    run_suffix = ""
+    single_util_plots = {
+            "drop_rate": {"ylim": (0,.1), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Algorithm comparison Packet Loss", "stderr":True},#or (0,.02), (0,.1) at 10%, 20%
+            "hop_ratio": {"ylim": (1,1.5), "smooth":(True, 5), "figsize":SEM_FIGSIZE, "title":"Algorithm comparison Hop Ratio", "stderr":True},
+            }
+    across_util_plots = [
+            ]
+
+    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+
 
 ## samples ##
 
@@ -2099,16 +2241,15 @@ plot_5_3_hex()
 plot_sem_state_sweep()
 plot_sem_limited_deflections_deflect_count()
 plot_sem_limited_deflections_type()
+plot_sem_update_freq()
 
 plot_sem_comparison()
+plot_sem_utils_comparison()
 plot_sem_large()
 plot_sem_3D()
 plot_sem_rings()
 
-plot_sem_update_freq()
-
-#FIGSIZE = (8,4)
-plot_sem_utils_comparison()
+plot_sem_algorithm_best()
 
 ## cut results ##
 
