@@ -21,6 +21,21 @@ MBD_SLIDE = 'LinUCB Slide'
 MBD_D_LINUCB = 'D-LinUCB'
 
 FIGSIZE = (16,9)#(16/1.5,9/1.5)
+FIGSIZE_1 = (8,2)
+FIGSIZE_2 = (8,4)
+FIGSIZE_4 = (8,8)
+TOGETHER_FIGSIZE = (8,4)
+#legend adjusts for FIGSIZE_1
+#1:.1
+#2:.12
+#3:.14
+#4:
+#legend adjusts for FIGSIZE_2
+#1:.18
+#2:.22
+#3:.26
+#4:.3
+
 SEM_FIGSIZE = (12,4)
 SEM_SQ_FIGSIZE = (8,4)
 output_dir = "plots"
@@ -28,159 +43,166 @@ plot_format = "pdf"
 NUM_RUNS = 30
 
 # plot averages of multiple runs throughputs
-def multiple_run_throughput(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+def multiple_run_throughput(ax, test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "Throughput mean"
     stdev_field = "Throughput stdev"
     defaults = {"ylim": (0, 300000), "smooth": (False, None),
             "figsize": FIGSIZE, "title":f"{test_name} throughput", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+    multiple_run_plot(ax, test_name, params["title"], utilization, mean_field, stdev_field,
             "Throughputs", params["ylim"], "/results.csv", net_size, run_name_data,
             experiment_length=experiment_length, smooth=params["smooth"],
             figsize=params["figsize"], stderr=params["stderr"])
 
-def multiple_run_all_entropy(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+def multiple_run_all_entropy(ax, test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     defaults = {"ylim": (0, 2), "interval": 8, "smooth": (False, None),
             "figsize": FIGSIZE, "title":f"{test_name} entropy", "stderr":False}
     params = {**defaults, **params}
 
     mean_field = f"allActionsEntropy_{params['interval']} mean"
     stdev_field = f"allActionsEntropy_{params['interval']} stdev"
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+    multiple_run_plot(ax, test_name, params["title"], utilization, mean_field, stdev_field,
             f"entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data,
             experiment_length=experiment_length, smooth=params["smooth"],
             figsize=params["figsize"], stderr=params["stderr"])
 
-def multiple_run_deflection_entropy(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+def multiple_run_deflection_entropy(ax, test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     defaults = {"ylim": (0, 1), "interval": 8, "smooth": (False, None),
             "figsize": FIGSIZE, "title":f"{test_name} deflection entropy", "stderr":False}
     params = {**defaults, **params}
 
     mean_field = f"deflectionEntropy_{params['interval']} mean"
     stdev_field = f"deflectionEntropy_{params['interval']} stdev"
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+    multiple_run_plot(ax, test_name, params["title"], utilization, mean_field, stdev_field,
             f"action type entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data,
             experiment_length=experiment_length, smooth=params["smooth"],
             figsize=params["figsize"], stderr=params["stderr"])
 
-def multiple_run_all_entropy_old(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+def multiple_run_all_entropy_old(ax, test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "allActionsEntropy mean"
     stdev_field = "allActionsEntropy stdev"
     defaults = {"ylim": (0, 2), "smooth": (False, None), "figsize": FIGSIZE,
             "title":f"{test_name} entropy", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+    multiple_run_plot(ax, test_name, params["title"], utilization, mean_field, stdev_field,
             "entropy", params["ylim"], "/switches.csv", net_size, run_name_data,
             experiment_length=experiment_length, smooth=params["smooth"],
             figsize=params["figsize"], stderr=params["stderr"])
 
-def multiple_run_deflection_entropy_old(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+def multiple_run_deflection_entropy_old(ax, test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "deflectionEntropy mean"
     stdev_field = "deflectionEntropy stdev"
     defaults = {"ylim": (0, 1), "smooth": (False, None), "figsize": FIGSIZE,
             "title":f"{test_name} action type entropy", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+    multiple_run_plot(ax, test_name, params["title"], utilization, mean_field, stdev_field,
             "action type entropy", params["ylim"], "/switches.csv", net_size, run_name_data,
             experiment_length=experiment_length, smooth=params["smooth"],
             figsize=params["figsize"], stderr=params["stderr"])
 
-def multiple_run_reward(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+def multiple_run_reward(ax, test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "averageReward mean"
     stdev_field = "averageReward stdev"
     defaults = {"ylim": (0, 1), "smooth": (False, None), "figsize": FIGSIZE,
             "title":f"{test_name} reward", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+    multiple_run_plot(ax, test_name, params["title"], utilization, mean_field, stdev_field,
             "Rewards", params["ylim"], "/switches.csv", net_size, run_name_data,
             experiment_length=experiment_length, smooth=params["smooth"],
             figsize=params["figsize"], stderr=params["stderr"])
 
-def multiple_run_sent_rate(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+def multiple_run_sent_rate(ax, test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "SentRate mean"
     stdev_field = "SentRate stdev"
     defaults = {"ylim": (0, 300000), "smooth": (False, None), "figsize": FIGSIZE,
             "title":f"{test_name} sent rate", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+    multiple_run_plot(ax, test_name, params["title"], utilization, mean_field, stdev_field,
             "Sent Rates", params["ylim"], "/results.csv", net_size, run_name_data,
             experiment_length=experiment_length, smooth=params["smooth"],
             figsize=params["figsize"], stderr=params["stderr"])
 
 # plot averages of multiple runs throughputs
-def multiple_run_elephant_hop_ratio(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+def multiple_run_elephant_hop_ratio(ax, test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+    #TODO plot both regular and elephant
+    print("TODO plot both regular and elephant")
+    exit()
     mean_field = "elephant_HopRatio mean"
     stdev_field = "elephant_HopRatio stdev"
     defaults = {"ylim": (1, 2), "smooth": (False, None), "figsize": FIGSIZE,
             "title":f"{test_name} elephant hop ratio", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+    multiple_run_plot(ax, test_name, params["title"], utilization, mean_field, stdev_field,
             "Elephant Hop Ratios", params["ylim"], "/results.csv", net_size, run_name_data,
             experiment_length=experiment_length, smooth=params["smooth"],
             figsize=params["figsize"], stderr=params["stderr"])
 
-def multiple_run_elephant_drop_rate(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+def multiple_run_elephant_drop_rate(ax, test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+    #TODO plot both regular and elephant
+    #provide two mean fields?
+    print("TODO plot both regular and elephant")
+    exit()
     mean_field = "elephant_DropRate mean"
     stdev_field = "elephant_DropRate stdev"
     defaults = {"ylim": (0,.2), "smooth": (False, None), "figsize": FIGSIZE,
             "title":f"{test_name} elephant packet loss", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+    multiple_run_plot(ax, test_name, params["title"], utilization, mean_field, stdev_field,
             "Elephant Packet Loss", params["ylim"], "/results.csv", net_size, run_name_data,
             percent_data=True, experiment_length=experiment_length, smooth=params["smooth"],
             figsize=params["figsize"], stderr=params["stderr"])
 
-def multiple_run_hop_ratio(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+def multiple_run_hop_ratio(ax, test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "HopRatio mean"
     stdev_field = "HopRatio stdev"
     defaults = {"ylim": (1, 2), "smooth": (False, None), "figsize": FIGSIZE,
             "title":f"{test_name} hop ratio", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+    multiple_run_plot(ax, test_name, params["title"], utilization, mean_field, stdev_field,
             "Hop Ratios", params["ylim"], "/results.csv", net_size, run_name_data,
             experiment_length=experiment_length, smooth=params["smooth"],
             figsize=params["figsize"], stderr=params["stderr"])
 
-def multiple_run_drop_rate(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+def multiple_run_drop_rate(ax, test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "DropRate mean"
     stdev_field = "DropRate stdev"
     defaults = {"ylim": (0, .2), "smooth": (False, None), "figsize": FIGSIZE,
             "title":f"{test_name} packet loss", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+    multiple_run_plot(ax, test_name, params["title"], utilization, mean_field, stdev_field,
             "Packet Loss", params["ylim"], "/results.csv", net_size, run_name_data,
             percent_data=True, experiment_length=experiment_length, smooth=params["smooth"],
             figsize=params["figsize"], stderr=params["stderr"])
 
-def multiple_run_out_of_order(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+def multiple_run_out_of_order(ax, test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "OutOfOrderRatio mean"
     stdev_field = "OutOfOrderRatio stdev"
     defaults = {"ylim": (0, .5), "smooth": (False, None), "figsize": FIGSIZE,
             "title":f"{test_name} out of order packets", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+    multiple_run_plot(ax, test_name, params["title"], utilization, mean_field, stdev_field,
             "Out of Order Ratio", params["ylim"], "/results.csv", net_size, run_name_data,
             experiment_length=experiment_length, smooth=params["smooth"],
             figsize=params["figsize"], stderr=params["stderr"])
 
-def multiple_run_forwarding(test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
+def multiple_run_forwarding(ax, test_name, utilization, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "averageForwardInterfacesRatio mean"
     stdev_field = "averageForwardInterfacesRatio stdev"
     defaults = {"ylim": (0,4), "smooth": (False, None), "figsize": FIGSIZE,
             "title":f"{test_name} forward action ratio", "stderr":False}
     params = {**defaults, **params}
 
-    multiple_run_plot(test_name, params["title"], utilization, mean_field, stdev_field,
+    multiple_run_plot(ax, test_name, params["title"], utilization, mean_field, stdev_field,
             "Forwarding Interfaces", params["ylim"], "/switches.csv", net_size, run_name_data,
             experiment_length=experiment_length, smooth=params["smooth"],
             figsize=params["figsize"], stderr=params["stderr"])
@@ -194,9 +216,9 @@ def multiple_util_action_type_entropy_together(test_name, utilizations, net_size
     stdev_field = f"deflectionEntropy_{params['interval']} stdev"
 
     multiple_util_plot(test_name, params["title"], utilizations, mean_field, stdev_field,
-            f"action type entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data,
-            experiment_length=experiment_length,
-            smooth=params["smooth"], stderr=params["stderr"])
+            f"action type entropy {params['interval']}", f"Action Type Entropy {params['interval']}",
+            params["ylim"], "/switches.csv", net_size, run_name_data, experiment_length=experiment_length,
+            figsize=params["figsize"], smooth=params["smooth"], stderr=params["stderr"])
 
 def multiple_util_all_entropy_together(test_name, utilizations, net_size, run_name_data, params, experiment_length=1000):
     defaults = {"ylim": (0, 2), "interval": 8, "smooth": (False, None), "figsize": FIGSIZE,
@@ -207,19 +229,19 @@ def multiple_util_all_entropy_together(test_name, utilizations, net_size, run_na
     stdev_field = f"allActionsEntropy_{params['interval']} stdev"
 
     multiple_util_plot(test_name, params["title"], utilizations, mean_field, stdev_field,
-            f"entropy {params['interval']}", params["ylim"], "/switches.csv", net_size, run_name_data,
-            experiment_length=experiment_length, smooth=params["smooth"],
+            f"entropy {params['interval']}", f"Entropy {params['interval']}", params["ylim"], "/switches.csv",
+            net_size, run_name_data, experiment_length=experiment_length, figsize=params["figsize"], smooth=params["smooth"],
             stderr=params["stderr"])
 
 def multiple_util_reward_together(test_name, utilizations, net_size, run_name_data, params, experiment_length=1000):
     mean_field = "averageReward mean"
     stdev_field = "averageReward stdev"
-    defaults = {"ylim": (0, 1), "smooth": (False, None), "figsize": FIGSIZE,
+    defaults = {"ylim": (0.5, 1), "smooth": (False, None), "figsize": FIGSIZE,
             "title":f"{test_name} reward", "stderr":False}
     params = {**defaults, **params}
 
     multiple_util_plot(test_name, params["title"], utilizations, mean_field, stdev_field,
-            "Rewards", params["ylim"], "/switches.csv", net_size, run_name_data,
+            "Rewards", "Reward", params["ylim"], "/switches.csv", net_size, run_name_data,
             experiment_length=experiment_length, figsize=params["figsize"], smooth=params["smooth"],
             stderr=params["stderr"])
 
@@ -408,12 +430,8 @@ def get_runs_data(filename, field_name, experiment_length, exact_match=True):
             data.append(row_data)
     return np.array(data)
 
-# TODO add stdev_field and stderr bool
-def multiple_run_plot(test_filename, test_title, utilization, mean_field, stdev_field, fig_type, ylim, file_suffix, net_size, run_name_data, percent_data=False, experiment_length=1000, smooth=(False, None), figsize=FIGSIZE, stderr=False):
-    #fig_name = f"{test_name} {net_size} Bursty {utilization} Utilization {fig_type}"
-    #output_name = fig_name.replace(' ', '_')
-    output_name = f"{test_filename} {net_size} Bursty {utilization} Utilization {fig_type}".replace(' ','_')
-    fig_name = f"{test_title} at {float(utilization)*100:.0f}% Utilization"
+def multiple_run_plot(ax, test_filename, test_title, utilization, mean_field, stdev_field, fig_type, ylim, file_suffix, net_size, run_name_data, percent_data=False, experiment_length=1000, smooth=(False, None), figsize=FIGSIZE, stderr=False):
+    subfig_name = f"{float(utilization)*100:.0f}% Utilization".title()
 
     directory = "results/"
 
@@ -421,8 +439,9 @@ def multiple_run_plot(test_filename, test_title, utilization, mean_field, stdev_
     run_infixes = run_name_data[0]
     run_suffix = run_name_data[1]
 
-#TODO RUN INFIX HERE
     run_infixes = sorted(run_infixes, key=lambda t: t[-1])
+
+    data_names = []
 
     data = {}
 
@@ -437,6 +456,7 @@ def multiple_run_plot(test_filename, test_title, utilization, mean_field, stdev_
             stdev_data = get_runs_data(filename, stdev_field, experiment_length)
 
         data[plot_name] = [None,None]
+        data_names.append(plot_name)
         data[plot_name][0] = np.nanmean(mean_data, 1)
         if stderr:
             data[plot_name][1] = np.nanmean(stdev_data, 1) / np.sqrt(NUM_RUNS)
@@ -444,10 +464,10 @@ def multiple_run_plot(test_filename, test_title, utilization, mean_field, stdev_
         #data[run_name] = np.array(means)
 
     # plot data
-    plt.figure(figsize=figsize)
-    plt.title(fig_name)
+    ax.set_title(subfig_name)
 
-    for run in sorted(data.keys()):
+    #for run in sorted(data.keys()):
+    for run in data_names:
         run_data = data[run]
         if smooth[0] != False:
             run_data[0] = pd.Series(run_data[0]).rolling(window=smooth[1], min_periods=1, center=True).mean()
@@ -457,48 +477,34 @@ def multiple_run_plot(test_filename, test_title, utilization, mean_field, stdev_
         mask = ~np.isnan(run_data[0])
         x = np.arange(len(run_data[0]))[mask]
         y = run_data[0][mask]
-        plt.plot(x, y, label=run, alpha=0.8, linewidth=1)
+        ax.plot(x, y, label=run, alpha=0.8, linewidth=1)
         if stderr:
             error = run_data[1][mask]
-            plt.fill_between(x, y - error, y + error, alpha=0.2)
+            ax.fill_between(x, y - error, y + error, alpha=0.2)
 
-    ax = plt.gca()  # Get current Axes
-    handles, labels = ax.get_legend_handles_labels()  # Get current legend handles and labels
-
-    # Create custom patches for the legend
-    patches = [Patch(color=handle.get_color(), label=label) for handle, label in zip(handles, labels)]
-
-    # Add custom legend with patches
-    plt.legend(handles=patches, loc='best')
-
-    plt.ylim(bottom=ylim[0], top=ylim[1])
-    plt.grid()
+    ax.set_ylim(bottom=ylim[0], top=ylim[1])
+    ax.set_xlim(left=-1, right=experiment_length+1)
+    #ax.set_xmargin(0)
+    ax.grid()
 
     if percent_data:
-        #ax = plt.gca()
         y_ticks = ax.get_yticks()
+        ax.set_yticks(y_ticks.tolist())
         ax.set_yticklabels([f'{t * 100:.1f}%' for t in y_ticks])
 
     if smooth[0] != False:
-        plt.ylabel(fig_type + " (Smoothed)")
+        ax.set_ylabel(f"{fig_type} (Smoothed)".title())
     else:
-        plt.ylabel(fig_type)
-    plt.xlabel("Time (s)")
+        ax.set_ylabel(fig_type.title())
+    ax.set_xlabel("Time (s)")
 
-    try:
-        filepath = os.path.join(output_dir, "{}.{}".format(output_name, plot_format))
-        plt.savefig(filepath, format=plot_format)
-        plt.close()
-        print("wrote to", filepath)
-    except Exception as e:
-        print("failed to plot", output_name, "exception", str(e))
 
 #TODO new! this should work
-def multiple_util_plot(test_filename, test_title, utilizations, mean_field, stdev_field, fig_type, ylim, file_suffix, net_size, run_name_data, percent_data=False, experiment_length=1000, smooth=(False,None), figsize=FIGSIZE, stderr=False):
+def multiple_util_plot(test_filename, test_title, utilizations, mean_field, stdev_field, fig_type, ylabel, ylim, file_suffix, net_size, run_name_data, percent_data=False, experiment_length=1000, smooth=(False,None), figsize=FIGSIZE, stderr=False):
     #fig_name = f"{test_name} {net_size} Bursty {fig_type}"
     #output_name = fig_name.replace(' ', '_')
     output_name = f"{test_filename} {net_size} Bursty {fig_type}".replace(' ','_')
-    fig_name = f"{test_title}"
+    fig_name = f"{test_title}".title()
 
     directory = "results/"
 
@@ -554,7 +560,7 @@ def multiple_util_plot(test_filename, test_title, utilizations, mean_field, stde
     patches = [Patch(color=handle.get_color(), label=label) for handle, label in zip(handles, labels)]
 
     # Add custom legend with patches
-    plt.legend(handles=patches, loc='best')
+    plt.legend(handles=patches, loc='center right')
     # new legent
 
     plt.ylim(bottom=ylim[0], top=ylim[1])
@@ -566,9 +572,9 @@ def multiple_util_plot(test_filename, test_title, utilizations, mean_field, stde
         ax.set_yticklabels([f'{t * 100}%' for t in y_ticks])
 
     if smooth[0] != False:
-        plt.ylabel(fig_type + " (Smoothed)")
+        plt.ylabel(f"{ylabel} (Smoothed)".title())
     else:
-        plt.ylabel(fig_type)
+        plt.ylabel(ylabel.title())
     plt.xlabel("Time (s)")
 
     try:
@@ -669,7 +675,6 @@ def multiple_run_individual_heatmap(test_name, utilization, net_size, run_name_d
     colorbar.set_ticks(colorbar.get_ticks())
     colorbar.set_ticklabels([f'{int(t * 100)}%' for t in colorbar.get_ticks()])
 
-
     try:
         filepath = os.path.join(output_dir, "{}.{}".format(output_name, plot_format))
         plt.savefig(filepath, format=plot_format)
@@ -679,13 +684,10 @@ def multiple_run_individual_heatmap(test_name, utilization, net_size, run_name_d
 
     plt.close()
 
-#def plot_across_utils(test_name, utilizations, field, fig_type, ylim, file_suffix, net_size, run_name_data, exact_match=True, include_stdev=True, include_min_max=False, stdev_not_mean=False, experiment_length=1000):
-def plot_across_utils(test_name, utilizations, net_size, run_name_data, experiment_length, params):
-    #defaults = {"field": None, "fig_type":None, "ylim":None, "file_suffix":"", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False, "percent_data":False}
-    #params = {**defaults, **params}
-
+def plot_across_utils(test_name, plot_name, utilizations, net_size, run_name_data, experiment_length, params):
     field = params["field"]
     fig_type = params["fig_type"]
+    ylabel = params["ylabel"]
     ylim = params["ylim"]
     file_suffix = params["file_suffix"]
     exact_match = params["exact_match"]
@@ -693,6 +695,7 @@ def plot_across_utils(test_name, utilizations, net_size, run_name_data, experime
     include_min_max = params["include_min_max"]
     stdev_not_mean = params["stdev_not_mean"]
     percent_data = params["percent_data"]
+    figsize = params["figsize"]
 
     fig_name = f"{test_name} {net_size} Bursty {fig_type}"
     output_name = fig_name.replace(' ', '_')
@@ -716,11 +719,11 @@ def plot_across_utils(test_name, utilizations, net_size, run_name_data, experime
     for run_infix in run_infixes:
         # for util
         run_name = get_no_util_run_name(net_size, run_infix, run_suffix)
-        plot_name = run_infix[1]
-        means[plot_name] = []
-        stdevs[plot_name] = []
-        mins[plot_name] = []
-        maxs[plot_name] = []
+        run_label = run_infix[1]
+        means[run_label] = []
+        stdevs[run_label] = []
+        mins[run_label] = []
+        maxs[run_label] = []
 
         for util in utilizations:
             file_run_name = get_run_name(net_size, util, run_infix, run_suffix)
@@ -729,30 +732,26 @@ def plot_across_utils(test_name, utilizations, net_size, run_name_data, experime
             run_data = get_runs_data(filename, field, experiment_length, exact_match=exact_match)
             # only look at second half
             run_data = run_data[run_data.shape[0]//2:]
-            means[plot_name].append(np.nanmean(run_data))
-            stdevs[plot_name].append(np.nanstd(run_data))
+            means[run_label].append(np.nanmean(run_data))
+            stdevs[run_label].append(np.nanstd(run_data))
 
-            #TODO these min and max are incorrect
             if len(run_data.shape) > 1:
-                mins[plot_name].append(np.nanmin(run_data))
-                maxs[plot_name].append(np.nanmax(run_data))
+                mins[run_label].append(np.nanmin(run_data))
+                maxs[run_label].append(np.nanmax(run_data))
             else:
-                mins[plot_name].append(run_data.min())
-                maxs[plot_name].append(run_data.max())
+                mins[run_label].append(run_data.min())
+                maxs[run_label].append(run_data.max())
 
-        means[plot_name] = np.array(means[plot_name])
-        stdevs[plot_name] = np.array(stdevs[plot_name])
-        mins[plot_name] = np.array(mins[plot_name])
-        maxs[plot_name] = np.array(maxs[plot_name])
+        means[run_label] = np.array(means[run_label])
+        stdevs[run_label] = np.array(stdevs[run_label])
+        mins[run_label] = np.array(mins[run_label])
+        maxs[run_label] = np.array(maxs[run_label])
 
-    plt.figure(figsize=FIGSIZE)
-    plt.title(fig_name)
+    plt.figure(figsize=figsize)
 
-    # TODO here
     loc = np.arange(len(utilizations))
     width = 1 / (len(means.keys())+1)
 
-    #for run in sorted(means.keys()):
     for i, run in enumerate(sorted(means.keys())):
         #plt.plot(utilizations, means[run], label=run, alpha=.9)
         yerr_min_max = None
@@ -762,7 +761,6 @@ def plot_across_utils(test_name, utilizations, net_size, run_name_data, experime
         if include_min_max:
             yerr_min_max = np.stack([means[run] - mins[run], maxs[run] - means[run]])
 
-        # TODO plot min and max if enabled
         x = means[run]
         if stdev_not_mean:
             x = stdevs[run]
@@ -776,6 +774,8 @@ def plot_across_utils(test_name, utilizations, net_size, run_name_data, experime
         plt.errorbar(loc + offset, x, yerr=yerr_min_max, fmt='none', ecolor='black', capsize=5)
 
 
+    plt.title(plot_name)
+    plt.ylabel(ylabel)
     plt.legend()
 
     plt.ylim(bottom=ylim[0], top=ylim[1])
@@ -807,28 +807,28 @@ def get_run_name(net_size, utilization, infix, suffix):
 
 def get_single_util_func(name):
     mappings = {
-            "hop_ratio": multiple_run_hop_ratio,
-            "elephant_hop_ratio": multiple_run_elephant_hop_ratio,
-            "drop_rate": multiple_run_drop_rate,
-            "elephant_drop_rate": multiple_run_elephant_drop_rate,
+            "hop_ratio": (multiple_run_hop_ratio, "hop-ratio"),
+            "elephant_hop_ratio": (multiple_run_elephant_hop_ratio, "elephant hop-ratio"),
+            "drop_rate": (multiple_run_drop_rate, "packet loss"),
+            "elephant_drop_rate": (multiple_run_elephant_drop_rate, "elephant packet loss"),
 
-            "throughput": multiple_run_throughput,
-            "sent_rate": multiple_run_sent_rate,
+            "throughput": (multiple_run_throughput, "throughput"),
+            "sent_rate": (multiple_run_sent_rate, "sent rate"),
 
-            "link_usage": multiple_run_link_usage,
-            "forwarding_links": multiple_run_forwarding,
+            "link_usage": (multiple_run_link_usage, "link usage"),
+            "forwarding_links": (multiple_run_forwarding, "forwarding links" ),
 
-            "reward": multiple_run_reward,
-            "entropy": multiple_run_all_entropy,
-            "action_type_entropy": multiple_run_deflection_entropy,
+            "reward": (multiple_run_reward, "reward"),
+            "entropy": (multiple_run_all_entropy, "entropy"),
+            "action_type_entropy": (multiple_run_deflection_entropy, "deflection entropy"),
 
-            "entropy_old": multiple_run_all_entropy_old,
-            "action_type_entropy_old": multiple_run_deflection_entropy_old,
+            "entropy_old": (multiple_run_all_entropy_old, "entropy"),
+            "action_type_entropy_old": (multiple_run_deflection_entropy_old, "deflection entropy"),
 
-            "out_of_order": multiple_run_out_of_order, # unsupported
+            "out_of_order": (multiple_run_out_of_order, "out of order packets"), # unsupported
 
-            "switch_usage_heatmap": switch_link_usage_heatmap, # 2d grid only
-            "switch_usage_plots": switch_link_usage_grid_plots, # 2d grid only
+            "switch_usage_heatmap": (switch_link_usage_heatmap, "switch usage"), # 2d grid only
+            "switch_usage_plots": (switch_link_usage_grid_plots, "switch usage"), # 2d grid only
             }
 
     if name in mappings:
@@ -837,25 +837,63 @@ def get_single_util_func(name):
     print(f"  Plot '{name}' not found")
     print("############################################")
 
-def plot_data(experiment_name, topology, utils, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots):
+#legend_cols = 3
+#legend_adjust=.1,.25
+def plot_data(experiment_name, plot_name, topology, utils, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols):
     #single_util_plots = {name: {params}}
     run_name_data = (run_infixes, run_suffix)
-    for util in utils:
-        for name, params in single_util_plots.items():
-            func = get_single_util_func(name)
-            func(experiment_name, util, topology, run_name_data, params, experiment_length=experiment_length)
-            #TODO change entropy, y_lim, etc to be in a dict of paramters
+    for name, params_list in single_util_plots.items():
+        fig, axs = plt.subplots(nrows=len(utils), figsize=figsize)#, constrained_layout=True)
+
+        func, plot_type = get_single_util_func(name)
+
+        for i, util in enumerate(utils):
+            ax = axs
+            if len(utils) != 1:
+                ax = axs[i]
+            params = params_list[i]
+            func(ax, experiment_name, util, topology, run_name_data, params, experiment_length=experiment_length)
+            if i != len(utils) - 1:
+                ax.set_xlabel("")
+
+        # Create custom patches for the legend
+        ax = plt.gca()  # Get current Axes
+        handles, labels = ax.get_legend_handles_labels()  # Get current legend handles and labels
+        patches = [Patch(color=handle.get_color(), label=label) for handle, label in zip(handles, labels)]
+
+        output_name = f"{experiment_name} {topology} Bursty {name}".replace(' ','_')
+        fig_name = f"{plot_name} {plot_type.title()}"
+        fig.suptitle(fig_name)
+        fig.tight_layout()
+
+        fig.legend(handles=patches, loc='lower center', ncols=legend_cols)#, bbox_to_anchor=(0.5, -0.05))
+        fig.subplots_adjust(bottom=legend_adjust)
+        fig_width, fig_height = fig.get_size_inches()
+        fig.set_size_inches(fig_width, fig_height + figsize[1]*legend_adjust)
+
+        try:
+            filepath = os.path.join(output_dir, "{}.{}".format(output_name, plot_format))
+            plt.savefig(filepath, format=plot_format)
+            plt.close()
+            print("wrote to", filepath)
+        except Exception as e:
+            print("failed to plot", output_name, "exception", str(e))
+
     #across_util_plots = [{params}, ...]
     for params in across_util_plots:
-        plot_across_utils(experiment_name, utils, topology, run_name_data, experiment_length, params)
+        plot_across_utils(experiment_name, plot_name, utils, topology, run_name_data, experiment_length, params)
         #TODO change field, fig_type/name, file_suffix, entropy, y_lim, etc to be in a dict of paramters
 
 def plot_utilization_sweep():
     print("plot_utilization_sweep")
 
+    figsize = TOGETHER_FIGSIZE
+    legend_adjust = .22
+    legend_cols = 3
     net_size = "8x8"
     utilizations = ["0.05","0.1","0.15","0.2","0.25"]
     experiment_name = "Utilization Sweep"
+    plot_name = "Utilization Evaluation"
     experiment_length = 1000
     run_infixes = [
             ("rand_forward_mice-elephant_p_0.01", RAND_FORWARD_NAME, 1),
@@ -868,32 +906,36 @@ def plot_utilization_sweep():
             #"hop_ratio": {"ylim": (1,1.5)},
             }
     across_util_plots = [
-            {"field": "DropRate mean", "fig_type": "Packet Loss", "ylim": (0,.3), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False, "percent_data":True},
-            {"field": "mean", "fig_type":"Link Usage", "ylim":(0,.5), "file_suffix":"/links.csv", "exact_match":False, "include_stdev":True, "include_min_max": True, "stdev_not_mean":False, "percent_data":True},
+            {"field": "DropRate mean", "fig_type": "Packet Loss", "ylabel": "Packet Loss", "ylim": (0,.3), "file_suffix": "/results.csv", "exact_match":True, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False, "percent_data":True, "figsize": figsize},
+            {"field": "mean", "fig_type":"Link Usage", "ylabel": "Link Usage", "ylim":(0,.5), "file_suffix":"/links.csv", "exact_match":False, "include_stdev":True, "include_min_max": False, "stdev_not_mean":False, "percent_data":True, "figsize": figsize},
             ]
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
 def plot_algorithm_sweep_original():
     print("plot_algorithm_sweep_original")
 
+    figsize = FIGSIZE_2
+    legend_adjust = .22
+    legend_cols = 3
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
     experiment_name = "Algorithm Sweep Original"
+    plot_name = "Original"
     experiment_length = 1000
     run_infixes = [
-            ("mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", MBD_ORIGINAL +" 1.0, 1.0", 1),
+            ("mbd_original_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", "1.0, 1.0", 1),
 
-            ("mbd_original_s_[1_hop_shortest,section]_r_0.37_d_0.96_sd_-1_ei_5_mice-elephant_p_0.01", MBD_ORIGINAL+" 0.37, 0.96", 2),
-            ("mbd_original_s_[1_hop_shortest,section]_r_0.7_d_0.97_sd_-1_ei_5_mice-elephant_p_0.01", MBD_ORIGINAL+" 0.7, 0.97", 3),
-            ("mbd_original_s_[1_hop_shortest,section]_r_0.86_d_0.66_sd_-1_ei_5_mice-elephant_p_0.01", MBD_ORIGINAL+" 0.86, 0.66", 4),
-            ("mbd_original_s_[1_hop_shortest,section]_r_0.95_d_0.62_sd_-1_ei_5_mice-elephant_p_0.01", MBD_ORIGINAL+" 0.95, 0.62", 5),
-            ("mbd_original_s_[1_hop_shortest,section]_r_1.2_d_0.9_sd_-1_ei_5_mice-elephant_p_0.01", MBD_ORIGINAL+" 1.2, 0.9", 6),
+            ("mbd_original_s_[1_hop_shortest,section]_r_0.37_d_0.96_sd_-1_ei_5_mice-elephant_p_0.01", "0.37, 0.96", 2),
+            ("mbd_original_s_[1_hop_shortest,section]_r_0.7_d_0.97_sd_-1_ei_5_mice-elephant_p_0.01", "0.7, 0.97", 3),
+            ("mbd_original_s_[1_hop_shortest,section]_r_0.86_d_0.66_sd_-1_ei_5_mice-elephant_p_0.01", "0.86, 0.66", 4),
+            ("mbd_original_s_[1_hop_shortest,section]_r_0.95_d_0.62_sd_-1_ei_5_mice-elephant_p_0.01", "0.95, 0.62", 5),
+            ("mbd_original_s_[1_hop_shortest,section]_r_1.2_d_0.9_sd_-1_ei_5_mice-elephant_p_0.01", "1.2, 0.9", 6),
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.05)},#or (0,.02), (0,.05) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
+            "drop_rate": [{"ylim": (0,.05)}]*2,#or (0,.02), (0,.05) at 10%, 20%
+            "hop_ratio": [{"ylim": (1,1.5)}]*4,
 
             #"entropy": {"interval": 8},
             #"action_type_entropy": {"interval": 8},
@@ -901,28 +943,32 @@ def plot_algorithm_sweep_original():
     across_util_plots = [
             ]
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
 def plot_algorithm_sweep_slide():
     print("plot_algorithm_sweep_slide")
 
+    figsize = FIGSIZE_2
+    legend_adjust = .22
+    legend_cols = 3
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
     experiment_name = "Algorithm Sweep Slide"
+    plot_name = "Slide"
     experiment_length = 1000
     run_infixes = [
-            ("mbd_slide_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", MBD_SLIDE+" 1.0, 1.0", 1),
+            ("mbd_slide_s_[1_hop_shortest,section]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", "1.0, 1.0", 1),
 
-            ("mbd_slide_s_[1_hop_shortest,section]_r_0.37_d_0.96_sd_-1_ei_5_mice-elephant_p_0.01", MBD_SLIDE+" 0.37, 0.96", 2),
-            ("mbd_slide_s_[1_hop_shortest,section]_r_0.7_d_0.97_sd_-1_ei_5_mice-elephant_p_0.01", MBD_SLIDE+" 0.7, 0.97", 3),
-            ("mbd_slide_s_[1_hop_shortest,section]_r_0.86_d_0.66_sd_-1_ei_5_mice-elephant_p_0.01", MBD_SLIDE+" 0.86, 0.66", 4),
-            ("mbd_slide_s_[1_hop_shortest,section]_r_0.95_d_0.62_sd_-1_ei_5_mice-elephant_p_0.01", MBD_SLIDE+" 0.95 0.62", 5),
-            ("mbd_slide_s_[1_hop_shortest,section]_r_1.2_d_0.9_sd_-1_ei_5_mice-elephant_p_0.01", MBD_SLIDE+" 1.2, 0.9", 6),
+            ("mbd_slide_s_[1_hop_shortest,section]_r_0.37_d_0.96_sd_-1_ei_5_mice-elephant_p_0.01", "0.37, 0.96", 2),
+            ("mbd_slide_s_[1_hop_shortest,section]_r_0.7_d_0.97_sd_-1_ei_5_mice-elephant_p_0.01", "0.7, 0.97", 3),
+            ("mbd_slide_s_[1_hop_shortest,section]_r_0.86_d_0.66_sd_-1_ei_5_mice-elephant_p_0.01", "0.86, 0.66", 4),
+            ("mbd_slide_s_[1_hop_shortest,section]_r_0.95_d_0.62_sd_-1_ei_5_mice-elephant_p_0.01", "0.95 0.62", 5),
+            ("mbd_slide_s_[1_hop_shortest,section]_r_1.2_d_0.9_sd_-1_ei_5_mice-elephant_p_0.01", "1.2, 0.9", 6),
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.05)},#or (0,.02), (0,.05) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
+            "drop_rate": [{"ylim": (0,.05)}]*2,#or (0,.02), (0,.05) at 10%, 20%
+            "hop_ratio": [{"ylim": (1,1.5)}]*4,
 
             #"entropy": {"interval": 8},
             #"action_type_entropy": {"interval": 8},
@@ -930,34 +976,38 @@ def plot_algorithm_sweep_slide():
     across_util_plots = [
             ]
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
 def plot_algorithm_sweep_D_LinUCB():
     print("plot_algorithm_sweep_D_LinUCB")
 
+    figsize = FIGSIZE_2
+    legend_adjust = .3
+    legend_cols = 3
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
     experiment_name = "Algorithm Sweep D-LinUCB"
+    plot_name = "D-LinUCB"
     experiment_length = 1000
     run_infixes = [
-            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.99999, 1.0, 1.0", 1),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", r"$\gamma$ 0.99999, $\lambda$ 1.0, $\delta$ 1.0", 1),
 
-            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.7_d_0.97_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.999, 0.7, 0.97", 2),
-            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.9999_r_1.2_d_0.9_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.9999, 1.2, 0.9", 3),
-            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.86_d_0.66_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.999, 0.86, 0.66", 4),
-            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.37_d_0.96_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.999, 0.37, 0.96", 5),
-            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_0.95_d_0.62_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.9999, 0.95, 0.62", 6),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.7_d_0.97_sd_-1_ei_5_mice-elephant_p_0.01", r"$\gamma$ 0.999, $\lambda$ 0.7, $\delta$ 0.97", 2),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.9999_r_1.2_d_0.9_sd_-1_ei_5_mice-elephant_p_0.01", r"$\gamma$ 0.9999, $\lambda$ 1.2, $\delta$ 0.9", 3),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.86_d_0.66_sd_-1_ei_5_mice-elephant_p_0.01", r"$\gamma$ 0.999, $\lambda$ 0.86, $\delta$ 0.66", 4),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.37_d_0.96_sd_-1_ei_5_mice-elephant_p_0.01", r"$\gamma$ 0.999, $\lambda$ 0.37, $\delta$ 0.96", 5),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_0.95_d_0.62_sd_-1_ei_5_mice-elephant_p_0.01", r"$\gamma$ 0.9999, $\lambda$ 0.95, $\delta$ 0.62", 6),
 
-            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.26_d_0.99_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.99999, 1.26, 0.99", 7),
-            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.9999_r_1.96_d_0.99_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.9999, 1.96, 0.99", 8),
-            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.57_d_0.71_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.999, 0.57, 0.71", 9),
-            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.76_d_0.78_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.99999, 1.76, 0.78", 10),
-            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.93_d_0.54_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.999, 0.93, 0.54", 11),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.26_d_0.99_sd_-1_ei_5_mice-elephant_p_0.01", r"$\gamma$ 0.99999, $\lambda$ 1.26, $\delta$ 0.99", 7),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.9999_r_1.96_d_0.99_sd_-1_ei_5_mice-elephant_p_0.01", r"$\gamma$ 0.9999, $\lambda$ 1.96, $\delta$ 0.99", 8),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.57_d_0.71_sd_-1_ei_5_mice-elephant_p_0.01", r"$\gamma$ 0.999, $\lambda$ 0.57, $\delta$ 0.71", 9),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.76_d_0.78_sd_-1_ei_5_mice-elephant_p_0.01", r"$\gamma$ 0.99999, $\lambda$ 1.76, $\delta$ 0.78", 10),
+            ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.999_r_0.93_d_0.54_sd_-1_ei_5_mice-elephant_p_0.01", r"$\gamma$ 0.999, $\lambda$ 0.93, $\delta$ 0.54", 11),
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.2)},#or (0,.2), (0,>.2) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
+            "drop_rate": [{"ylim": (0,.2)}]*2,#or (0,.2), (0,>.2) at 10%, 20%
+            "hop_ratio": [{"ylim": (1,1.5)}]*4,
 
             #"entropy": {"interval": 8},
             #"action_type_entropy": {"interval": 8},
@@ -965,15 +1015,19 @@ def plot_algorithm_sweep_D_LinUCB():
     across_util_plots = [
             ]
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
 def plot_algorithm_sweep_best():
     print("plot_algorithm_sweep_best")
 
     # TODO currently best D-LinUCB has a run that crashes
+    figsize = FIGSIZE_2
+    legend_adjust = .18
+    legend_cols = 3
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
     experiment_name = "Algorithm Sweep Best"
+    plot_name = "Algorithm Evaluation Best"
     experiment_length = 1000
     run_infixes = [
             ("mbd_D-LinUCB_s_[1_hop_shortest,section]_df_0.99999_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01", MBD_D_LINUCB+" 0.99999, 1.0, 1.0", 1),
@@ -982,8 +1036,8 @@ def plot_algorithm_sweep_best():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.1)},#or (0,.02), (0,.05) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
+            "drop_rate": [{"ylim": (0,.1)}]*2,#or (0,.02), (0,.05) at 10%, 20%
+            "hop_ratio": [{"ylim": (1,1.5)}]*2,
 
             #"entropy": {"interval": 8},
             #"action_type_entropy": {"interval": 8},
@@ -991,14 +1045,18 @@ def plot_algorithm_sweep_best():
     across_util_plots = [
             ]
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
 def plot_state_sweep_8x8():
     print("plot_state_sweep_8x8")
 
+    figsize = FIGSIZE_2
+    legend_adjust = .22
+    legend_cols = 3
     net_size = "8x8"
     utilizations = ["0.1","0.2"]
     experiment_name = "State Sweep"
+    plot_name = "State Evaluation (8x8)"
     experiment_length = 1000
     run_infixes = [
             ('mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', '1-hop', 1),
@@ -1009,24 +1067,28 @@ def plot_state_sweep_8x8():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.05)},#or (0,.02), (0,.05) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
+            "drop_rate": [{"ylim": (0,.05)}]*2,#or (0,.02), (0,.05) at 10%, 20%
+            "hop_ratio": [{"ylim": (1,1.5)}]*2,
 
-            "reward": {},
+            "reward": [{}]*2,
             #"entropy": {"interval": 8},
             #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
 def plot_state_sweep_16x16():
     print("plot_state_sweep_16x16")
 
+    figsize = FIGSIZE_2
+    legend_adjust = .22
+    legend_cols = 3
     net_size = "16x16"
-    utilizations = ["0.1","0.2"][1:2]
+    utilizations = ["0.2"]
     experiment_name = "State Sweep"
+    plot_name = "State Evaluation (16x16)"
     experiment_length = 2000
     run_infixes = [
             ('mbd_original_s_[1_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', '1-hop', 1),
@@ -1037,17 +1099,17 @@ def plot_state_sweep_16x16():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.2)},#or (0,.1), (0,.2) at 10%, 20%
-            "hop_ratio": {"ylim": (1,2)},
+            "drop_rate": [{"ylim": (0,.2)}],#or (0,.1), (0,.2) at 10%, 20%
+            "hop_ratio": [{"ylim": (1,2)}],
 
-            "reward": {},
+            "reward": [{}],
             #"entropy": {"interval": 8},
             #"action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
 def plot_dlrl_poster():
     print("plot_dlrl_poster")
@@ -1216,12 +1278,12 @@ def plot_limited_deflections_best():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.05)},#or (0,.02), (0,.05) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
+            #"drop_rate": {"ylim": (0,.05)},#or (0,.02), (0,.05) at 10%, 20%
+            #"hop_ratio": {"ylim": (1,1.5)},
 
-            #"reward": {},
-            #"entropy": {"interval": 8},
-            #"action_type_entropy": {"interval": 8},
+            "reward": {},
+            "entropy": {"interval": 8},
+            "action_type_entropy": {"interval": 8},
             }
     across_util_plots = [
             ]
@@ -1256,9 +1318,13 @@ def plot_limited_deflections_best_cut():
 def plot_prop_delay():
     print("plot_prop_delay")
 
+    figsize = FIGSIZE_4
+    legend_adjust = .12
+    legend_cols = 3
     net_size = "8x8"
     #utilizations = ["0.05","0.1","0.15","0.2"][0:4]
     experiment_name = "Propagation delay experiments"
+    plot_name = "Propagation Delay"
     experiment_length = 1000
     run_suffix = ""
     single_util_plots = {
@@ -1268,7 +1334,7 @@ def plot_prop_delay():
     across_util_plots = [
             ]
 
-    utilizations = ["0.05","0.1","0.15","0.2"][0:1]
+    utilizations = ["0.05","0.1","0.15","0.2"]
     run_infixes = [
             ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.001', OUR_SOLN_NAME+' 1ms', 1),
             ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', OUR_SOLN_NAME+' 10ms', 2),
@@ -1276,58 +1342,26 @@ def plot_prop_delay():
             ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_1.0', OUR_SOLN_NAME+' 1s', 4),
             ]
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.05)},#or (0,.05), (0,.2) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
+            "drop_rate": [{"ylim": (0,.05)},{"ylim": (0,.05)},{"ylim": (0,.2)},{"ylim": (0,.2)}],#or (0,.05), (0,.2) at 10%, 20%
+            "hop_ratio": [{"ylim": (1,1.5)}]*4,
             }
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
-
-    utilizations = ["0.05","0.1","0.15","0.2"][2:3]
-    single_util_plots = {
-            "drop_rate": {"ylim": (0,.2)},#or (0,.05), (0,.2) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
-            }
-
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
-
-    utilizations = ["0.1","0.2"][0:2]
-    utilizations = ["0.05","0.1","0.15","0.2"][1:2]
-    run_infixes = [
-            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.001', OUR_SOLN_NAME+ ' 1ms', 1),
-            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', OUR_SOLN_NAME+' 10ms', 2),
-            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.1', OUR_SOLN_NAME+' 100ms', 3),
-            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_1.0', OUR_SOLN_NAME+ ' 1s', 4),
-            ]
-    single_util_plots = {
-            "drop_rate": {"ylim": (0,.05)},#or (0,.05), (0,.2) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
-            }
-
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
-
-    utilizations = ["0.05","0.1","0.15","0.2"][3:4]
-    single_util_plots = {
-            "drop_rate": {"ylim": (0,.2)},#or (0,.05), (0,.2) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
-            }
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
 def plot_prop_delay_baselines():
     print("plot_prop_delay_baselines")
 
+    figsize = FIGSIZE_4
+    legend_adjust = .14
+    legend_cols = 3
     net_size = "8x8"
     #utilizations = ["0.05","0.1","0.15","0.2"][0:4]
     experiment_name = "Propagation delay experiments with NDD"
+    plot_name = "Propagation Delay with Baselines"
     experiment_length = 1000
     run_suffix = ""
-    single_util_plots = {
-            "drop_rate": {"ylim": (0,.2)},#or (0,.05), (0,.2) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
-            }
-    across_util_plots = [
-            ]
 
-    utilizations = ["0.05","0.1","0.15","0.2"][0:1]
+    utilizations = ["0.05","0.1","0.15","0.2"]
     run_infixes = [
             ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.001', OUR_SOLN_NAME+' 1ms', 1),
             ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', OUR_SOLN_NAME+' 10ms', 2),
@@ -1340,53 +1374,24 @@ def plot_prop_delay_baselines():
             ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_1.0', NDD_NAME+' 1s', 8),
             ]
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.05)},#or (0,.05), (0,.2) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
+            "drop_rate": [{"ylim": (0,.05)},{"ylim": (0,.05)},{"ylim": (0,.2)},{"ylim": (0,.2)}],#or (0,.05), (0,.2) at 10%, 20%
+            "hop_ratio": [{"ylim": (1,1.5)}]*4,
             }
-
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
-
-    utilizations = ["0.05","0.1","0.15","0.2"][2:3]
-    single_util_plots = {
-            "drop_rate": {"ylim": (0,.2)},#or (0,.05), (0,.2) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
-            }
-
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
-
-    utilizations = ["0.1","0.2"][0:2]
-    utilizations = ["0.05","0.1","0.15","0.2"][1:2]
-    run_infixes = [
-            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.001', OUR_SOLN_NAME+ ' 1ms', 1),
-            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.01', OUR_SOLN_NAME+' 10ms', 2),
-            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_0.1', OUR_SOLN_NAME+' 100ms', 3),
-            ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_5_mice-elephant_p_1.0', OUR_SOLN_NAME+ ' 1s', 4),
-
-            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.001', NDD_NAME+' 1ms', 5),
-            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.01', NDD_NAME+' 10ms', 6),
-            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_0.1', NDD_NAME+' 100ms', 7),
-            ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_dc_8_mice-elephant_p_1.0', NDD_NAME+' 1s', 8),
+    across_util_plots = [
             ]
-    single_util_plots = {
-            "drop_rate": {"ylim": (0,.05)},#or (0,.05), (0,.2) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
-            }
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
-
-    utilizations = ["0.05","0.1","0.15","0.2"][3:4]
-    single_util_plots = {
-            "drop_rate": {"ylim": (0,.2)},#or (0,.05), (0,.2) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
-            }
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
 def plot_bandwidth():
     print("plot_bandwidth")
 
+    figsize = FIGSIZE_4
+    legend_adjust = .1
+    legend_cols = 3
     net_size = "8x8"
-    utilizations = ["0.05","0.1","0.15","0.2"][:2]
+    utilizations = ["0.05","0.1","0.15","0.2"]
     experiment_name = "bandwidth experiments"
+    plot_name = "Bandwidth Evaluation"
     experiment_length = 1000
     run_infixes = [
             ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01_b_0.5', OUR_SOLN_NAME+' 0.5x bandwidth', 1),
@@ -1407,8 +1412,8 @@ def plot_bandwidth():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.02)},#or (0,.02), (0,.05) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
+            "drop_rate": [{"ylim": (0,.02)},{"ylim": (0,.02)},{"ylim": (0,.05)},{"ylim": (0,.05)},],#or (0,.02), (0,.05) at 10%, 20%
+            "hop_ratio": [{"ylim": (1,1.5)}]*4,
 
             #"reward": {},
             #"entropy": {"interval": 8},
@@ -1417,25 +1422,18 @@ def plot_bandwidth():
     across_util_plots = [
             ]
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
-
-    utilizations = ["0.05","0.1","0.15","0.2"][2:]
-    single_util_plots = {
-            "drop_rate": {"ylim": (0,.05)},#or (0,.02), (0,.05) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
-
-            #"reward": {},
-            #"entropy": {"interval": 8},
-            #"action_type_entropy": {"interval": 8},
-            }
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
 def plot_bandwidth_all():
     print("plot_bandwidth_all")
 
+    figsize = FIGSIZE_4
+    legend_adjust = .12
+    legend_cols = 3
     net_size = "8x8"
-    utilizations = ["0.05","0.1","0.15","0.2"][:2]
+    utilizations = ["0.05","0.1","0.15","0.2"]
     experiment_name = "bandwidth experiments all"
+    plot_name = "Bandwidth Evaluation Baselines"
     experiment_length = 1000
     run_infixes = [
             ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01_b_0.5', OUR_SOLN_NAME+' 0.5x bandwidth', 1),
@@ -1456,27 +1454,25 @@ def plot_bandwidth_all():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.02)},#or (0,.02), (0,.05) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
+            "drop_rate": [{"ylim": (0,.02)},{"ylim": (0,.02)},{"ylim": (0,.05)},{"ylim": (0,.04)},],#or (0,.02), (0,.05) at 10%, 20%
+            "hop_ratio": [{"ylim": (1,1.5)}]*4,
             }
     across_util_plots = [
             ]
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
-
-    utilizations = ["0.05","0.1","0.15","0.2"][2:]
-    single_util_plots = {
-            "drop_rate": {"ylim": (0,.05)},#or (0,.02), (0,.05) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
-            }
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
 def plot_update_freq_test():
     print("plot_update_freq_test")
 
+    together_figsize = TOGETHER_FIGSIZE
+    figsize = FIGSIZE_4
+    legend_adjust = .12
+    legend_cols = 3
     net_size = "8x8"
-    utilizations = ["0.05","0.1","0.15","0.2"][:2]
+    utilizations = ["0.05","0.1","0.15","0.2"]
     experiment_name = "Update Frequency test"
+    plot_name = "Update Frequency Evaluation"
     experiment_length = 1000
     run_infixes = [
             ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', 'Update frequency: 1', 1),
@@ -1488,35 +1484,31 @@ def plot_update_freq_test():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.02)},#or (0,.02), (0,.1) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
+            "drop_rate": [{"ylim": (0,.02)},{"ylim": (0,.02)},{"ylim": (0,.05)},{"ylim": (0,.05)}],
+            "hop_ratio": [{"ylim": (1,1.5)}]*4,
             }
     across_util_plots = [
             ]
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
-
-    utilizations = ["0.05","0.1","0.15","0.2"][2:]
-    single_util_plots = {
-            "drop_rate": {"ylim": (0,.05)},#or (0,.02), (0,.1) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
-            }
-
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
     utilizations = ["0.05","0.1","0.15","0.2"]
     run_name_data = (run_infixes, run_suffix)
 
-    multiple_util_reward_together(experiment_name, utilizations, net_size, run_name_data, {}, experiment_length=experiment_length)
-    multiple_util_all_entropy_together(experiment_name, utilizations, net_size, run_name_data, {"interval": 8}, experiment_length=experiment_length)
-    multiple_util_action_type_entropy_together(experiment_name, utilizations, net_size, run_name_data, {"interval": 8}, experiment_length=experiment_length)
+    #multiple_util_reward_together(experiment_name, utilizations, net_size, run_name_data, {"figsize": together_figsize}, experiment_length=experiment_length)
+    #multiple_util_all_entropy_together(experiment_name, utilizations, net_size, run_name_data, {"interval": 8,"figsize": together_figsize}, experiment_length=experiment_length)
+    #multiple_util_action_type_entropy_together(experiment_name, utilizations, net_size, run_name_data, {"interval": 8,"figsize": together_figsize}, experiment_length=experiment_length)
 
 def plot_random_deflect_deflect_count():
     print("plot_random_deflect_deflect_count")
 
+    figsize = FIGSIZE_2
+    legend_adjust = .22
+    legend_cols = 3
     net_size = "8x8"
-    utilizations = ["0.1","0.2"][0:1]
+    utilizations = ["0.1","0.2"]
     experiment_name = "Random Deflect Deflect Count Test"
+    plot_name = "Random Deflect Deflection Count Evaluation"
     experiment_length = 1000
     run_infixes = [
             ('rand_deflect_mice-elephant_p_0.01', 'no deflection limit', 1),
@@ -1527,8 +1519,8 @@ def plot_random_deflect_deflect_count():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.15)},#or (0,.05), (0,.15) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
+            "drop_rate": [{"ylim": (0,.05)}, {"ylim": (0,.15)}],
+            "hop_ratio": [{"ylim": (1,1.5)}]*2,
 
             #"reward": {},
             #"entropy": {"interval": 8},
@@ -1537,7 +1529,7 @@ def plot_random_deflect_deflect_count():
     across_util_plots = [
             ]
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
 def plot_compare_2_deflect():
     print("plot_compare_2_deflect")
@@ -1596,9 +1588,13 @@ def plot_compare_limitless_deflect():
 def plot_ndd_param_sweep():
     print("plot_ndd_param_sweep")
 
+    figsize = FIGSIZE_2
+    legend_adjust = .3
+    legend_cols = 3
     net_size = "8x8"
     utilizations = ["0.1","0.2"][0:2]
     experiment_name = "NDD Param Sweep"
+    plot_name = "NDD Param Evaluation"
     experiment_length = 1000
     run_infixes = [
             ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01', NDD_NAME+' 0.1, 0.05 0.99', 1),
@@ -1615,8 +1611,8 @@ def plot_ndd_param_sweep():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.15)},#or (0,.05), (0,.15) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
+            "drop_rate": [{"ylim": (0,.05)}, {"ylim": (0,.15)}],
+            "hop_ratio": [{"ylim": (1,1.5)}]*2,
 
             #"reward": {},
             #"entropy": {"interval": 8},
@@ -1625,14 +1621,18 @@ def plot_ndd_param_sweep():
     across_util_plots = [
             ]
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
 def plot_ndd_deflect_sweep():
     print("plot_ndd_deflect_sweep")
 
+    figsize = FIGSIZE_2
+    legend_adjust = .22
+    legend_cols = 3
     net_size = "8x8"
     utilizations = ["0.1","0.2"][0:2]
     experiment_name = "NDD Deflect Sweep"
+    plot_name = "NDD Deflection Count Evaluation"
     experiment_length = 1000
     run_infixes = [
             ('NDD_Q-learning_a_0.1_e_0.05_g_0.99_mu_mice-elephant_p_0.01', NDD_NAME+' deflection limit: 2', 1),
@@ -1642,8 +1642,8 @@ def plot_ndd_deflect_sweep():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.15)},#or (0,.05), (0,.15) at 10%, 20%
-            "hop_ratio": {"ylim": (1,1.5)},
+            "drop_rate": [{"ylim": (0,.05)}, {"ylim": (0,.15)}],
+            "hop_ratio": [{"ylim": (1,1.5)}]*2,
 
             #"reward": {},
             #"entropy": {"interval": 8},
@@ -1652,14 +1652,19 @@ def plot_ndd_deflect_sweep():
     across_util_plots = [
             ]
 
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
 def plot_8_8_long():
     print("plot_8_8_long")
 
+    together_figsize = TOGETHER_FIGSIZE
+    figsize = FIGSIZE_4
+    legend_adjust = .1
+    legend_cols = 3
     net_size = "8x8"
     utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
     experiment_name = "long run"
+    plot_name = "Long Run"
     experiment_length = 5000
     run_infixes = [
             ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', OUR_SOLN_NAME, 1),
@@ -1669,31 +1674,16 @@ def plot_8_8_long():
             ]
     run_suffix = ""
     single_util_plots = {
-            "drop_rate": {"ylim": (0,.02)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
-            "hop_ratio": {"ylim": (1,1.5)},
+            "drop_rate": [{"ylim": (0,.02)}, {"ylim": (0,.02)}, {"ylim": (0,.04)}, {"ylim": (0,.04)}],
+            #(0,.01) at 5 and 10 (0,0.4) at 15 and 20
+            "hop_ratio": [{"ylim": (1,1.5)}]*4,
+            #"elephant_drop_rate": {"ylim": (0,.04)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
+            #"elephant_hop_ratio": {"ylim": (1,1.5)},
             }
     across_util_plots = [
             ]
 
-    # 5 + 10 for single
-    utilizations = ["0.05","0.1", "0.15", "0.2"][0:2]
-    single_util_plots = {
-            "drop_rate": {"ylim": (0,.02)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
-            "elephant_drop_rate": {"ylim": (0,.02)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
-            "hop_ratio": {"ylim": (1,1.5)},
-            "elephant_hop_ratio": {"ylim": (1,1.5)},
-            }
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
-
-    # 15 + 20 for single
-    utilizations = ["0.05","0.1", "0.15", "0.2"][2:4]
-    single_util_plots = {
-            "drop_rate": {"ylim": (0,.04)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
-            "elephant_drop_rate": {"ylim": (0,.04)},#(0,.01) at 5 and 10 (0,0.4) at 15 and 20
-            "hop_ratio": {"ylim": (1,1.5)},
-            "elephant_hop_ratio": {"ylim": (1,1.5)},
-            }
-    plot_data(experiment_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots)
+    plot_data(experiment_name, plot_name, net_size, utilizations, run_infixes, run_suffix, experiment_length, single_util_plots, across_util_plots, figsize, legend_adjust, legend_cols)
 
     # combine reward
     utilizations = ["0.05","0.1", "0.15", "0.2"][0:4]
@@ -1701,9 +1691,9 @@ def plot_8_8_long():
             ('mbd_original_s_[1_hop_shortest,2_hop_shortest]_r_1.0_d_1.0_sd_-1_ei_1,2,4,6,8_mice-elephant_p_0.01', OUR_SOLN_NAME, 1),
             ]
     run_name_data = (run_infixes, run_suffix)
-    multiple_util_reward_together(experiment_name, utilizations, net_size, run_name_data, {}, experiment_length=experiment_length)
-    multiple_util_all_entropy_together(experiment_name, utilizations, net_size, run_name_data, {"interval": 8}, experiment_length=experiment_length)
-    multiple_util_action_type_entropy_together(experiment_name, utilizations, net_size, run_name_data, {"interval": 8}, experiment_length=experiment_length)
+    multiple_util_reward_together(experiment_name, utilizations, net_size, run_name_data, {"figsize": together_figsize}, experiment_length=experiment_length)
+    multiple_util_all_entropy_together(experiment_name, utilizations, net_size, run_name_data, {"figsize": together_figsize, "interval": 8}, experiment_length=experiment_length)
+    multiple_util_action_type_entropy_together(experiment_name, utilizations, net_size, run_name_data, {"figsize": together_figsize, "interval": 8}, experiment_length=experiment_length)
 
 def plot_16x16():
     print("plot_16x16")
@@ -2196,6 +2186,7 @@ sample_across_util_plots = [
 
 
 ## sweep experiments ##
+
 '''
 plot_utilization_sweep()
 
@@ -2209,10 +2200,11 @@ plot_state_sweep_16x16()
 '''
 
 #plot_dlrl_poster()
-'''
-plot_limited_deflections_free_reign()
-plot_limited_deflections_best()
 
+#plot_limited_deflections_free_reign()
+#plot_limited_deflections_best()
+
+'''
 plot_ndd_param_sweep()
 plot_ndd_deflect_sweep()
 
@@ -2220,6 +2212,9 @@ plot_random_deflect_deflect_count()
 '''
 
 ## evaluation experiments ##
+plot_bandwidth()
+plot_bandwidth_all()
+
 '''
 plot_8_8_long()
 
@@ -2238,18 +2233,18 @@ plot_5_3_hex()
 ## seminar ##
 #FIGSIZE = (12,4)
 
-plot_sem_state_sweep()
-plot_sem_limited_deflections_deflect_count()
-plot_sem_limited_deflections_type()
-plot_sem_update_freq()
+#plot_sem_state_sweep()
+#plot_sem_limited_deflections_deflect_count()
+#plot_sem_limited_deflections_type()
+#plot_sem_update_freq()
 
-plot_sem_comparison()
-plot_sem_utils_comparison()
-plot_sem_large()
-plot_sem_3D()
-plot_sem_rings()
+#plot_sem_comparison()
+#plot_sem_utils_comparison()
+#plot_sem_large()
+#plot_sem_3D()
+#plot_sem_rings()
 
-plot_sem_algorithm_best()
+#plot_sem_algorithm_best()
 
 ## cut results ##
 
